@@ -1,2 +1,2 @@
-require("perkelator.core") 
+require("perkelator.core")
 require("perkelator.lazy")
