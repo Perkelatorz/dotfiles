@@ -1,0 +1,292 @@
+---
+- name: Configure Arch Linux System
+  hosts: all
+  become: yes
+  vars:
+    yadm_repo: "https://github.com/Perkelatorz/dotfiles"
+    yadm_install_packages:
+      - git
+      - yadm
+    user_name: your_username
+    hostname: my_arch_linux
+    timezone: America/New_York
+    essential_packages:
+      - base-devel
+      - accountsservice
+      - alsa-firmware
+      - alsa-plugins
+      - alsa-utils
+      - amd-ucode
+      - arandr
+      - archlinux-xdg-menu
+      - asciiquarium
+      - aspell
+      - autorandr
+      - b43-fwcutter
+      - base
+      - base-devel
+      - bash-completion
+      - bind
+      - bitwarden
+      - bluez
+      - bluez-utils
+      - btop
+      - btrfs-progs
+      - chromium
+      - dex
+      - discord
+      - dmidecode
+      - dmraid
+      - dnsmasq
+      - dosfstools
+      - downgrade
+      - duf
+      - efibootmgr
+      - efitools
+      - endeavouros-keyring
+      - endeavouros-mirrorlist
+      - eos-apps-info
+      - eos-dracut
+      - eos-hooks
+      - eos-log-tool
+      - eos-packagelist
+      - eos-quickstart
+      - eos-rankmirrors
+      - esh
+      - ethtool
+      - exfat-utils
+      - f2fs-tools
+      - fastfetch
+      - feh
+      - ffmpegthumbnailer
+      - firefox
+      - firewalld
+      - freecad
+      - github-cli
+      - glances
+      - grub
+      - gst-libav
+      - gst-plugins-bad
+      - gst-plugins-ugly
+      - gvfs-nfs
+      - gvfs-smb
+      - haveged
+      - hddtemp
+      - hdparm
+      - hwdetect
+      - hwinfo
+      - i2c-tools
+      - inetutils
+      - inxi
+      - iwd
+      - jfsutils
+      - kitty
+      - libappindicator-gtk3
+      - libdvdcss
+      - libgsf
+      - libopenraw
+      - libwnck3
+      - linux-firmware
+      - linux-headers
+      - logrotate
+      - lsb-release
+      - lsscsi
+      - lua51
+      - luarocks
+      - lvm2
+      - lxappearance
+      - lxrandr-gtk3
+      - man-pages
+      - meld
+      - mesa-utils
+      - modemmanager
+      - mtools
+      - nano-syntax-highlighting
+      - neovim
+      - netctl
+      - networkmanager
+      - networkmanager-openconnect
+      - networkmanager-openvpn
+      - nfs-utils
+      - nilfs-utils
+      - noto-fonts-cjk
+      - noto-fonts-emoji
+      - noto-fonts-extra
+      - npm
+      - nss-mdns
+      - ntfs-3g
+      - ntp
+      - nvidia
+      - nvidia-hook
+      - nvidia-inst
+      - nvidia-settings
+      - obsidian
+      - os-prober
+      - otf-opendyslexic-nerd
+      - pasystray
+      - pavucontrol
+      - pcmanfm-gtk3
+      - picom
+      - pipewire-alsa
+      - pipewire-pulse
+      - pkgfile
+      - plocate
+      - poppler-glib
+      - power-profiles-daemon
+      - pv
+      - python-j2cli
+      - python-pygments
+      - python-pynvim
+      - python-pyqt5
+      - rebuild-detector
+      - reflector-simple
+      - reiserfsprogs
+      - rlwrap
+      - rsync
+      - rtkit
+      - sg3_utils
+      - smartmontools
+      - s-nail
+      - sof-firmware
+      - tldr
+      - tmux
+      - ttf-opensans
+      - ttf-sourcecodepro-nerd
+      - udiskie
+      - unrar
+      - usb_modeswitch
+      - vi
+      - vicious
+      - welcome
+      - wget
+      - wireless_tools
+      - xarchiver
+      - xclip
+      - xdg-user-dirs
+      - xf86-video-amdgpu
+      - xf86-video-ati
+      - xf86-video-vesa
+      - xfsprogs
+      - xl2tpd
+      - xorg-bdftopcf
+      - xorg-docs
+      - xorg-fonts-100dpi
+      - xorg-fonts-75dpi
+      - xorg-font-util
+      - xorg-iceauth
+      - xorg-mkfontscale
+      - xorg-server
+      - xorg-server-devel
+      - xorg-server-xephyr
+      - xorg-server-xnest
+      - xorg-server-xvfb
+      - xorg-sessreg
+      - xorg-smproxy
+      - xorg-x11perf
+      - xorg-xbacklight
+      - xorg-xcmsdb
+      - xorg-xcursorgen
+      - xorg-xdriinfo
+      - xorg-xev
+      - xorg-xgamma
+      - xorg-xhost
+      - xorg-xinit
+      - xorg-xinput
+      - xorg-xkbevd
+      - xorg-xkbutils
+      - xorg-xkill
+      - xorg-xlsatoms
+      - xorg-xlsclients
+      - xorg-xpr
+      - xorg-xrefresh
+      - xorg-xsetroot
+      - xorg-xvinfo
+      - xorg-xwayland
+      - xorg-xwd
+      - xorg-xwininfo
+      - xorg-xwud
+      - xsel
+      - xsettingsd
+      - xterm
+      - yadm
+      - yay
+    aur_helper: yay
+    aur_packages:
+      - awesome-freedesktop-git
+      - openrgb-git
+      - powershell-bin
+      - python-pywal16
+      - rustdesk-bin
+      - spotify
+      - wpgtk
+
+  tasks:
+    - name: Update the system
+      pacman:
+        update_cache: yes
+        upgrade: yes
+
+    - name: Install essential packages
+      pacman:
+        name: "{{ essential_packages }}"
+        state: present
+
+    - name: Install dependencies for AUR helper
+      pacman:
+        name:
+          - base-devel
+          - git
+        state: present
+
+    - name: Clone yay from AUR
+      git:
+        repo: "https://aur.archlinux.org/yay.git"
+        dest: /tmp/yay
+
+    - name: Build and install yay
+      command: makepkg -si
+      args:
+        chdir: /tmp/yay
+
+    - name: Install AUR packages using yay
+      become_user: "{{ ansible_user }}"
+      shell: "{{ aur_helper }} -S --noconfirm {{ item }}"
+      loop: "{{ aur_packages }}"
+
+    - name: Clean up yay build files
+      file:
+        path: /tmp/yay
+        state: absent
+
+    - name: Enable and start sshd service
+      systemd:
+        name: sshd
+        enabled: yes
+        state: started
+
+    - name: Set timezone
+      command: timedatectl set-timezone "{{ timezone }}"
+
+    - name: Set hostname
+      hostname:
+        name: "{{ hostname }}"
+
+    - name: Install yadm and git
+      pacman:
+        name: "{{ yadm_install_packages }}"
+        state: present
+
+    - name: Initialize yadm (if not already initialized)
+      command: yadm init
+      args:
+        creates: "{{ ansible_env.HOME }}/.yadm"
+
+    - name: Clone dotfiles repository
+      command: yadm clone "{{ yadm_repo }}"
+      args:
+        creates: "{{ ansible_env.HOME }}/.yadm"
+
+    - name: Pull the latest changes from the dotfiles repository
+      command: yadm pull
+      args:
+        chdir: "{{ ansible_env.HOME }}"
