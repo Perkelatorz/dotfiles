@@ -40,6 +40,9 @@ return {
 				"vimdoc",
 				"c",
 				"xml",
+				"terraform",
+				"hcl",
+				"c_sharp",
 			},
 			incremental_selection = {
 				enable = true,

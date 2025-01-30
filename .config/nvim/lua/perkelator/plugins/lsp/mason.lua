@@ -35,6 +35,9 @@ return {
 				"ansiblels",
 				"dockerls",
 				"lemminx",
+				"terraformls",
+				"tflint",
+				"omnisharp",
 			},
 		})
 

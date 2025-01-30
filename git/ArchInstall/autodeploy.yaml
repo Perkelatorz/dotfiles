@@ -1,14 +1,14 @@
 ---
 - name: Configure Arch Linux System
-  hosts: all
+  hosts: localhost 
   become: yes
   vars:
     yadm_repo: "https://github.com/Perkelatorz/dotfiles"
     yadm_install_packages:
       - git
       - yadm
-    user_name: your_username
-    hostname: my_arch_linux
+    user_name: perkelator 
+    hostname: Rodimus
     timezone: America/New_York
     essential_packages:
       - base-devel

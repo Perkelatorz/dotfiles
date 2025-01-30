@@ -50,13 +50,10 @@ fi
 
 nvidia-settings --load-config-only &
 setxkbmap -option caps:escape_shifted_capslock
-<<<<<<< HEAD
 ./.screenlayout/screens.sh &
 discord &
 spotify &
 
-=======
 picom &
->>>>>>> 2f4f672b071e7a9eabfa1c6dadce59f54b739e5e
 exec awesome
 
