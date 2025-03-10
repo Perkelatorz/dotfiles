@@ -3,7 +3,10 @@ return {
 	branch = "0.1.x",
 	dependencies = {
 		"nvim-lua/plenary.nvim",
-		{ "nvim-telescope/telescope-fzf-native.nvim", build = "make" },
+		{
+			"nvim-telescope/telescope-fzf-native.nvim",
+			build = "cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=Release && cmake --build build --config Release",
+		},
 		"nvim-tree/nvim-web-devicons",
 		"folke/todo-comments.nvim",
 	},
@@ -45,7 +48,7 @@ return {
 				-- select_current = true,
 				layout_config = {
 					-- Set preview width, 0.7 sets it to 70% of the window width
-					preview_width = 0.45,
+					preview_width = 0.7,
 				},
 			}))
 		end, { desc = "[P]Open telescope buffers" })

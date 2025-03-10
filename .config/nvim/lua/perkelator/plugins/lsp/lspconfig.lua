@@ -105,6 +105,11 @@ return {
 			["powershell_es"] = function()
 				lspconfig["powershell_es"].setup({
 					bundle_path = vim.fn.stdpath("data") .. "/mason/packages/powershell-editor-services",
+					--root_dir = function()
+					--	return vim.fn.getcwd()
+					--	end,
+					single_file_support = true,
+					--	shell = "powershell.exe",
 				})
 			end,
 		})

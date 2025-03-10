@@ -1,7 +1,5 @@
 return {
 	"nvim-treesitter/nvim-treesitter",
-	event = { "BufReadPre", "BufNewFile" },
-	build = ":TSUpdate",
 	dependencies = {
 		"windwp/nvim-ts-autotag",
 	},
@@ -14,6 +12,7 @@ return {
 			highlight = {
 				enable = true,
 			},
+			sync_install = false,
 
 			-- enable indentation
 			indent = { enable = true },
