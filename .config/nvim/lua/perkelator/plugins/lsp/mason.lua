@@ -38,6 +38,12 @@ return {
 				"terraformls",
 				"tflint",
 				"omnisharp",
+				"jsonls",
+				"eslint",
+				"ts_ls",
+				"bashls",
+				"docker_compose_language_service",
+				"typos_lsp",
 			},
 		})
 

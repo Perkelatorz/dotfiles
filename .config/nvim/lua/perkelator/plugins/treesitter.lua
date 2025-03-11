@@ -42,6 +42,9 @@ return {
 				"terraform",
 				"hcl",
 				"c_sharp",
+				"json",
+				"tsx",
+				"typescript",
 			},
 			incremental_selection = {
 				enable = true,
