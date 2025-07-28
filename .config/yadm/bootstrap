@@ -1,0 +1,100 @@
+#!/bin/bash
+# Stop on first error
+set -e
+
+# --- Function to Display Help Message (same as before) ---
+display_help() {
+    # ... (no changes needed here)
+    echo "Usage: $0 --profile <name> --cpu <vendor> --gpu <vendor> [options]"
+    echo
+    echo "   -p, --profile <name>      Select a configuration profile."
+    echo "                             Profiles: work, personal, laptop, desktop"
+    echo "   -c, --cpu <vendor>        Select CPU microcode."
+    echo "                             Vendors: amd, intel"
+    echo "   -g, --gpu <vendor>        Select GPU drivers."
+    echo "                             Vendors: nvidia, amd, intel"
+    echo "   -h, --help                Display this help message."
+    echo
+    echo "Example: $0 --profile laptop --cpu amd --gpu nvidia"
+    exit 0
+}
+
+# --- Argument Parsing (same as before) ---
+PROFILE=""
+CPU_VENDOR=""
+GPU_VENDOR=""
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        -p|--profile) PROFILE="$2"; shift ;;
+        -c|--cpu) CPU_VENDOR="$2"; shift ;;
+        -g|--gpu) GPU_VENDOR="$2"; shift ;;
+        -h|--help) display_help ;;
+        *) echo "Unknown parameter passed: $1"; display_help; exit 1 ;;
+    esac
+    shift
+done
+
+if [[ -z "$PROFILE" || -z "$CPU_VENDOR" || -z "$GPU_VENDOR" ]]; then
+    echo "Error: --profile, --cpu, and --gpu flags are required."
+    display_help
+    exit 1
+fi
+
+echo "🚀 Starting Arch Linux setup..."
+# ... (rest of info messages)
+
+# --- AUR Helper (same as before) ---
+# ... (no changes needed here)
+
+# --- Build Final Package Lists from Files ---
+final_packages=()
+final_aur=()
+
+# Define the path to your package lists
+# Yadm executes bootstrap from ~, so we can use a direct path
+PKG_DIR="$HOME/.config/yadm/packages"
+
+# List of file prefixes to load based on flags
+declare -a file_prefixes=("core" "cpu_$CPU_VENDOR" "gpu_$GPU_VENDOR" "profile_$PROFILE")
+
+# If the profile is "laptop", also load "personal" packages
+if [[ "$PROFILE" == "laptop" ]]; then
+    file_prefixes+=("profile_personal")
+fi
+
+echo "Reading package lists..."
+for prefix in "${file_prefixes[@]}"; do
+    repo_file="$PKG_DIR/$prefix.pkgs"
+    aur_file="$PKG_DIR/$prefix.aur"
+
+    if [[ -f "$repo_file" ]]; then
+        echo " -> Loading $repo_file"
+        # mapfile reads lines from a file into an array
+        mapfile -t -O "${#final_packages[@]}" final_packages < "$repo_file"
+    fi
+
+    if [[ -f "$aur_file" ]]; then
+        echo " -> Loading $aur_file"
+        mapfile -t -O "${#final_aur[@]}" final_aur < "$aur_file"
+    fi
+done
+
+# --- Installation ---
+if [ ${#final_packages[@]} -gt 0 ]; then
+    echo "Installing ${#final_packages[@]} Pacman packages..."
+    sudo pacman -Syu --needed --noconfirm "${final_packages[@]}"
+else
+    echo "No Pacman packages to install."
+fi
+
+if [ ${#final_aur[@]} -gt 0 ]; then
+    echo "Installing ${#final_aur[@]} AUR packages..."
+    yay -S --needed --noconfirm "${final_aur[@]}"
+else
+    echo "No AUR packages to install."
+fi
+
+# --- Enable Services (same as before) ---
+# ... (no changes needed here)
+
+echo "✅ Setup complete!"

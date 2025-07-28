@@ -1,0 +1,21 @@
+/* Import the wpgtk-generated theme */
+@import "./wpg.rasi"
+
+configuration {
+    /* You can still have your personal Rofi settings here */
+    modi: "drun,run,window";
+    show-icons: true;
+    terminal: "kitty";
+    drun-display-format: "{name}";
+    location: 0;
+    disable-history: false;
+}
+
+/* You can also override specific elements from your wpgtk theme here */
+/* For example, to make the selected entry's background a solid color */
+/*
+element-text selected {
+    background-color: @selected;
+    text-color:       @background;
+}
+*/

@@ -1,0 +1,103 @@
+#waybar {
+    background: transparent;
+    color: {color7};
+    font-family: "JetBrainsMono Nerd Font", sans-serif;
+    font-size: 14px;
+}
+
+#workspaces,
+#scratchpad,
+#custom-media,
+#window,
+#mpd,
+#idle_inhibitor,
+#pulseaudio,
+#network,
+#power-profiles-daemon,
+#cpu,
+#memory,
+#temperature,
+#backlight,
+#keyboard-state,
+#language,
+#battery,
+#battery\\#bat2,
+#clock,
+#tray,
+#custom-power {
+    border: none;
+    min-height: 0;
+    background-color: transparent;
+    padding: 2px 12px;
+    margin: 4px 5px;
+    border-radius: 15px;
+}
+
+#clock,
+#tray,
+#window {
+    background-color: {color0}B3;
+    color: {color15};
+}
+
+#cpu,
+#memory,
+#temperature {
+    background-color: {color4}B3;
+    color: {color15};
+}
+
+#pulseaudio,
+#custom-media,
+#mpd {
+    background-color: {color2}B3;
+    color: {color0};
+}
+
+#network,
+#battery,
+#power-profiles-daemon,
+#custom-power {
+    background-color: {color5}B3;
+    color: {color15};
+}
+
+#keyboard-state,
+#language,
+#idle_inhibitor {
+    background-color: {color3}B3;
+    color: {color0};
+}
+
+#workspaces {
+    background-color: {color0}B3;
+    padding: 2px 8px;
+}
+
+#workspaces button {
+    color: {color6};
+    padding: 0px 4px;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+}
+
+#workspaces button:hover {
+    background-color: {color8}4D;
+    color: {color14};
+}
+
+#workspaces button.empty {
+    color: {color8};
+}
+
+#workspaces button.active {
+    background-color: {color6};
+    color: {color0};
+    padding: 0px 8px;
+}
+
+#workspaces button.urgent {
+    background-color: {color1};
+    color: {color15};
+}
+
