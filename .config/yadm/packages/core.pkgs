@@ -1,3 +1,4 @@
+fzf
 7zip
 accountsservice
 alsa-firmware
@@ -192,7 +193,7 @@ waybar
 welcome
 wget
 which
-wireplumber
+wireplumberfzf
 wl-clip-persist
 wl-clipboard
 wpa_supplicant
