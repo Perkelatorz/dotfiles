@@ -8,14 +8,19 @@ echo "🚀 Starting Arch Linux Setup..."
 
 echo "🔄 Installing core system tools (git, fzf, etc.)..."
 
-# Read ONLY the core packages file
-mapfile -t core_packages < "$PKG_DIR/core.pkgs"
+# Check if core.pkgs exists and read it
+if [[ -f "$PKG_DIR/core.pkgs" ]]; then
+    # Read ONLY the core packages file, filtering out empty lines and comments
+    mapfile -t core_packages < <(grep -v '^#' "$PKG_DIR/core.pkgs" | grep -v '^$')
 
-if [ ${#core_packages[@]} -gt 0 ]; then
-    # --needed prevents re-installing packages that are already up-to-date
-    sudo pacman -Syu --needed --noconfirm "${core_packages[@]}"
+    if [ ${#core_packages[@]} -gt 0 ]; then
+        # --needed prevents re-installing packages that are already up-to-date
+        sudo pacman -Syu --needed --noconfirm "${core_packages[@]}"
+    else
+        echo "No core packages defined. Skipping."
+    fi
 else
-    echo "No core packages defined. Skipping."
+    echo "⚠️  Warning: $PKG_DIR/core.pkgs not found. Skipping core package installation."
 fi
 
 echo "✅ Core tools are ready."
@@ -40,17 +45,21 @@ fi
 # --- Process Selections ---
 echo "✅ Selections confirmed. Building remaining package lists..."
 
-while IFS= read -r selection; dofzf
+while IFS= read -r selection; do
     repo_file="$PKG_DIR/$selection"
     aur_file="$PKG_DIR/${selection%.*}.aur"
 
     if [[ -f "$repo_file" ]]; then
         echo " -> Loading packages from $repo_file"
-        mapfile -t -O "${#final_packages[@]}" final_packages < "$repo_file"
+        # Filter out empty lines and comments when reading package files
+        mapfile -t temp_packages < <(grep -v '^#' "$repo_file" | grep -v '^$')
+        final_packages+=("${temp_packages[@]}")
     fi
     if [[ -f "$aur_file" ]]; then
         echo " -> Loading packages from $aur_file"
-        mapfile -t -O "${#final_aur[@]}" final_aur < "$aur_file"
+        # Filter out empty lines and comments when reading AUR package files
+        mapfile -t temp_aur < <(grep -v '^#' "$aur_file" | grep -v '^$')
+        final_aur+=("${temp_aur[@]}")
     fi
 done <<< "$selections"
 
@@ -60,20 +69,24 @@ done <<< "$selections"
 # Install yay AUR Helper if any AUR packages were selected
 if [ ${#final_aur[@]} -gt 0 ]; then
     if ! command -v yay &> /dev/null; then
-        echo " AUR packages selected. Installing 'yay' helper..."
+        echo "🔧 AUR packages selected. Installing 'yay' helper..."
         git clone https://aur.archlinux.org/yay.git /tmp/yay
         (cd /tmp/yay && makepkg -si --noconfirm)
         rm -rf /tmp/yay
+        echo "✅ yay installed successfully."
+    else
+        echo "✅ yay is already installed."
     fi
 fi
 
 if [ ${#final_packages[@]} -gt 0 ]; then
-    echo "Installing ${#final_packages[@]} selected Pacman packages..."
+    echo "📦 Installing ${#final_packages[@]} selected Pacman packages..."
     sudo pacman -S --needed --noconfirm "${final_packages[@]}"
+    echo "✅ Pacman packages installed."
 fi
 
 if [ ${#final_aur[@]} -gt 0 ]; then
-    echo "Installing ${#final_aur[@]} selected AUR packages..."
+    echo "🏗️  Installing ${#final_aur[@]} selected AUR packages..."
     yay -S --needed --noconfirm "${final_aur[@]}"
 fi
 
