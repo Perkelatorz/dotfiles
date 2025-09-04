@@ -6,7 +6,7 @@
 # ---
 
 # --- CONFIGURATION ---
-WALLPAPER_DIR="/mnt/DesktopShare/wallpapers/"
+WALLPAPER_DIR=$HOME/Pictures/
 WAYBAR_DIR="$HOME/.config/waybar"
 
 # --- SCRIPT LOGIC ---

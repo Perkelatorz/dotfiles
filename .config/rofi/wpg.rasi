@@ -1,26 +1,26 @@
 /*-*- mode: css; -*-*/
 
 * {
-    color0:		#160c1c;
-    color1:		#9D0163;
-    color2:		#079A6B;
-    color3:		#D7B51D;
-    color4:		#184E96;
-    color5:		#C3049F;
-    color6:		#02A29C;
-    color7:		#c4c2c6;
-    color8:		#685b70;
-    color9:		#9D0163;
-    color10:	#079A6B;
-    color11:	#D7B51D;
-    color12:	#184E96;
-    color13:	#C3049F;
-    color14:	#02A29C;
-    color15:	#c4c2c6;
-    active:		#7d014f;
-    inactive:	#550136;
+    color0:		#0a190f;
+    color1:		#4C5B4A;
+    color2:		#9A672D;
+    color3:		#4F8E24;
+    color4:		#AF9E43;
+    color5:		#157785;
+    color6:		#4A7B84;
+    color7:		#c1c5c3;
+    color8:		#596e62;
+    color9:		#4C5B4A;
+    color10:	#9A672D;
+    color11:	#4F8E24;
+    color12:	#AF9E43;
+    color13:	#157785;
+    color14:	#4A7B84;
+    color15:	#c1c5c3;
+    active:		#3b6269;
+    inactive:	#284348;
 
-    background:						@color0;
+	background:						@color0;
     foreground:						@color15;
 
     background-color:				@background;
@@ -71,7 +71,7 @@ message {
 }
 
 textbox {
-    highlight:  @color13;
+    highlight:  @color8;
     text-color: @color15;
 }
 
@@ -80,7 +80,7 @@ listview {
     padding:      2px 0 0;
     border-color: @separatorcolor;
     spacing:      0px;
-    scrollbar:    @color15;
+    scrollbar:    @color4;
 }
 
 element {
