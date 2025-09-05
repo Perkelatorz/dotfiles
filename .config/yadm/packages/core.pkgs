@@ -1,4 +1,6 @@
 zoxide
+udiskie
+gvfs-smb
 ttf-sourcecodepro-nerd
 otf-opendyslexic-nerd
 ttf-mononoki-nerd
@@ -23,4 +25,4 @@ xarchiver
 cifs-utils
 mpv
 fzf
-
+vesktop
