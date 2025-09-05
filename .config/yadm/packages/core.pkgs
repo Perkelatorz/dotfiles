@@ -4,7 +4,6 @@ otf-opendyslexic-nerd
 ttf-mononoki-nerd
 ttf-firacode-nerd
 ttf-hack-nerd
-ttf-victor-mono-nerd
 nwg-look
 nwg-displays
 trash-cli
@@ -23,3 +22,5 @@ gvfs
 xarchiver
 cifs-utils
 mpv
+fzf
+
