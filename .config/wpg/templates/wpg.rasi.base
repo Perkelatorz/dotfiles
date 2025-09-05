@@ -1,24 +1,24 @@
 /*-*- mode: css; -*-*/
 
-* {
-    color0:		#160913;
-    color1:		#9C1963;
-    color2:		#BA3276;
-    color3:		#2B5CB8;
-    color4:		#D945A9;
-    color5:		#0BA6F8;
-    color6:		#55A9F4;
-    color7:		#c4c1c4;
-    color8:		#6c5967;
-    color9:		#9C1963;
-    color10:	#BA3276;
-    color11:	#2B5CB8;
-    color12:	#D945A9;
-    color13:	#0BA6F8;
-    color14:	#55A9F4;
-    color15:	#c4c1c4;
-    active:		#224993;
-    inactive:	#173264;
+* {{
+    color0:		{color0};
+    color1:		{color1};
+    color2:		{color2};
+    color3:		{color3};
+    color4:		{color4};
+    color5:		{color5};
+    color6:		{color6};
+    color7:		{color7};
+    color8:		{color8};
+    color9:		{color9};
+    color10:	{color10};
+    color11:	{color11};
+    color12:	{color12};
+    color13:	{color13};
+    color14:	{color14};
+    color15:	{color15};
+    active:		{active};
+    inactive:	{inactive};
 
 	background:						@color0;
     foreground:						@color15;
@@ -48,132 +48,132 @@
     alternate-urgent-foreground:	@color15;
     selected-urgent-background:		@color14;
     selected-urgent-foreground:		@foreground;
-}
+}}
 
 
-window {
+window {{
     background-color: @background;
 	border-color: @active;
     border:           5;
     padding:          0;
-}
+}}
 
-mainbox {
+mainbox {{
     border:  0px;
 	border-color: @active;
     padding: 0;
-}
+}}
 
-message {
+message {{
     border:       2px 0 0;
     border-color: @separatorcolor;
     padding:      1px;
-}
+}}
 
-textbox {
+textbox {{
     highlight:  @color8;
     text-color: @color15;
-}
+}}
 
-listview {
+listview {{
     border:       2px solid 0 0;
     padding:      2px 0 0;
     border-color: @separatorcolor;
     spacing:      0px;
     scrollbar:    @color4;
-}
+}}
 
-element {
+element {{
     border:  0;
     padding: 3px;
-}
+}}
 
-element.normal.normal {
+element.normal.normal {{
     background-color: @normal-background;
     text-color:       @normal-foreground;
-}
+}}
 
-element.normal.urgent {
+element.normal.urgent {{
     background-color: @urgent-background;
     text-color:       @urgent-foreground;
-}
+}}
 
-element.normal.active {
+element.normal.active {{
     background-color: @active-background;
     text-color:       @active-foreground;
-}
+}}
 
-element.selected.normal {
+element.selected.normal {{
     background-color: @active;
     text-color:       @color15;
-}
+}}
 
-element.selected.urgent {
+element.selected.urgent {{
     background-color: @selected-urgent-background;
     text-color:       @selected-urgent-foreground;
-}
+}}
 
-element.selected.active {
+element.selected.active {{
     background-color: @selected-active-background;
     text-color:       @selected-active-foreground;
-}
+}}
 
-element.alternate.normal {
+element.alternate.normal {{
     background-color: @alternate-normal-background;
     text-color:       @alternate-normal-foreground;
-}
+}}
 
-element.alternate.urgent {
+element.alternate.urgent {{
     background-color: @alternate-urgent-background;
     text-color:       @alternate-urgent-foreground;
-}
+}}
 
-element.alternate.active {
+element.alternate.active {{
     background-color: @alternate-active-background;
     text-color:       @alternate-active-foreground;
-}
+}}
 
-scrollbar {
+scrollbar {{
     width:        4px;
     border:       0;
     handle-color: @scrollbar-handle;
     handle-width: 8px;
     padding:      0;
-}
+}}
 
-sidebar {
+sidebar {{
     border:       2px 0 0;
     border-color: @separatorcolor;
-}
+}}
 
-inputbar {
+inputbar {{
     spacing:    1;
     text-color: @normal-foreground;
     padding:    5px;
     children:   [ prompt, textbox-prompt-sep, entry, case-indicator ];
-}
+}}
 
 case-indicator,
 entry,
 prompt,
-button {
+button {{
     spacing:    0;
     text-color: @normal-foreground;
-}
+}}
 
-button.selected {
+button.selected {{
     background-color: @selected-normal-background;
     text-color:       @selected-normal-foreground;
-}
+}}
 
-textbox-prompt-sep {
+textbox-prompt-sep {{
     expand:     false;
     str:        ":";
     text-color: @normal-foreground;
     margin:     0 0.3em 0 0;
-}
+}}
 
-element-text, element-icon {
+element-text, element-icon {{
 	text-color: @foreground;
 	background-color: transparent;
-}
+}}
