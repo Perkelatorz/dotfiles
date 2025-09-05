@@ -4,23 +4,96 @@ set -e
 PKG_DIR="$HOME/.config/yadm/packages"
 echo "🚀 Starting Arch Linux Setup..."
 
+# Track installation stats
+core_pacman_installed=0
+core_pacman_skipped=0
+core_aur_installed=0
+core_aur_skipped=0
+extra_pacman_installed=0
+extra_pacman_skipped=0
+extra_aur_installed=0
+extra_aur_skipped=0
+
 # --- PHASE 1: Install Core Dependencies (Non-Interactive) ---
 
-echo "🔄 Installing core system tools (git, fzf, etc.)..."
+echo "🔄 Installing core system tools..."
 
-# Check if core.pkgs exists and read it
+# Install core pacman packages with tracking
 if [[ -f "$PKG_DIR/core.pkgs" ]]; then
     # Read ONLY the core packages file, filtering out empty lines and comments
     mapfile -t core_packages < <(grep -v '^#' "$PKG_DIR/core.pkgs" | grep -v '^$')
 
     if [ ${#core_packages[@]} -gt 0 ]; then
-        # --needed prevents re-installing packages that are already up-to-date
-        sudo pacman -Syu --needed --noconfirm "${core_packages[@]}"
+        echo "📦 Processing ${#core_packages[@]} core pacman packages..."
+        
+        # Update package database first
+        sudo pacman -Sy --noconfirm
+        
+        for pkg in "${core_packages[@]}"; do
+            if pacman -Qi "$pkg" &>/dev/null; then
+                echo "   ✓ $pkg (already installed)"
+                core_pacman_skipped=$((core_pacman_skipped + 1))
+            else
+                echo "   → Installing $pkg..."
+                if sudo pacman -S --needed --noconfirm "$pkg"; then
+                    core_pacman_installed=$((core_pacman_installed + 1))
+                else
+                    echo "   ⚠️  Failed to install $pkg"
+                fi
+            fi
+        done
+        
+        echo "✅ Core pacman: $core_pacman_installed installed, $core_pacman_skipped skipped"
     else
-        echo "No core packages defined. Skipping."
+        echo "No core pacman packages defined. Skipping."
     fi
 else
-    echo "⚠️  Warning: $PKG_DIR/core.pkgs not found. Skipping core package installation."
+    echo "⚠️  Warning: $PKG_DIR/core.pkgs not found. Skipping core pacman package installation."
+fi
+
+# Install core AUR packages with tracking
+if [[ -f "$PKG_DIR/core.aur" ]]; then
+    # Read core AUR packages file, filtering out empty lines and comments
+    mapfile -t core_aur_packages < <(grep -v '^#' "$PKG_DIR/core.aur" | grep -v '^$')
+
+    if [ ${#core_aur_packages[@]} -gt 0 ]; then
+        echo "🔧 Processing ${#core_aur_packages[@]} core AUR packages..."
+        
+        # Install yay if not present
+        if ! command -v yay &> /dev/null; then
+            echo "🔧 Installing 'yay' AUR helper..."
+            git clone https://aur.archlinux.org/yay.git /tmp/yay
+            (cd /tmp/yay && makepkg -si --noconfirm)
+            rm -rf /tmp/yay
+            echo "✅ yay installed successfully."
+        else
+            echo "✅ yay is already installed."
+        fi
+
+        # Process each core AUR package individually
+        for pkg in "${core_aur_packages[@]}"; do
+            if yay -Qi "$pkg" &>/dev/null; then
+                echo "   ✓ $pkg (already installed)"
+                core_aur_skipped=$((core_aur_skipped + 1))
+            else
+                echo "   → Installing $pkg from AUR..."
+                # Disable strict error checking for individual AUR installs
+                set +e
+                if yay -S --needed --noconfirm "$pkg"; then
+                    core_aur_installed=$((core_aur_installed + 1))
+                else
+                    echo "   ⚠️  Failed to install $pkg from AUR"
+                fi
+                set -e
+            fi
+        done
+        
+        echo "✅ Core AUR: $core_aur_installed installed, $core_aur_skipped skipped"
+    else
+        echo "No core AUR packages defined. Skipping."
+    fi
+else
+    echo "⚠️  Warning: $PKG_DIR/core.aur not found. Skipping core AUR package installation."
 fi
 
 echo "✅ Core tools are ready."
@@ -39,6 +112,12 @@ selections=$(find "$PKG_DIR" -name "*.pkgs" ! -name 'core.pkgs' -printf "%f\n" |
 
 if [[ -z "$selections" ]]; then
     echo "No extra packages selected. Setup complete!"
+    echo
+    echo "📋 Installation Summary:"
+    echo "   • Core pacman: $core_pacman_installed installed, $core_pacman_skipped skipped"
+    echo "   • Core AUR: $core_aur_installed installed, $core_aur_skipped skipped"
+    echo "   • Extra pacman: 0 installed, 0 skipped"
+    echo "   • Extra AUR: 0 installed, 0 skipped"
     exit 0
 fi
 
@@ -63,13 +142,12 @@ while IFS= read -r selection; do
     fi
 done <<< "$selections"
 
-
 # --- Final Installation Phase ---
 
-# Install yay AUR Helper if any AUR packages were selected
-if [ ${#final_aur[@]} -gt 0 ]; then
+# Install yay AUR Helper if any AUR packages were selected OR if we might need it for fallback
+if [ ${#final_aur[@]} -gt 0 ] || [ ${#final_packages[@]} -gt 0 ]; then
     if ! command -v yay &> /dev/null; then
-        echo "🔧 AUR packages selected. Installing 'yay' helper..."
+        echo "🔧 Installing 'yay' AUR helper for package management..."
         git clone https://aur.archlinux.org/yay.git /tmp/yay
         (cd /tmp/yay && makepkg -si --noconfirm)
         rm -rf /tmp/yay
@@ -79,15 +157,88 @@ if [ ${#final_aur[@]} -gt 0 ]; then
     fi
 fi
 
+# Smart package filtering: Check which packages are available in pacman repos
 if [ ${#final_packages[@]} -gt 0 ]; then
-    echo "📦 Installing ${#final_packages[@]} selected Pacman packages..."
-    sudo pacman -S --needed --noconfirm "${final_packages[@]}"
-    echo "✅ Pacman packages installed."
+    echo "🔍 Processing ${#final_packages[@]} extra packages..."
+
+    repo_available=()
+    repo_missing=()
+
+    for pkg in "${final_packages[@]}"; do
+        # Check if package exists in pacman repos (suppress output)
+        if pacman -Si "$pkg" &>/dev/null; then
+            repo_available+=("$pkg")
+        else
+            echo "   ⚠️  '$pkg' not found in pacman repos, will try AUR instead"
+            repo_missing+=("$pkg")
+        fi
+    done
+
+    # Install available pacman packages with tracking
+    if [ ${#repo_available[@]} -gt 0 ]; then
+        echo "📦 Installing ${#repo_available[@]} packages from pacman repositories..."
+        
+        for pkg in "${repo_available[@]}"; do
+            if pacman -Qi "$pkg" &>/dev/null; then
+                echo "   ✓ $pkg (already installed)"
+                extra_pacman_skipped=$((extra_pacman_skipped + 1))
+            else
+                echo "   → Installing $pkg..."
+                if sudo pacman -S --needed --noconfirm "$pkg"; then
+                    extra_pacman_installed=$((extra_pacman_installed + 1))
+                else
+                    echo "   ⚠️  Failed to install $pkg"
+                fi
+            fi
+        done
+        
+        echo "✅ Extra pacman: $extra_pacman_installed installed, $extra_pacman_skipped skipped"
+    fi
+
+    # Add missing packages to AUR list for fallback installation
+    if [ ${#repo_missing[@]} -gt 0 ]; then
+        echo "🔄 Adding ${#repo_missing[@]} missing packages to AUR installation queue..."
+        final_aur+=("${repo_missing[@]}")
+    fi
+else
+    echo "📦 No extra pacman packages to process."
 fi
 
+# Install all AUR packages (original + fallback from pacman) with tracking
 if [ ${#final_aur[@]} -gt 0 ]; then
-    echo "🏗️  Installing ${#final_aur[@]} selected AUR packages..."
-    yay -S --needed --noconfirm "${final_aur[@]}"
+    echo "🏗️  Processing ${#final_aur[@]} AUR packages..."
+
+    for pkg in "${final_aur[@]}"; do
+        if yay -Qi "$pkg" &>/dev/null; then
+            echo "   ✓ $pkg (already installed)"
+            extra_aur_skipped=$((extra_aur_skipped + 1))
+        else
+            echo "   → Installing $pkg from AUR..."
+            # Disable strict error checking for individual AUR installs
+            set +e
+            if yay -S --needed --noconfirm "$pkg"; then
+                extra_aur_installed=$((extra_aur_installed + 1))
+            else
+                echo "   ⚠️  Failed to install $pkg from AUR"
+            fi
+            set -e
+        fi
+    done
+    
+    echo "✅ Extra AUR: $extra_aur_installed installed, $extra_aur_skipped skipped"
+else
+    echo "🏗️  No AUR packages to process."
 fi
 
-echo "✨ All selected packages installed. Setup complete!"
+echo
+echo "✨ Package installation complete! Setup finished successfully."
+echo
+echo "📋 Installation Summary:"
+echo "   • Core pacman: $core_pacman_installed installed, $core_pacman_skipped skipped"
+echo "   • Core AUR: $core_aur_installed installed, $core_aur_skipped skipped"
+echo "   • Extra pacman: $extra_pacman_installed installed, $extra_pacman_skipped skipped"
+echo "   • Extra AUR: $extra_aur_installed installed, $extra_aur_skipped skipped"
+echo
+total_installed=$((core_pacman_installed + core_aur_installed + extra_pacman_installed + extra_aur_installed))
+total_skipped=$((core_pacman_skipped + core_aur_skipped + extra_pacman_skipped + extra_aur_skipped))
+echo "🎯 Total: $total_installed packages installed, $total_skipped packages skipped"
