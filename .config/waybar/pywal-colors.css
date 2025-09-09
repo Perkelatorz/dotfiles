@@ -1,6 +1,6 @@
 /* Pywal colors for Waybar */
-@define-color background #160913; @define-color foreground #c4c1c4; @define-color cursor #c4c1c4;
-@define-color color0 #160913; @define-color color1 #9C1963; @define-color color2 #BA3276; @define-color color3 #2B5CB8;
-@define-color color4 #D945A9; @define-color color5 #0BA6F8; @define-color color6 #55A9F4; @define-color color7 #c4c1c4;
-@define-color color8 #6c5967; @define-color color9 #9C1963; @define-color color10 #BA3276; @define-color color11 #2B5CB8;
-@define-color color12 #D945A9; @define-color color13 #0BA6F8; @define-color color14 #55A9F4; @define-color color15 #c4c1c4;
+@define-color background #0a190f; @define-color foreground #c1c5c3; @define-color cursor #c1c5c3;
+@define-color color0 #0a190f; @define-color color1 #4C5B4A; @define-color color2 #9A672D; @define-color color3 #4F8E24;
+@define-color color4 #AF9E43; @define-color color5 #157785; @define-color color6 #4A7B84; @define-color color7 #c1c5c3;
+@define-color color8 #596e62; @define-color color9 #4C5B4A; @define-color color10 #9A672D; @define-color color11 #4F8E24;
+@define-color color12 #AF9E43; @define-color color13 #157785; @define-color color14 #4A7B84; @define-color color15 #c1c5c3;
