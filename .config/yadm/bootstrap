@@ -49,20 +49,20 @@ if [[ -f "$PKG_DIR/core.aur" ]]; then
 
     if [ ${#core_aur_packages[@]} -gt 0 ]; then
         echo "🔧 Processing ${#core_aur_packages[@]} core AUR packages..."
-        if ! command -v yay &>/dev/null; then
-            echo "🔧 Installing 'yay' helper..."
-            git clone https://aur.archlinux.org/yay.git /tmp/yay
-            (cd /tmp/yay && makepkg -si --noconfirm)
-            rm -rf /tmp/yay
+        if ! command -v paru &>/dev/null; then
+            echo "🔧 Installing 'paru' helper..."
+            git clone https://aur.archlinux.org/paru.git /tmp/paru
+            (cd /tmp/paru && makepkg -si --noconfirm)
+            rm -rf /tmp/paru
         fi
         for pkg in "${core_aur_packages[@]}"; do
-            if yay -Qi "$pkg" &>/dev/null; then
+            if paru -Qi "$pkg" &>/dev/null; then
                 echo "   ✓ $pkg (already installed)"
                 core_aur_skipped=$((core_aur_skipped+1))
             else
                 echo "   → Installing $pkg from AUR..."
                 set +e
-                if yay -S --needed --noconfirm "$pkg"; then
+                if paru -S --needed --noconfirm "$pkg"; then
                     core_aur_installed=$((core_aur_installed+1))
                 else
                     echo "   ⚠️  Failed to install $pkg"
@@ -122,13 +122,13 @@ done <<< "$selections"
 
 # --- PHASE 3: Install extras ---
 
-# Ensure yay is ready if we'll need it
+# Ensure paru is ready if we'll need it
 if [ ${#final_aur[@]} -gt 0 ]; then
-    if ! command -v yay &>/dev/null; then
-        echo "🔧 Installing 'yay' helper..."
-        git clone https://aur.archlinux.org/yay.git /tmp/yay
-        (cd /tmp/yay && makepkg -si --noconfirm)
-        rm -rf /tmp/yay
+    if ! command -v paru &>/dev/null; then
+        echo "🔧 Installing 'paru' helper..."
+        git clone https://aur.archlinux.org/paru.git /tmp/paru
+        (cd /tmp/paru && makepkg -si --noconfirm)
+        rm -rf /tmp/paru
     fi
 fi
 
@@ -154,13 +154,13 @@ fi
 if [ ${#final_aur[@]} -gt 0 ]; then
     echo "🏗️  Processing ${#final_aur[@]} extra AUR packages..."
     for pkg in "${final_aur[@]}"; do
-        if yay -Qi "$pkg" &>/dev/null; then
+        if paru -Qi "$pkg" &>/dev/null; then
             echo "   ✓ $pkg (already installed)"
             extra_aur_skipped=$((extra_aur_skipped+1))
         else
             echo "   → Installing $pkg from AUR..."
             set +e
-            if yay -S --needed --noconfirm "$pkg"; then
+            if paru -S --needed --noconfirm "$pkg"; then
                 extra_aur_installed=$((extra_aur_installed+1))
             else
                 echo "   ⚠️  Failed to install $pkg"
@@ -184,3 +184,65 @@ echo
 total_installed=$((core_pacman_installed + core_aur_installed + extra_pacman_installed + extra_aur_installed))
 total_skipped=$((core_pacman_skipped + core_aur_skipped + extra_pacman_skipped + extra_aur_skipped))
 echo "🎯 Total: $total_installed installed, $total_skipped skipped"
+
+
+# --- Setup Hyprland ---
+#
+# This might need to be rewrote to handle a list of plugins
+
+hyperland_setup() {
+    # Function to handle errors with a cross ❌
+    handle_error() {
+        echo -e "  Error: $1" >&2   # Nerd Font 'nf-fa-times_circle'
+        exit 1
+    }
+    
+    # Check if hyprpm is available
+    if ! command -v hyprpm &> /dev/null; then
+        handle_error "hyprpm command not found   (Please ensure Hyprland is properly installed)"
+    fi
+    
+    # Update Hyprland repos
+    echo -e "  Updating Hyprland repos..."
+    if ! hyprpm update; then
+        handle_error "Failed to update Hyprland repos"
+    fi
+    echo -e "  Hyprland repos are now updated"
+    
+    # Add the plugin repository
+    echo -e "  Adding split-monitor-workspaces plugin repository..."
+    if ! hyprpm add https://github.com/Duckonaut/split-monitor-workspaces; then
+        handle_error "Failed to add split-monitor-workspaces plugin repository"
+    fi
+    echo -e "  Plugin repository added successfully"
+    
+    # Enable the plugin
+    echo -e "⚡ Enabling split-monitor-workspaces plugin..."
+    if ! hyprpm enable split-monitor-workspaces; then
+        handle_error "Failed to enable split-monitor-workspaces plugin"
+    fi
+    echo -e "  Plugin enabled successfully"
+    
+    # Reload the plugins
+    echo -e "  Reloading plugins..."
+    if ! hyprpm reload; then
+        handle_error "Failed to reload plugins"
+    fi
+    echo -e "  Plugins reloaded successfully"
+    
+    echo -e "🚀  All operations completed successfully!"
+}
+
+# Prompt the user
+read -p "Do you want to install hyperland plugins? (y/N): " choice
+
+# Convert input to lowercase for easier comparison
+choice=${choice,,}
+
+# Check the user's input using an if statement
+if [[ "$choice" == "y" || "$choice" == "yes" ]]; then
+    echo "User chose to proceed."
+    hyperland_setup #Call the function that does "something"
+else
+    echo "User chose not to proceed. Hyprland Plugins."
+fi
