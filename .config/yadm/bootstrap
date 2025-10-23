@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
 PKG_DIR="$HOME/.config/yadm/packages"
 echo "🚀 Starting Arch Linux Setup..."
@@ -14,62 +14,163 @@ extra_pacman_skipped=0
 extra_aur_installed=0
 extra_aur_skipped=0
 
+ensure_paru() {
+    if ! command -v paru &>/dev/null; then
+        echo "🔧 Installing 'paru' helper..."
+        tmpdir="$(mktemp -d)"
+        git clone https://aur.archlinux.org/paru.git "$tmpdir/paru"
+        (cd "$tmpdir/paru" && makepkg -si --noconfirm)
+        rm -rf "$tmpdir"
+    fi
+}
+
+read_pkg_file() {
+    # Read non-empty, non-comment lines from a file into stdout
+    grep -v '^\s*#' "$1" | grep -v '^\s*$' || true
+}
+
+dedupe_array() {
+    # Usage: dedupe_array "${arr[@]}"
+    awk '!seen[$0]++'
+}
+
+filter_installed_pacman() {
+    # stdin: list of pacman package names
+    while read -r pkg; do
+        if pacman -Qi "$pkg" &>/dev/null; then
+            echo "installed $pkg"
+        else
+            echo "missing $pkg"
+        fi
+    done
+}
+
+filter_installed_paru() {
+    # stdin: list of AUR package names
+    while read -r pkg; do
+        if paru -Qi "$pkg" &>/dev/null; then
+            echo "installed $pkg"
+        else
+            echo "missing $pkg"
+        fi
+    done
+}
+
+install_pacman_batch() {
+    # args: package list
+    local -a pkgs=("$@")
+    if [ ${#pkgs[@]} -eq 0 ]; then
+        return 0
+    fi
+    echo "   → Installing ${#pkgs[@]} pacman packages in a batch..."
+    if sudo pacman -S --needed --noconfirm "${pkgs[@]}"; then
+        return 0
+    else
+        echo "   ⚠️  Batch pacman install failed. Attempting per-package fallback..."
+        local installed=0
+        for p in "${pkgs[@]}"; do
+            if sudo pacman -S --needed --noconfirm "$p"; then
+                installed=$((installed+1))
+            else
+                echo "   ⚠️  Failed to install $p"
+            fi
+        done
+        # If we got here, return success anyway; individual failures already logged.
+        return 0
+    fi
+}
+
+install_paru_batch() {
+    # args: package list
+    local -a pkgs=("$@")
+    if [ ${#pkgs[@]} -eq 0 ]; then
+        return 0
+    fi
+    echo "   → Installing ${#pkgs[@]} AUR packages in a batch..."
+    set +e
+    paru -S --needed --noconfirm "${pkgs[@]}"
+    local rc=$?
+    set -e
+    if [ $rc -ne 0 ]; then
+        echo "   ⚠️  Batch AUR install failed. Attempting per-package fallback..."
+        for p in "${pkgs[@]}"; do
+            set +e
+            paru -S --needed --noconfirm "$p"
+            if [ $? -ne 0 ]; then
+                echo "   ⚠️  Failed to install $p"
+            fi
+            set -e
+        done
+    fi
+    return 0
+}
+
 # --- PHASE 1: Install Core Dependencies (Non-Interactive) ---
 
 echo "🔄 Installing core system tools..."
 
-# Install core pacman packages with tracking
+# Core pacman (batched)
 if [[ -f "$PKG_DIR/core.pkgs" ]]; then
-    mapfile -t core_packages < <(grep -v '^#' "$PKG_DIR/core.pkgs" | grep -v '^$')
-
+    mapfile -t core_packages < <(read_pkg_file "$PKG_DIR/core.pkgs" | dedupe_array)
     if [ ${#core_packages[@]} -gt 0 ]; then
         echo "📦 Processing ${#core_packages[@]} core pacman packages..."
         sudo pacman -Sy --noconfirm
-        for pkg in "${core_packages[@]}"; do
-            if pacman -Qi "$pkg" &>/dev/null; then
-                echo "   ✓ $pkg (already installed)"
-                core_pacman_skipped=$((core_pacman_skipped+1))
+
+        # Split into installed vs missing
+        installed_list=()
+        missing_list=()
+        while read -r status pkg; do
+            if [[ "$status" == "installed" ]]; then
+                installed_list+=("$pkg")
             else
-                echo "   → Installing $pkg..."
-                if sudo pacman -S --needed --noconfirm "$pkg"; then
-                    core_pacman_installed=$((core_pacman_installed+1))
-                else
-                    echo "   ⚠️  Failed to install $pkg"
-                fi
+                missing_list+=("$pkg")
             fi
+        done < <(
+            for p in "${core_packages[@]}"; do echo "$p"; done | filter_installed_pacman
+        )
+
+        for p in "${installed_list[@]}"; do
+            echo "   ✓ $p (already installed)"
         done
+        core_pacman_skipped=$((core_pacman_skipped + ${#installed_list[@]}))
+
+        if [ ${#missing_list[@]} -gt 0 ]; then
+            install_pacman_batch "${missing_list[@]}"
+            core_pacman_installed=$((core_pacman_installed + ${#missing_list[@]}))
+        fi
     fi
 else
     echo "⚠️  $PKG_DIR/core.pkgs not found. Skipping core pacman setup."
 fi
 
-# Install core AUR packages with tracking
+# Core AUR (batched)
 if [[ -f "$PKG_DIR/core.aur" ]]; then
-    mapfile -t core_aur_packages < <(grep -v '^#' "$PKG_DIR/core.aur" | grep -v '^$')
-
+    mapfile -t core_aur_packages < <(read_pkg_file "$PKG_DIR/core.aur" | dedupe_array)
     if [ ${#core_aur_packages[@]} -gt 0 ]; then
         echo "🔧 Processing ${#core_aur_packages[@]} core AUR packages..."
-        if ! command -v paru &>/dev/null; then
-            echo "🔧 Installing 'paru' helper..."
-            git clone https://aur.archlinux.org/paru.git /tmp/paru
-            (cd /tmp/paru && makepkg -si --noconfirm)
-            rm -rf /tmp/paru
-        fi
-        for pkg in "${core_aur_packages[@]}"; do
-            if paru -Qi "$pkg" &>/dev/null; then
-                echo "   ✓ $pkg (already installed)"
-                core_aur_skipped=$((core_aur_skipped+1))
+        ensure_paru
+
+        installed_list=()
+        missing_list=()
+        while read -r status pkg; do
+            if [[ "$status" == "installed" ]]; then
+                installed_list+=("$pkg")
             else
-                echo "   → Installing $pkg from AUR..."
-                set +e
-                if paru -S --needed --noconfirm "$pkg"; then
-                    core_aur_installed=$((core_aur_installed+1))
-                else
-                    echo "   ⚠️  Failed to install $pkg"
-                fi
-                set -e
+                missing_list+=("$pkg")
             fi
+        done < <(
+            for p in "${core_aur_packages[@]}"; do echo "$p"; done | filter_installed_paru
+        )
+
+        for p in "${installed_list[@]}"; do
+            echo "   ✓ $p (already installed)"
         done
+        core_aur_skipped=$((core_aur_skipped + ${#installed_list[@]}))
+
+        if [ ${#missing_list[@]} -gt 0 ]; then
+            install_paru_batch "${missing_list[@]}"
+            core_aur_installed=$((core_aur_installed + ${#missing_list[@]}))
+        fi
     fi
 else
     echo "⚠️  $PKG_DIR/core.aur not found. Skipping core AUR setup."
@@ -84,14 +185,19 @@ final_packages=()
 final_aur=()
 
 # Find all .pkgs and .aur files EXCEPT core.*, then let user pick
-selections=$(find "$PKG_DIR" \( -name "*.pkgs" -o -name "*.aur" \) \
-    ! -name 'core.pkgs' ! -name 'core.aur' \
-    -printf "%f\n" | \
-    fzf -m --prompt="Select package lists (TAB to mark, ENTER to confirm) > " \
-        --header="Core packages already installed. Choose the rest." \
-        --preview="echo 'Contents of {}:'; echo '---'; cat $PKG_DIR/{}")
+if command -v fzf >/dev/null 2>&1; then
+    selections=$(find "$PKG_DIR" \( -name "*.pkgs" -o -name "*.aur" \) \
+        ! -name 'core.pkgs' ! -name 'core.aur' \
+        -printf "%f\n" | \
+        fzf -m --prompt="Select package lists (TAB to mark, ENTER to confirm) > " \
+            --header="Core packages already installed. Choose the rest." \
+            --preview="echo 'Contents of {}:'; echo '---'; cat $PKG_DIR/{}" || true)
+else
+    echo "⚠️ fzf not found. Selecting all non-core lists."
+    selections=$(find "$PKG_DIR" \( -name "*.pkgs" -o -name "*.aur" \) ! -name 'core.pkgs' ! -name 'core.aur' -printf "%f\n")
+fi
 
-if [[ -z "$selections" ]]; then
+if [[ -z "${selections:-}" ]]; then
     echo "No extra packages selected. Setup complete!"
     echo
     echo "📋 Installation Summary:"
@@ -109,65 +215,78 @@ while IFS= read -r selection; do
     case "$selection" in
         *.pkgs)
             echo " -> Loading pacman packages from $file"
-            mapfile -t temp_packages < <(grep -v '^#' "$file" | grep -v '^$')
+            mapfile -t temp_packages < <(read_pkg_file "$file")
             final_packages+=("${temp_packages[@]}")
             ;;
         *.aur)
             echo " -> Loading AUR packages from $file"
-            mapfile -t temp_aur < <(grep -v '^#' "$file" | grep -v '^$')
+            mapfile -t temp_aur < <(read_pkg_file "$file")
             final_aur+=("${temp_aur[@]}")
             ;;
     esac
 done <<< "$selections"
 
-# --- PHASE 3: Install extras ---
+# Dedupe extras
+mapfile -t final_packages < <(printf "%s\n" "${final_packages[@]}" | dedupe_array)
+mapfile -t final_aur < <(printf "%s\n" "${final_aur[@]}" | dedupe_array)
 
-# Ensure paru is ready if we'll need it
+# --- PHASE 3: Install extras (batched) ---
+
+# Ensure paru if needed
 if [ ${#final_aur[@]} -gt 0 ]; then
-    if ! command -v paru &>/dev/null; then
-        echo "🔧 Installing 'paru' helper..."
-        git clone https://aur.archlinux.org/paru.git /tmp/paru
-        (cd /tmp/paru && makepkg -si --noconfirm)
-        rm -rf /tmp/paru
+    ensure_paru
+fi
+
+# Extra pacman (batched)
+if [ ${#final_packages[@]} -gt 0 ]; then
+    echo "📦 Processing ${#final_packages[@]} extra pacman packages..."
+    installed_list=()
+    missing_list=()
+    while read -r status pkg; do
+        if [[ "$status" == "installed" ]]; then
+            installed_list+=("$pkg")
+        else
+            missing_list+=("$pkg")
+        fi
+    done < <(
+        for p in "${final_packages[@]}"; do echo "$p"; done | filter_installed_pacman
+    )
+
+    for p in "${installed_list[@]}"; do
+        echo "   ✓ $p (already installed)"
+    done
+    extra_pacman_skipped=$((extra_pacman_skipped + ${#installed_list[@]}))
+
+    if [ ${#missing_list[@]} -gt 0 ]; then
+        install_pacman_batch "${missing_list[@]}"
+        extra_pacman_installed=$((extra_pacman_installed + ${#missing_list[@]}))
     fi
 fi
 
-# Install extra pacman packages with tracking
-if [ ${#final_packages[@]} -gt 0 ]; then
-    echo "📦 Processing ${#final_packages[@]} extra pacman packages..."
-    for pkg in "${final_packages[@]}"; do
-        if pacman -Qi "$pkg" &>/dev/null; then
-            echo "   ✓ $pkg (already installed)"
-            extra_pacman_skipped=$((extra_pacman_skipped+1))
-        else
-            echo "   → Installing $pkg..."
-            if sudo pacman -S --needed --noconfirm "$pkg"; then
-                extra_pacman_installed=$((extra_pacman_installed+1))
-            else
-                echo "   ⚠️  Failed to install $pkg"
-            fi
-        fi
-    done
-fi
-
-# Install extra AUR packages with tracking
+# Extra AUR (batched)
 if [ ${#final_aur[@]} -gt 0 ]; then
     echo "🏗️  Processing ${#final_aur[@]} extra AUR packages..."
-    for pkg in "${final_aur[@]}"; do
-        if paru -Qi "$pkg" &>/dev/null; then
-            echo "   ✓ $pkg (already installed)"
-            extra_aur_skipped=$((extra_aur_skipped+1))
+    installed_list=()
+    missing_list=()
+    while read -r status pkg; do
+        if [[ "$status" == "installed" ]]; then
+            installed_list+=("$pkg")
         else
-            echo "   → Installing $pkg from AUR..."
-            set +e
-            if paru -S --needed --noconfirm "$pkg"; then
-                extra_aur_installed=$((extra_aur_installed+1))
-            else
-                echo "   ⚠️  Failed to install $pkg"
-            fi
-            set -e
+            missing_list+=("$pkg")
         fi
+    done < <(
+        for p in "${final_aur[@]}"; do echo "$p"; done | filter_installed_paru
+    )
+
+    for p in "${installed_list[@]}"; do
+        echo "   ✓ $p (already installed)"
     done
+    extra_aur_skipped=$((extra_aur_skipped + ${#installed_list[@]}))
+
+    if [ ${#missing_list[@]} -gt 0 ]; then
+        install_paru_batch "${missing_list[@]}"
+        extra_aur_installed=$((extra_aur_installed + ${#missing_list[@]}))
+    fi
 fi
 
 # --- SUMMARY ---
@@ -184,7 +303,6 @@ echo
 total_installed=$((core_pacman_installed + core_aur_installed + extra_pacman_installed + extra_aur_installed))
 total_skipped=$((core_pacman_skipped + core_aur_skipped + extra_pacman_skipped + extra_aur_skipped))
 echo "🎯 Total: $total_installed installed, $total_skipped skipped"
-
 
 # --- Setup Hyprland ---
 #
@@ -235,14 +353,11 @@ hyperland_setup() {
 
 # Prompt the user
 read -p "Do you want to install hyperland plugins? (y/N): " choice
-
-# Convert input to lowercase for easier comparison
 choice=${choice,,}
 
-# Check the user's input using an if statement
 if [[ "$choice" == "y" || "$choice" == "yes" ]]; then
     echo "User chose to proceed."
-    hyperland_setup #Call the function that does "something"
+    hyperland_setup
 else
     echo "User chose not to proceed. Hyprland Plugins."
 fi
