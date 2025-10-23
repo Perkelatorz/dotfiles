@@ -12,14 +12,12 @@ trash-cli
 bitwarden
 github-cli
 xsettingsd
-yay
 neovim
 python-j2cli
 esh
 meson
 cpio
 cmake
-pcmanfm
 gvfs
 xarchiver
 cifs-utils
@@ -28,3 +26,6 @@ fzf
 vesktop
 kitty
 npm
+seahorse
+libsecret
+gnome-keyring
