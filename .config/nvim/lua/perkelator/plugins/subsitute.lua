@@ -13,8 +13,8 @@ return {
 		vim.keymap.set("n", "ss", substitute.line, { desc = "Substitute line" })
 		vim.keymap.set("n", "S", substitute.eol, { desc = "Substitute to end of line" })
 		vim.keymap.set("x", "s", substitute.visual, { desc = "Substitute in visual mode" })
-		vim.keymap.set("n", "<leader>s", require("substitute.range").operator, { noremap = true })
-		vim.keymap.set("x", "<leader>s", require("substitute.range").visual, { noremap = true })
-		vim.keymap.set("n", "<leader>ss", require("substitute.range").word, { noremap = true })
+		vim.keymap.set("n", "<leader>s", require("substitute.range").operator, { desc = "Substitute range operator" })
+		vim.keymap.set("x", "<leader>s", require("substitute.range").visual, { desc = "Substitute range visual" })
+		vim.keymap.set("n", "<leader>ss", require("substitute.range").word, { desc = "Substitute word" })
 	end,
 }

@@ -1,3 +1,5 @@
+qt5-wayland
+qt6-wayland
 zoxide
 udiskie
 gvfs-smb
@@ -29,3 +31,8 @@ npm
 seahorse
 libsecret
 gnome-keyring
+zsh
+hyprpolkitagent
+wl-clip-persist
+go
+dotnet-sdk

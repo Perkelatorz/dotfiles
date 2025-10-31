@@ -38,7 +38,13 @@ return {
         },
       },
       filters = {
-        custom = { ".DS_Store" },
+        custom = {
+          ".DS_Store",
+          "^.git$",
+          "node_modules",
+          ".cache",
+        },
+        dotfiles = false,
       },
       git = {
         ignore = false,

@@ -42,8 +42,8 @@ return {
 					},
 					modules = { -- List of various plugins and additional options
 						telescope = true,
-						lazynvim = true,
-						witchtree = true,
+						lazy = true,
+						nvim_tree = true,
 						alpha = true,
 					},
 				},

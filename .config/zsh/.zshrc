@@ -9,6 +9,10 @@ export ZSH_COMPDUMP="$ZDOTDIR/.zcompdump"
 autoload -Uz compinit && compinit -C
 compinit
 
+
+export SSH_AUTH_SOCK=/home/$USER/.bitwarden-ssh-agent.sock
+
+
 # Prompt (simple)
 PROMPT='%n@%m:%~ %# '
 

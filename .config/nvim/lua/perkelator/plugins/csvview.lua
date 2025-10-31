@@ -3,7 +3,6 @@ return {
 	---@module "csvview"
 	---@type CsvView.Options
 	opts = {
-
 		parser = { comments = { "#", "//" } },
 		keymaps = {
 			-- Text objects for selecting fields
@@ -17,8 +16,10 @@ return {
 			jump_prev_field_end = { "<S-Tab>", mode = { "n", "v" } },
 			jump_next_row = { "<Enter>", mode = { "n", "v" } },
 			jump_prev_row = { "<S-Enter>", mode = { "n", "v" } },
-			vim.keymap.set("n", "<leader>cs", ":CsvViewToggle<CR>", { desc = "toggle CSV view" }),
 		},
+	},
+	keys = {
+		{ "<leader>cs", "<cmd>CsvViewToggle<CR>", desc = "Toggle CSV view" },
 	},
 	cmd = { "CsvViewEnable", "CsvViewDisable", "CsvViewToggle" },
 }

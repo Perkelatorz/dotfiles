@@ -1,4 +1,21 @@
-#!/bin/bash
+#echo "🔐 Setting up Neovim API keys..."
+
+SECRETS_FILE="$HOME/.config/nvim/secrets.lua"
+
+if [ -f "$SECRETS_FILE" ]; then
+    echo "   ✓ secrets.lua already exists, skipping..."
+else
+    echo "   Creating secrets.lua template..."
+    cat > "$SECRETS_FILE" << 'EOF'
+return {
+  ANTHROPIC_API_KEY = "your-anthropic-key-here",
+  OPENAI_API_KEY = "your-openai-key-here",
+}
+EOF
+    echo "   ✓ Created $SECRETS_FILE"
+    echo "   ⚠️  Please edit this file and add your actual API keys!"
+fi
+!/bin/bash
 set -euo pipefail
 
 PKG_DIR="$HOME/.config/yadm/packages"
@@ -361,3 +378,7 @@ if [[ "$choice" == "y" || "$choice" == "yes" ]]; then
 else
     echo "User chose not to proceed. Hyprland Plugins."
 fi
+
+
+echo
+echo "✨ Bootstrap complete!"

@@ -19,7 +19,12 @@ return {
         graphql = { "prettier" },
         liquid = { "prettier" },
         lua = { "stylua" },
-        python = { "isort", "black" },
+        python = { "ruff_format", "ruff_organize_imports" },
+        go = { "goimports", "gofumpt" },
+        cs = { "csharpier" },
+        sh = { "shfmt" },
+        bash = { "shfmt" },
+        powershell = { "prettier" },
       },
       format_on_save = {
         lsp_fallback = true,
