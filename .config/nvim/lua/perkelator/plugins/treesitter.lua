@@ -24,6 +24,8 @@ return {
 			ensure_installed = {
 				"json",
 				"javascript",
+				"typescript",
+				"tsx",
 				"powershell",
 				"yaml",
 				"html",
@@ -42,9 +44,11 @@ return {
 				"terraform",
 				"hcl",
 				"c_sharp",
-				"json",
-				"tsx",
-				"typescript",
+				"python",
+				"go",
+				"gomod",
+				"gowork",
+				"gosum",
 			},
 			incremental_selection = {
 				enable = true,

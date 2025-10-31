@@ -57,7 +57,7 @@
     "format": "{icon} {count}",
     "show-empty": false,
     "format-icons": [
-      "",
+      "shhhhh!",
       ""
     ],
     "tooltip": true,
