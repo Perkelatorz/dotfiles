@@ -1,7 +1,7 @@
 # Neovim Configuration Documentation
 
 > **Author:** perkelator  
-> **Last Updated:** 2024  
+> **Last Updated:** 2025  
 > **Neovim Version:** 0.9+
 
 ---
@@ -52,7 +52,7 @@ go version  # For Go support
 mv ~/.config/nvim ~/.config/nvim.backup
 
 # Clone this configuration
-git clone <your-repo-url> ~/.config/nvim
+git clone https://github.com/Perkelatorz/dotfiles ~/.config/nvim
 
 # Launch Neovim (plugins will auto-install)
 nvim
@@ -91,6 +91,7 @@ nvim
 ### Core Options (`options.lua`)
 
 Key settings configured:
+
 - Line numbers (relative + absolute)
 - Indentation (2 spaces default, language-specific overrides)
 - Search (incremental, ignore case with smart case)
@@ -102,14 +103,14 @@ Key settings configured:
 
 Language-specific configurations:
 
-| Language   | Indent | Line Width | Special Settings |
-|------------|--------|------------|------------------|
-| Python     | 4 spaces | 88 chars | PEP 8 compliant |
-| Go         | Tabs (4) | 120 chars | gofmt compatible |
-| C#         | 4 spaces | 120 chars | .NET conventions |
-| JS/TS      | 2 spaces | 100 chars | Prettier compatible |
-| Bash/PS    | 2 spaces | 100 chars | Shell script standards |
-| YAML       | 2 spaces | 80 chars | Ansible/K8s friendly |
+| Language | Indent   | Line Width | Special Settings       |
+| -------- | -------- | ---------- | ---------------------- |
+| Python   | 4 spaces | 88 chars   | PEP 8 compliant        |
+| Go       | Tabs (4) | 120 chars  | gofmt compatible       |
+| C#       | 4 spaces | 120 chars  | .NET conventions       |
+| JS/TS    | 2 spaces | 100 chars  | Prettier compatible    |
+| Bash/PS  | 2 spaces | 100 chars  | Shell script standards |
+| YAML     | 2 spaces | 80 chars   | Ansible/K8s friendly   |
 
 ---
 
@@ -120,12 +121,14 @@ Language-specific configurations:
 **Purpose:** Fast, modern plugin manager with lazy-loading
 
 **Features:**
+
 - Automatic plugin installation
 - Lazy loading by filetype, command, or event
 - Lock file for reproducible environments
 - Built-in profiling (`:Lazy profile`)
 
 **Commands:**
+
 - `:Lazy` - Open plugin manager UI
 - `:Lazy sync` - Update all plugins
 - `:Lazy clean` - Remove unused plugins
@@ -137,46 +140,47 @@ Language-specific configurations:
 
 ### LSP Servers (via Mason)
 
-| Language | LSP Server | Features |
-|----------|-----------|----------|
-| Python | `pyright` | Type checking, IntelliSense |
-| Go | `gopls` | Full Go language support |
-| C# | `omnisharp` | .NET development |
-| JavaScript/TypeScript | `ts_ls`, `eslint` | Modern JS/TS support |
-| Bash | `bashls` | Shell script analysis |
-| PowerShell | `powershell_es` | PowerShell scripting |
-| Docker | `dockerls` | Dockerfile support |
-| Ansible | `ansiblels` | Playbook validation |
-| Terraform | `terraformls` | IaC support |
-| JSON | `jsonls` | Schema validation |
-| YAML | `yamlls` | Schema validation |
-| XML | `lemminx` | XML support |
-| Markdown | `marksman` | Markdown LSP |
+| Language              | LSP Server        | Features                    |
+| --------------------- | ----------------- | --------------------------- |
+| Python                | `pyright`         | Type checking, IntelliSense |
+| Go                    | `gopls`           | Full Go language support    |
+| C#                    | `omnisharp`       | .NET development            |
+| JavaScript/TypeScript | `ts_ls`, `eslint` | Modern JS/TS support        |
+| Bash                  | `bashls`          | Shell script analysis       |
+| PowerShell            | `powershell_es`   | PowerShell scripting        |
+| Docker                | `dockerls`        | Dockerfile support          |
+| Ansible               | `ansiblels`       | Playbook validation         |
+| Terraform             | `terraformls`     | IaC support                 |
+| JSON                  | `jsonls`          | Schema validation           |
+| YAML                  | `yamlls`          | Schema validation           |
+| XML                   | `lemminx`         | XML support                 |
+| Markdown              | `marksman`        | Markdown LSP                |
 
 ### Linters & Formatters
 
-| Tool | Purpose | Languages |
-|------|---------|-----------|
-| `black` | Formatter | Python |
-| `ruff` | Linter/Formatter | Python |
-| `isort` | Import sorter | Python |
-| `mypy` | Type checker | Python |
-| `gofumpt` | Formatter | Go |
-| `goimports` | Import manager | Go |
-| `golangci-lint` | Linter | Go |
-| `csharpier` | Formatter | C# |
-| `prettier` | Formatter | JS/TS/JSON/YAML/MD |
-| `stylua` | Formatter | Lua |
-| `shfmt` | Formatter | Bash/Shell |
-| `ansible-lint` | Linter | Ansible |
-| `hadolint` | Linter | Dockerfile |
-| `yamllint` | Linter | YAML |
-| `markdownlint` | Linter | Markdown |
-| `tflint` | Linter | Terraform |
+| Tool            | Purpose          | Languages          |
+| --------------- | ---------------- | ------------------ |
+| `black`         | Formatter        | Python             |
+| `ruff`          | Linter/Formatter | Python             |
+| `isort`         | Import sorter    | Python             |
+| `mypy`          | Type checker     | Python             |
+| `gofumpt`       | Formatter        | Go                 |
+| `goimports`     | Import manager   | Go                 |
+| `golangci-lint` | Linter           | Go                 |
+| `csharpier`     | Formatter        | C#                 |
+| `prettier`      | Formatter        | JS/TS/JSON/YAML/MD |
+| `stylua`        | Formatter        | Lua                |
+| `shfmt`         | Formatter        | Bash/Shell         |
+| `ansible-lint`  | Linter           | Ansible            |
+| `hadolint`      | Linter           | Dockerfile         |
+| `yamllint`      | Linter           | YAML               |
+| `markdownlint`  | Linter           | Markdown           |
+| `tflint`        | Linter           | Terraform          |
 
 ### Treesitter Parsers
 
 Syntax highlighting for:
+
 - Python, Go, C#, JavaScript, TypeScript, TSX
 - Bash, PowerShell, Lua, Vim
 - JSON, YAML, XML, TOML, Markdown
@@ -191,24 +195,29 @@ Syntax highlighting for:
 ### 🎨 UI & Appearance
 
 #### **alpha.nvim**
+
 - **Purpose:** Startup dashboard
 - **Features:** Quick access to recent files, sessions, and commands
 - **Keybindings:** Automatic on startup
 
 #### **lualine.nvim**
+
 - **Purpose:** Statusline
 - **Features:** Git branch, diagnostics, file info, LSP status
 - **Sections:** Mode, branch, diff, diagnostics, filename, filetype, location
 
 #### **indent-blankline.nvim**
+
 - **Purpose:** Indentation guides
 - **Features:** Visual indent levels, scope highlighting
 
 #### **dressing.nvim**
+
 - **Purpose:** Better UI for `vim.ui.select` and `vim.ui.input`
 - **Features:** Improved prompts and selection menus
 
 #### **colorscheme.lua**
+
 - **Purpose:** Theme management
 - **Current Theme:** (Specify your theme)
 - **Command:** `:colorscheme <name>`
@@ -218,6 +227,7 @@ Syntax highlighting for:
 ### 📁 File Management
 
 #### **nvim-tree.lua**
+
 - **Purpose:** File explorer
 - **Features:** Tree view, git integration, file operations
 - **Keybindings:**
@@ -243,6 +253,7 @@ Syntax highlighting for:
   - `R` - Refresh
 
 #### **oil.nvim**
+
 - **Purpose:** Edit filesystem like a buffer
 - **Features:** Direct file manipulation, buffer-style editing
 - **Keybindings:**
@@ -251,6 +262,7 @@ Syntax highlighting for:
   - `-` - Open parent directory
 
 #### **telescope.nvim**
+
 - **Purpose:** Fuzzy finder
 - **Features:** File search, grep, buffers, git integration
 - **Keybindings:**
@@ -269,6 +281,7 @@ Syntax highlighting for:
   - `<C-t>` - Open in new tab
 
 #### **arrow.nvim**
+
 - **Purpose:** File bookmarks
 - **Keybindings:**
   - `;` - Open bookmarks
@@ -279,12 +292,14 @@ Syntax highlighting for:
 ### 🔧 LSP & Completion
 
 #### **mason.nvim**
+
 - **Purpose:** LSP server, linter, formatter installer
 - **Command:** `:Mason`
 - **Features:** Auto-install configured tools
 - **Installed Tools:** See [Language Support](#language-support)
 
 #### **nvim-lspconfig**
+
 - **Purpose:** LSP client configuration
 - **Features:** Language server setup, keybindings, diagnostics
 - **Keybindings:**
@@ -302,6 +317,7 @@ Syntax highlighting for:
   - `]d` - Next diagnostic
 
 #### **nvim-cmp**
+
 - **Purpose:** Autocompletion engine
 - **Sources:** LSP, buffer, path, snippets
 - **Keybindings:**
@@ -316,12 +332,14 @@ Syntax highlighting for:
   - `<S-Tab>` - Previous item
 
 #### **conform.nvim** (`formatting.lua`)
+
 - **Purpose:** Code formatting
 - **Features:** Format on save, multiple formatters per filetype
 - **Keybinding:** `<leader>mp` - Format file or range
 - **Formatters by Language:** See [Linters & Formatters](#linters--formatters)
 
 #### **schemastore.nvim**
+
 - **Purpose:** JSON/YAML schema validation
 - **Features:** Auto-completion for config files (package.json, docker-compose.yml, etc.)
 - **Supported Schemas:** 600+ schemas including:
@@ -336,6 +354,7 @@ Syntax highlighting for:
 ### 🧪 Testing
 
 #### **neotest.nvim**
+
 - **Purpose:** Test runner framework
 - **Adapters:**
   - `neotest-python` - pytest
@@ -360,6 +379,7 @@ Syntax highlighting for:
 ### 🐛 Debugging
 
 #### **nvim-dap**
+
 - **Purpose:** Debug Adapter Protocol client
 - **Features:** Breakpoints, step debugging, REPL, variable inspection
 - **Keybindings:**
@@ -379,15 +399,18 @@ Syntax highlighting for:
   - `<leader>ds` - Show scopes
 
 #### **nvim-dap-ui**
+
 - **Purpose:** UI for nvim-dap
 - **Features:** Scopes, breakpoints, stacks, watches, console
 - **Auto-opens:** On debug start
 
 #### **nvim-dap-virtual-text**
+
 - **Purpose:** Show variable values inline
 - **Features:** Virtual text during debugging
 
 #### **dap-python**
+
 - **Purpose:** Python debugging
 - **Debugger:** debugpy
 - **Keybindings:**
@@ -396,6 +419,7 @@ Syntax highlighting for:
   - `<leader>dps` - Debug selection (visual mode)
 
 #### **dap-go**
+
 - **Purpose:** Go debugging
 - **Debugger:** delve
 - **Keybindings:**
@@ -407,6 +431,7 @@ Syntax highlighting for:
 ### 🤖 AI & Assistance
 
 #### **codecompanion.nvim**
+
 - **Purpose:** AI coding assistant
 - **Features:** Chat, inline prompts, code actions
 - **Keybindings:**
@@ -421,6 +446,7 @@ Syntax highlighting for:
 ### 🌐 HTTP Client
 
 #### **kulala.nvim**
+
 - **Purpose:** HTTP client (like Postman/REST Client)
 - **Features:** Send HTTP requests from `.http` files
 - **Keybindings:**
@@ -434,15 +460,16 @@ Syntax highlighting for:
   - `<leader>kq` - Close view
 - **File Format:** `.http` files
 - **Example:**
+
   ```http
   ### Get users
   GET https://api.example.com/users
   Content-Type: application/json
-  
+
   ### Create user
   POST https://api.example.com/users
   Content-Type: application/json
-  
+
   {
     "name": "John Doe",
     "email": "john@example.com"
@@ -454,6 +481,7 @@ Syntax highlighting for:
 ### 📝 Markdown
 
 #### **markdown-preview.nvim**
+
 - **Purpose:** Live markdown preview in browser
 - **Features:** Real-time rendering, dark theme, math support
 - **Keybindings:**
@@ -466,6 +494,7 @@ Syntax highlighting for:
 ### 🔀 Git Integration
 
 #### **gitsigns.nvim**
+
 - **Purpose:** Git decorations and hunk operations
 - **Features:** Line blame, diff view, hunk staging
 - **Keybindings:**
@@ -483,6 +512,7 @@ Syntax highlighting for:
   - `]h` - Next hunk
 
 #### **lazygit.nvim**
+
 - **Purpose:** LazyGit integration
 - **Keybinding:** `<leader>lg` - Open LazyGit
 - **Requires:** `lazygit` installed
@@ -492,10 +522,12 @@ Syntax highlighting for:
 ### 🛠️ Editing Enhancements
 
 #### **nvim-autopairs**
+
 - **Purpose:** Auto-close brackets, quotes, etc.
 - **Features:** Smart pairing, integration with nvim-cmp
 
 #### **nvim-surround**
+
 - **Purpose:** Surround text with brackets, quotes, tags
 - **Keybindings:**
   - `ys{motion}{char}` - Add surrounding
@@ -507,6 +539,7 @@ Syntax highlighting for:
   - `cs"'` - Change " to '
 
 #### **substitute.nvim**
+
 - **Purpose:** Enhanced substitute/replace
 - **Keybindings:**
   - `s` - Substitute with motion
@@ -516,6 +549,7 @@ Syntax highlighting for:
   - `<leader>ss` - Substitute word
 
 #### **Comment.nvim**
+
 - **Purpose:** Smart commenting
 - **Keybindings:**
   - `gcc` - Toggle line comment
@@ -531,6 +565,7 @@ Syntax highlighting for:
 ### 🔍 Navigation & Search
 
 #### **trouble.nvim**
+
 - **Purpose:** Pretty diagnostics, references, quickfix list
 - **Keybindings:**
   - `<leader>xw` - Workspace diagnostics
@@ -540,6 +575,7 @@ Syntax highlighting for:
   - `<leader>xt` - Todos
 
 #### **todo-comments.nvim**
+
 - **Purpose:** Highlight and search TODO comments
 - **Keywords:** `TODO`, `HACK`, `WARN`, `PERF`, `NOTE`, `FIX`
 - **Keybindings:**
@@ -548,6 +584,7 @@ Syntax highlighting for:
   - `<leader>ft` - Search todos (Telescope)
 
 #### **nvim-treesitter**
+
 - **Purpose:** Advanced syntax highlighting and text objects
 - **Features:** Incremental selection, indentation, folding
 - **Keybindings:**
@@ -560,15 +597,18 @@ Syntax highlighting for:
 ### 🐳 DevOps Tools
 
 #### **vim-helm**
+
 - **Purpose:** Kubernetes Helm chart support
 - **Features:** Syntax highlighting for Helm templates
 - **File Detection:** `*/templates/*.yaml`, `*.gotmpl`
 
 #### **powershell.vim** (`powershell.lua`)
+
 - **Purpose:** PowerShell syntax and support
 - **Features:** Syntax highlighting, indentation
 
 #### **csvview.nvim**
+
 - **Purpose:** CSV file viewer
 - **Keybinding:** `<leader>cs` - Toggle CSV view
 - **Features:** Column alignment, header highlighting
@@ -578,6 +618,7 @@ Syntax highlighting for:
 ### 💾 Session Management
 
 #### **auto-session**
+
 - **Purpose:** Automatic session management
 - **Features:** Save/restore sessions per directory
 - **Keybindings:**
@@ -596,156 +637,169 @@ Syntax highlighting for:
 ### Quick Reference by Category
 
 #### Core Navigation
-| Key | Action |
-|-----|--------|
+
+| Key          | Action                  |
+| ------------ | ----------------------- |
 | `<leader>nh` | Clear search highlights |
-| `<leader>+` | Increment number |
-| `<leader>=` | Decrement number |
-| `<leader>sc` | Toggle spell check |
+| `<leader>+`  | Increment number        |
+| `<leader>=`  | Decrement number        |
+| `<leader>sc` | Toggle spell check      |
 
 #### AI (CodeCompanion)
-| Key | Action |
-|-----|--------|
+
+| Key          | Action                |
+| ------------ | --------------------- |
 | `<leader>aa` | CodeCompanion actions |
-| `<leader>ac` | Toggle chat |
-| `<leader>ai` | Add to chat (visual) |
-| `<leader>at` | Open chat |
-| `<leader>ap` | Inline prompt |
+| `<leader>ac` | Toggle chat           |
+| `<leader>ai` | Add to chat (visual)  |
+| `<leader>at` | Open chat             |
+| `<leader>ap` | Inline prompt         |
 
 #### File Explorer
-| Key | Action |
-|-----|--------|
-| `<leader>ee` | Toggle nvim-tree |
+
+| Key          | Action                 |
+| ------------ | ---------------------- |
+| `<leader>ee` | Toggle nvim-tree       |
 | `<leader>ef` | Toggle on current file |
-| `<leader>ec` | Collapse tree |
-| `<leader>er` | Refresh tree |
-| `<leader>eo` | Open oil |
-| `<leader>of` | Oil floating window |
-| `-` | Open parent (oil) |
+| `<leader>ec` | Collapse tree          |
+| `<leader>er` | Refresh tree           |
+| `<leader>eo` | Open oil               |
+| `<leader>of` | Oil floating window    |
+| `-`          | Open parent (oil)      |
 
 #### Find (Telescope)
-| Key | Action |
-|-----|--------|
-| `<leader>ff` | Find files |
-| `<leader>fr` | Recent files |
-| `<leader>fs` | Live grep |
+
+| Key          | Action           |
+| ------------ | ---------------- |
+| `<leader>ff` | Find files       |
+| `<leader>fr` | Recent files     |
+| `<leader>fs` | Live grep        |
 | `<leader>fc` | Grep cursor word |
-| `<leader>ft` | Find todos |
-| `<leader>fb` | Browse buffers |
+| `<leader>ft` | Find todos       |
+| `<leader>fb` | Browse buffers   |
 
 #### Format & Markdown
-| Key | Action |
-|-----|--------|
-| `<leader>mp` | Format file/range |
+
+| Key          | Action                  |
+| ------------ | ----------------------- |
+| `<leader>mp` | Format file/range       |
 | `<leader>mv` | Toggle markdown preview |
-| `<leader>ms` | Stop markdown preview |
+| `<leader>ms` | Stop markdown preview   |
 
 #### Testing
-| Key | Action |
-|-----|--------|
-| `<leader>tr` | Run nearest test |
-| `<leader>tf` | Run test file |
-| `<leader>td` | Debug test |
-| `<leader>ts` | Stop test |
-| `<leader>ta` | Attach to test |
-| `<leader>tw` | Toggle watch |
-| `<leader>tS` | Toggle summary |
-| `<leader>to` | Show output |
-| `<leader>tO` | Toggle output panel |
-| `[T` | Previous failed test |
-| `]T` | Next failed test |
+
+| Key          | Action               |
+| ------------ | -------------------- |
+| `<leader>tr` | Run nearest test     |
+| `<leader>tf` | Run test file        |
+| `<leader>td` | Debug test           |
+| `<leader>ts` | Stop test            |
+| `<leader>ta` | Attach to test       |
+| `<leader>tw` | Toggle watch         |
+| `<leader>tS` | Toggle summary       |
+| `<leader>to` | Show output          |
+| `<leader>tO` | Toggle output panel  |
+| `[T`         | Previous failed test |
+| `]T`         | Next failed test     |
 
 #### Debugging
-| Key | Action |
-|-----|--------|
-| `<leader>db` | Toggle breakpoint |
-| `<leader>dB` | Conditional breakpoint |
-| `<leader>dc` | Continue/Start |
-| `<leader>di` | Step into |
-| `<leader>do` | Step over |
-| `<leader>dO` | Step out |
-| `<leader>dr` | Open REPL |
-| `<leader>dl` | Run last |
-| `<leader>dt` | Terminate |
-| `<leader>du` | Toggle UI |
-| `<leader>dh` | Hover |
-| `<leader>dp` | Preview |
-| `<leader>df` | Show frames |
-| `<leader>ds` | Show scopes |
-| `<leader>dpt` | Debug Python test |
-| `<leader>dpc` | Debug Python class |
+
+| Key           | Action                 |
+| ------------- | ---------------------- |
+| `<leader>db`  | Toggle breakpoint      |
+| `<leader>dB`  | Conditional breakpoint |
+| `<leader>dc`  | Continue/Start         |
+| `<leader>di`  | Step into              |
+| `<leader>do`  | Step over              |
+| `<leader>dO`  | Step out               |
+| `<leader>dr`  | Open REPL              |
+| `<leader>dl`  | Run last               |
+| `<leader>dt`  | Terminate              |
+| `<leader>du`  | Toggle UI              |
+| `<leader>dh`  | Hover                  |
+| `<leader>dp`  | Preview                |
+| `<leader>df`  | Show frames            |
+| `<leader>ds`  | Show scopes            |
+| `<leader>dpt` | Debug Python test      |
+| `<leader>dpc` | Debug Python class     |
 | `<leader>dps` | Debug Python selection |
-| `<leader>dgt` | Debug Go test |
-| `<leader>dgl` | Debug last Go test |
+| `<leader>dgt` | Debug Go test          |
+| `<leader>dgl` | Debug last Go test     |
 
 #### HTTP Client
-| Key | Action |
-|-----|--------|
-| `<leader>kr` | Run request |
-| `<leader>kt` | Toggle view |
+
+| Key          | Action           |
+| ------------ | ---------------- |
+| `<leader>kr` | Run request      |
+| `<leader>kt` | Toggle view      |
 | `<leader>kp` | Previous request |
-| `<leader>kn` | Next request |
-| `<leader>ki` | Inspect |
-| `<leader>kc` | Copy as cURL |
-| `<leader>ks` | Open scratchpad |
-| `<leader>kq` | Close view |
+| `<leader>kn` | Next request     |
+| `<leader>ki` | Inspect          |
+| `<leader>kc` | Copy as cURL     |
+| `<leader>ks` | Open scratchpad  |
+| `<leader>kq` | Close view       |
 
 #### Git Hunks
-| Key | Action |
-|-----|--------|
-| `<leader>hs` | Stage hunk |
-| `<leader>hr` | Reset hunk |
-| `<leader>hS` | Stage buffer |
-| `<leader>hR` | Reset buffer |
-| `<leader>hu` | Undo stage |
-| `<leader>hp` | Preview hunk |
-| `<leader>hb` | Blame line |
-| `<leader>hB` | Toggle blame |
-| `<leader>hd` | Diff this |
-| `<leader>hD` | Diff this ~ |
-| `[h` | Previous hunk |
-| `]h` | Next hunk |
+
+| Key          | Action        |
+| ------------ | ------------- |
+| `<leader>hs` | Stage hunk    |
+| `<leader>hr` | Reset hunk    |
+| `<leader>hS` | Stage buffer  |
+| `<leader>hR` | Reset buffer  |
+| `<leader>hu` | Undo stage    |
+| `<leader>hp` | Preview hunk  |
+| `<leader>hb` | Blame line    |
+| `<leader>hB` | Toggle blame  |
+| `<leader>hd` | Diff this     |
+| `<leader>hD` | Diff this ~   |
+| `[h`         | Previous hunk |
+| `]h`         | Next hunk     |
 
 #### LSP
-| Key | Action |
-|-----|--------|
-| `gd` | Go to definition |
-| `gD` | Go to declaration |
-| `gi` | Go to implementation |
-| `gt` | Go to type definition |
-| `gR` | Show references |
-| `K` | Hover documentation |
-| `<leader>ca` | Code actions |
-| `<leader>rn` | Rename |
-| `<leader>rs` | Restart LSP |
-| `<leader>D` | Buffer diagnostics |
-| `[d` | Previous diagnostic |
-| `]d` | Next diagnostic |
+
+| Key          | Action                |
+| ------------ | --------------------- |
+| `gd`         | Go to definition      |
+| `gD`         | Go to declaration     |
+| `gi`         | Go to implementation  |
+| `gt`         | Go to type definition |
+| `gR`         | Show references       |
+| `K`          | Hover documentation   |
+| `<leader>ca` | Code actions          |
+| `<leader>rn` | Rename                |
+| `<leader>rs` | Restart LSP           |
+| `<leader>D`  | Buffer diagnostics    |
+| `[d`         | Previous diagnostic   |
+| `]d`         | Next diagnostic       |
 
 #### Trouble
-| Key | Action |
-|-----|--------|
+
+| Key          | Action                |
+| ------------ | --------------------- |
 | `<leader>xw` | Workspace diagnostics |
-| `<leader>xd` | Document diagnostics |
-| `<leader>xq` | Quickfix |
-| `<leader>xl` | Location list |
-| `<leader>xt` | Todos |
+| `<leader>xd` | Document diagnostics  |
+| `<leader>xq` | Quickfix              |
+| `<leader>xl` | Location list         |
+| `<leader>xt` | Todos                 |
 
 #### Session
-| Key | Action |
-|-----|--------|
+
+| Key          | Action          |
+| ------------ | --------------- |
 | `<leader>wr` | Restore session |
-| `<leader>ws` | Save session |
+| `<leader>ws` | Save session    |
 
 #### Misc
-| Key | Action |
-|-----|--------|
-| `<leader>lg` | Open LazyGit |
-| `<leader>cs` | Toggle CSV view |
-| `;` | Arrow bookmarks |
-| `m` | Buffer bookmarks |
-| `[t` | Previous todo |
-| `]t` | Next todo |
+
+| Key          | Action           |
+| ------------ | ---------------- |
+| `<leader>lg` | Open LazyGit     |
+| `<leader>cs` | Toggle CSV view  |
+| `;`          | Arrow bookmarks  |
+| `m`          | Buffer bookmarks |
+| `[t`         | Previous todo    |
+| `]t`         | Next todo        |
 
 ---
 
@@ -754,6 +808,7 @@ Syntax highlighting for:
 ### Common Issues
 
 #### LSP Not Working
+
 ```vim
 :LspInfo          " Check LSP status
 :Mason            " Verify servers installed
@@ -761,6 +816,7 @@ Syntax highlighting for:
 ```
 
 #### Treesitter Errors
+
 ```vim
 :TSUpdate         " Update parsers
 :TSInstallInfo    " Check installed parsers
@@ -768,6 +824,7 @@ Syntax highlighting for:
 ```
 
 #### Plugins Not Loading
+
 ```vim
 :Lazy             " Check plugin status
 :Lazy sync        " Sync plugins
@@ -776,12 +833,14 @@ Syntax highlighting for:
 ```
 
 #### Formatting Not Working
+
 ```vim
 :ConformInfo      " Check formatter status
 :Mason            " Verify formatters installed
 ```
 
 #### Debugger Issues
+
 ```vim
 :DapInstall       " Install debug adapters
 :checkhealth dap  " Check DAP health
@@ -795,6 +854,7 @@ Syntax highlighting for:
 ```
 
 **Tips:**
+
 - Disable unused plugins
 - Use lazy loading (filetype, command, event)
 - Reduce Treesitter parsers if not needed
@@ -812,17 +872,20 @@ Syntax highlighting for:
 ## Additional Resources
 
 ### Documentation
+
 - [Neovim Docs](https://neovim.io/doc/)
 - [Lazy.nvim](https://github.com/folke/lazy.nvim)
 - [Mason.nvim](https://github.com/williamboman/mason.nvim)
 - [nvim-lspconfig](https://github.com/neovim/nvim-lspconfig)
 
 ### Learning
+
 - `:Tutor` - Neovim tutorial
 - `:help` - Built-in help
 - `:help <topic>` - Specific help
 
 ### Community
+
 - [r/neovim](https://reddit.com/r/neovim)
 - [Neovim Discourse](https://neovim.discourse.group/)
 

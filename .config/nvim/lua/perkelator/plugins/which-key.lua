@@ -170,6 +170,12 @@ return {
 			-- Arrow (file bookmarks)
 			{ ";", desc = "Arrow bookmarks" },
 			{ "m", desc = "Arrow buffer bookmarks" },
+
+			-- Docs (zeal)
+			{ "<leader>z", group = "Docs (Zeal)" },
+			{ "<leader>zd", desc = "Zeal for symbol" },
+			{ "<leader>zD", desc = "Zeal (smart docset)" },
+			{ "<leader>zp", desc = "pydoc (terminal split)" },
 		})
 	end,
 }

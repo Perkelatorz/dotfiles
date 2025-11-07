@@ -94,6 +94,84 @@ return {
 					})
 				end,
 
+				pyright = function()
+					lspconfig.pyright.setup({
+						on_attach = function(client, bufnr)
+							-- Turn off doc-related providers from Pyright
+							client.server_capabilities.hoverProvider = false
+							client.server_capabilities.signatureHelpProvider = nil
+							-- optional: also disable completion if you want pylsp completions
+							-- client.server_capabilities.completionProvider = nil
+
+							on_attach(client, bufnr)
+						end,
+						capabilities = capabilities,
+						settings = {
+							python = {
+								analysis = {
+									typeCheckingMode = "basic",
+									autoSearchPaths = true,
+									useLibraryCodeForTypes = true,
+									diagnosticMode = "workspace",
+								},
+							},
+						},
+					})
+				end,
+				pylsp = function()
+					lspconfig.pylsp.setup({
+						on_attach = function(client, bufnr)
+							-- Let pyright own diagnostics; keep jedi hover/signature
+							-- Neovim doesn’t have a simple diagnosticProvider toggle, so prevent pylsp from publishing diagnostics:
+							client.handlers["textDocument/publishDiagnostics"] = function() end
+
+							-- Optional: also turn off formatting here if you use black/ruff elsewhere
+							client.server_capabilities.documentFormattingProvider = false
+							client.server_capabilities.documentRangeFormattingProvider = false
+
+							on_attach(client, bufnr)
+						end,
+						capabilities = capabilities,
+						settings = {
+							pylsp = {
+								plugins = {
+									-- Turn off pylsp linters/formatters if you use ruff/black
+									pycodestyle = { enabled = false },
+									pyflakes = { enabled = false },
+									mccabe = { enabled = false },
+									autopep8 = { enabled = false },
+									yapf = { enabled = false },
+
+									-- Jedi for rich docs
+									jedi_completion = { enabled = true, include_params = true },
+									jedi_hover = { enabled = true },
+									jedi_signature_help = { enabled = true },
+									jedi_symbols = { enabled = true },
+
+									-- Optional: rope
+									rope_completion = { enabled = true, eager = true },
+								},
+							},
+						},
+					})
+				end,
+
+				-- Optional but recommended: Ruff for lint/fixes/imports; keep formatting off if using Black
+				ruff = function()
+					lspconfig.ruff.setup({
+						on_attach = function(client, bufnr)
+							client.server_capabilities.documentFormattingProvider = false
+							client.server_capabilities.documentRangeFormattingProvider = false
+							-- Optional: keymap to organize imports via Ruff
+							vim.keymap.set("n", "<leader>oi", function()
+								vim.lsp.buf.code_action({ context = { only = { "source.organizeImports.ruff" } } })
+							end, { buffer = bufnr, desc = "Ruff: Organize Imports" })
+							on_attach(client, bufnr)
+						end,
+						capabilities = capabilities,
+					})
+				end,
+
 				powershell_es = function()
 					lspconfig.powershell_es.setup({
 						on_attach = on_attach,
