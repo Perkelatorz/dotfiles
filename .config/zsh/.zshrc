@@ -27,3 +27,6 @@ alias egrep='egrep --color=auto'
 alias fgrep='fgrep --color=auto'
 alias ssh='kitten ssh'
 alias rvim='edit-in-kitty'
+
+# Created by `pipx` on 2025-11-08 02:27:10
+export PATH="$PATH:/home/perkelator/.local/bin"
