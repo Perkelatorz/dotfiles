@@ -1,84 +1,85 @@
-local opt = vim.opt
+-- This file sets all buffer-local options based on filetype
+local M = {}
 
-opt.tabstop = 2
-opt.shiftwidth = 2
-opt.expandtab = true
+-- 1. Define all your settings in ONE table.
+--    This is much easier to read and add to.
+local settings_by_ft = {
+	python = {
+		tabstop = 4,
+		shiftwidth = 4,
+		expandtab = true,
+		textwidth = 88,
+		colorcolumn = "88",
+	},
+	go = {
+		tabstop = 4,
+		shiftwidth = 4,
+		expandtab = false, -- Use hard tabs
+		textwidth = 120,
+		colorcolumn = "120",
+	},
+	cs = {
+		tabstop = 4,
+		shiftwidth = 4,
+		expandtab = true,
+		textwidth = 120,
+		colorcolumn = "120",
+	},
+	markdown = {
+		textwidth = 80,
+		colorcolumn = "80",
+		wrap = true,
+		linebreak = true,
+		tabstop = 2, -- Good to be explicit
+		shiftwidth = 2,
+	},
 
-local augroup = vim.api.nvim_create_augroup("FileTypeSettings", { clear = true })
+	-- These all share the same settings
+	["sh,bash,zsh"] = {
+		tabstop = 2,
+		shiftwidth = 2,
+		expandtab = true,
+	},
+	ps1 = {
+		tabstop = 2,
+		shiftwidth = 2,
+		expandtab = true,
+	},
+	["yaml,yml"] = {
+		tabstop = 2,
+		shiftwidth = 2,
+		expandtab = true,
+	},
+}
 
-vim.api.nvim_create_autocmd("FileType", {
-	group = augroup,
-	pattern = "python",
-	callback = function()
-		opt.tabstop = 4
-		opt.shiftwidth = 4
-		opt.expandtab = true
-		opt.textwidth = 88
-		opt.colorcolumn = "88"
-	end,
-})
+-- 2. This is the "engine" that runs the setup
+function M.setup()
+	-- Set your global defaults first (for all other files)
+	vim.opt.tabstop = 2
+	vim.opt.shiftwidth = 2
+	vim.opt.expandtab = true
+	vim.opt.wrap = false
 
-vim.api.nvim_create_autocmd("FileType", {
-	group = augroup,
-	pattern = "go",
-	callback = function()
-		opt.tabstop = 4
-		opt.shiftwidth = 4
-		opt.expandtab = false
-		opt.textwidth = 120
-		opt.colorcolumn = "120"
-	end,
-})
+	local augroup = vim.api.nvim_create_augroup("FileTypeSettings", { clear = true })
 
-vim.api.nvim_create_autocmd("FileType", {
-	group = augroup,
-	pattern = "cs",
-	callback = function()
-		opt.tabstop = 4
-		opt.shiftwidth = 4
-		opt.expandtab = true
-		opt.textwidth = 120
-		opt.colorcolumn = "120"
-	end,
-})
+	-- 3. Loop over the settings table
+	for patterns, settings in pairs(settings_by_ft) do
+		-- Split patterns like "yaml,yml" into a list {"yaml", "yml"}
+		local pattern_list = vim.split(patterns, ",")
 
-vim.api.nvim_create_autocmd("FileType", {
-	group = augroup,
-	pattern = { "sh", "bash", "zsh" },
-	callback = function()
-		opt.tabstop = 2
-		opt.shiftwidth = 2
-		opt.expandtab = true
-	end,
-})
+		vim.api.nvim_create_autocmd("FileType", {
+			group = augroup,
+			pattern = pattern_list,
+			callback = function()
+				-- 4. Apply the settings as BUFFER-LOCAL
+				--    This is the critical bug fix.
+				local opt = vim.opt_local
+				for key, value in pairs(settings) do
+					opt[key] = value
+				end
+			end,
+		})
+	end
+end
 
-vim.api.nvim_create_autocmd("FileType", {
-	group = augroup,
-	pattern = "ps1",
-	callback = function()
-		opt.tabstop = 2
-		opt.shiftwidth = 2
-		opt.expandtab = true
-	end,
-})
-
-vim.api.nvim_create_autocmd("FileType", {
-	group = augroup,
-	pattern = { "yaml", "yml" },
-	callback = function()
-		opt.tabstop = 2
-		opt.shiftwidth = 2
-		opt.expandtab = true
-	end,
-})
-
-vim.api.nvim_create_autocmd("FileType", {
-	group = augroup,
-	pattern = "markdown",
-	callback = function()
-		opt.textwidth = 80
-		opt.colorcolumn = "80"
-		opt.wrap = true
-		opt.linebreak = true
-	end,
-})
+return M
