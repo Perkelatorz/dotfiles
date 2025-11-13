@@ -16,6 +16,6 @@ wal -i "$WALLPAPER" -n -q
 
 # 2. Set the wallpaper with swww
 echo "Setting wallpaper with swww..."
-swww img "$WALLPAPER" --transition-type any --transition-fps 60
+awww img "$WALLPAPER" --transition-type any --transition-fps 60
 
 echo "Done."
