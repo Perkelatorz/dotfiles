@@ -1,0 +1,17 @@
+# ~/.config/git/config
+
+# --- Global Default (Fallback) ---
+# This is used for any repository outside the specified directories.
+[user]
+    name = Perkelatorz
+    email = 27794858+Perkelatorz@users.noreply.github.com
+
+# --- Conditional Includes ---
+
+# If inside the ~/code/work/ directory, include the work config file.
+[includeIf "gitdir:~/code/work/"]
+    path = config-work
+
+# If inside the ~/code/private/ directory, include the private config file.
+[includeIf "gitdir:~/code/private/"]
+    path = config-private
