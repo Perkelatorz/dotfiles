@@ -14,7 +14,7 @@ local LINES_TO_SCAN = 200
 -- Configuration table: All filetype-specific logic lives here.
 M.config = {
 	python = {
-		icon = "",
+		icon = "",
 		zeal_rules = {
 			{ "fastapi", "fastapi" },
 			{ "pydantic", "pydantic" },
@@ -32,7 +32,7 @@ M.config = {
 		official_domain = "docs.python.org",
 	},
 	javascript = {
-		icon = "",
+		icon = "",
 		zeal_rules = {
 			{ "from%s+['\"]react", "react" },
 			{ "require%(['\"]react", "react" },
@@ -47,12 +47,12 @@ M.config = {
 		official_bang = "!mdn", -- DuckDuckGo bang for MDN
 	},
 	typescript = {
-		icon = "",
+		icon = "",
 		zeal_default = "typescript",
 		official_domain = "typescriptlang.org",
 	},
 	cs = {
-		icon = "",
+		icon = "",
 		zeal_rules = {
 			{ "using%s+Microsoft%.AspNetCore", "aspnetcore" },
 			{ "using%s+Microsoft%.EntityFrameworkCore", "entityframeworkcore" },
@@ -66,7 +66,7 @@ M.config = {
 		official_domain = "learn.microsoft.com",
 	},
 	lua = {
-		icon = "",
+		icon = "",
 		zeal_rules = {
 			{ "vim%.", "neovim" },
 			{ "require%(['\"]vim", "neovim" },
@@ -75,75 +75,75 @@ M.config = {
 		official_domain = "lua.org",
 	},
 	bash = {
-		icon = "",
+		icon = "",
 		zeal = "bash",
 		official_domain = "man7.org",
 	},
 	go = {
-		icon = "󰟓",
+		icon = "󰟓",
 		zeal_default = "go",
 		official_bang = "!golang",
 	},
 	rust = {
-		icon = "",
+		icon = "",
 		zeal_default = "rust",
 		official_domain = "doc.rust-lang.org",
 	},
 	ruby = {
-		icon = "",
+		icon = "",
 		zeal_default = "ruby",
 		official_domain = "ruby-doc.org",
 	},
 	php = {
-		icon = "",
+		icon = "",
 		zeal_default = "php",
 		official_bang = "!php",
 	},
 	java = {
-		icon = "",
+		icon = "",
 		zeal_default = "java",
 		official_domain = "docs.oracle.com",
 	},
 	cpp = {
-		icon = "",
+		icon = "",
 		zeal_default = "cpp",
 		official_domain = "cppreference.com",
 	},
 	c = {
-		icon = "",
+		icon = "",
 		zeal_default = "c",
 		official_domain = "cppreference.com",
 	},
 	html = {
-		icon = "",
+		icon = "",
 		zeal_default = "html",
 		official_bang = "!mdn",
 	},
 	css = {
-		icon = "",
+		icon = "",
 		zeal_default = "css",
 		official_bang = "!mdn",
 	},
 	dockerfile = {
-		icon = "",
+		icon = "",
 		zeal_default = "docker",
 		official_bang = "!docker",
 	},
 	sql = {
-		icon = "",
+		icon = "",
 		zeal_default = "postgresql",
 		official_domain = "postgresql.org",
 	},
 	json = {
-		icon = "",
+		icon = "",
 		zeal_default = "json",
 	},
 	yaml = {
-		icon = "",
+		icon = "",
 		zeal_default = "yaml",
 	},
 	markdown = {
-		icon = "",
+		icon = "",
 		zeal_default = "markdown",
 	},
 	xml = {
