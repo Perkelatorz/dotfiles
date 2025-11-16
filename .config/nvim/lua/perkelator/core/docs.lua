@@ -3,8 +3,8 @@ local M = {}
 
 ---
 -- @const: Your preferred search engine.
-M.search_engine = "https://www.google.com/search?q=%s"
--- M.search_engine = "https://duckduckgo.com/?q=%s"
+-- M.search_engine = "https://www.google.com/search?q=%s"
+M.search_engine = "https://duckduckgo.com/?q=%s"
 
 ---
 -- @const: How many lines to scan for context.
