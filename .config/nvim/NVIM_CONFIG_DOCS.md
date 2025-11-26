@@ -80,9 +80,13 @@ nvim
     │   ├── init.lua           # Core module loader
     │   ├── options.lua        # Vim options
     │   ├── keymaps.lua        # Core keymaps
-    │   └── filetype-settings.lua  # Language-specific settings
+    │   ├── filetype-settings.lua  # Language-specific settings
+    │   ├── colorscheme.lua    # Custom colorscheme
+    │   ├── docs.lua           # Documentation search module
+    │   ├── docs-config.lua    # Documentation configuration
+    │   └── utils.lua          # Utility functions
     └── plugins/
-        ├── init.lua           # Plugin loader
+        ├── lazy.lua           # Plugin loader (lazy.nvim)
         ├── lsp/               # LSP configuration
         │   ├── lspconfig.lua
         │   └── mason.lua
@@ -206,11 +210,19 @@ Syntax highlighting for:
 - **Purpose:** Statusline
 - **Features:** Git branch, diagnostics, file info, LSP status
 - **Sections:** Mode, branch, diff, diagnostics, filename, filetype, location
+- **Styling:** Uses theme colors from `_G.alabaster_colors` for consistent theming
 
 #### **indent-blankline.nvim**
 
 - **Purpose:** Indentation guides
 - **Features:** Visual indent levels, scope highlighting
+
+#### **which-key.nvim**
+
+- **Purpose:** Keybinding helper and menu
+- **Features:** Shows available keybindings when pressing `<leader>`
+- **Styling:** Uses theme colors (`fg1` for text, colored icons/groups)
+- **Trigger:** Automatically shows when pressing `<leader>`
 
 #### **dressing.nvim**
 
@@ -219,9 +231,31 @@ Syntax highlighting for:
 
 #### **colorscheme.lua**
 
-- **Purpose:** Theme management
-- **Current Theme:** (Specify your theme)
-- **Command:** `:colorscheme <name>`
+- **Purpose:** Fully custom colorscheme with complete control
+- **Theme:** Dark Alabaster-inspired with bright, high-contrast colors
+- **Color System:**
+  - **Base colors:** `bg0-3` (backgrounds), `fg0-3` (foregrounds)
+  - **Syntax colors:** `color0-color12` (numeric names for easy changes)
+  - **UI colors:** `ui0-ui3` (gray scale)
+- **Features:**
+  - All colors defined in one place
+  - Numeric color names allow changing values without updating variable names
+  - Colors exported globally via `_G.alabaster_colors` for plugin integration
+  - Automatic theme application to all UI elements (Telescope, lualine, which-key, etc.)
+- **Color Palette:**
+  - `color0`: Errors (red)
+  - `color1`: Comments, hints (bright green)
+  - `color2`: Strings (light green)
+  - `color3`: Classes, types (night evergreen)
+  - `color4`: Keywords, constants (purple)
+  - `color5`: Numbers, warnings (orange)
+  - `color6`: Functions (Python yellow)
+  - `color7`: Function definitions (brighter yellow)
+  - `color8`: Operators (lime-yellow green)
+  - `color9`: Symbols (magenta)
+  - `color10`: Variables, builtins (cyan)
+  - `color11`: Brackets (blue)
+  - `color12`: Punctuation (bright cyan)
 
 ---
 
@@ -258,14 +292,14 @@ Syntax highlighting for:
 - **Purpose:** Edit filesystem like a buffer
 - **Features:** Direct file manipulation, buffer-style editing
 - **Keybindings:**
-  - `<leader>eo` - Open oil
-  - `<leader>of` - Open oil in floating window
-  - `-` - Open parent directory
+  - `<leader>..` - Open parent directory in oil
+  - `<leader>.f` - Open oil in floating window
 
 #### **telescope.nvim**
 
 - **Purpose:** Fuzzy finder
 - **Features:** File search, grep, buffers, git integration
+- **Styling:** Uses theme colors from colorscheme.lua
 - **Keybindings:**
   - `<leader>ff` - Find files in cwd
   - `<leader>fr` - Recent files
@@ -288,6 +322,23 @@ Syntax highlighting for:
   - `;` - Open bookmarks
   - `m` - Buffer bookmarks
 
+#### **docs.lua** (Documentation Search)
+
+- **Purpose:** Smart documentation search with context detection
+- **Features:**
+  - Automatic docset detection based on filetype and imports
+  - Support for Zeal and DevDocs
+  - Official documentation search with DuckDuckGo bangs
+  - Web search fallback
+  - Telescope-based picker with icons
+- **Keybindings:**
+  - `<leader>zd` - Zeal documentation search
+  - `<leader>zv` - DevDocs documentation search
+  - `<leader>zp` - Python pydoc (terminal split)
+  - `<leader>zs` - Web search (editable query)
+- **Configuration:** `docs-config.lua` - Array-based configuration for filetypes and docsets
+- **Supported Languages:** Python, JavaScript/TypeScript, Go, C#, Lua, Bash, and more
+
 ---
 
 ### 🔧 LSP & Completion
@@ -302,20 +353,22 @@ Syntax highlighting for:
 #### **nvim-lspconfig**
 
 - **Purpose:** LSP client configuration
-- **Features:** Language server setup, keybindings, diagnostics
+- **Features:** Language server setup, keybindings, diagnostics, inlay hints
 - **Keybindings:**
-  - `gd` - Go to definition
+  - `<leader>gd` - Go to definition
   - `gD` - Go to declaration
   - `gi` - Go to implementation
   - `gt` - Go to type definition
   - `gR` - Show references
-  - `K` - Hover documentation
+  - `<leader>k` - Hover documentation
   - `<leader>ca` - Code actions
   - `<leader>rn` - Rename symbol
   - `<leader>rs` - Restart LSP
   - `<leader>D` - Show buffer diagnostics
   - `[d` - Previous diagnostic
   - `]d` - Next diagnostic
+  - `<leader>uh` - Toggle inlay hints (on by default)
+  - `<leader>uv` - Toggle virtual text diagnostics (off by default)
 
 #### **nvim-cmp**
 
@@ -543,9 +596,9 @@ Syntax highlighting for:
 
 - **Purpose:** Enhanced substitute/replace
 - **Keybindings:**
-  - `s` - Substitute with motion
-  - `ss` - Substitute line
-  - `S` - Substitute to end of line
+  - `gs` - Substitute with motion/visual
+  - `gss` - Substitute line
+  - `gsS` - Substitute to end of line
   - `<leader>s` - Substitute range operator
   - `<leader>ss` - Substitute word
 
@@ -564,6 +617,15 @@ Syntax highlighting for:
 ---
 
 ### 🔍 Navigation & Search
+
+#### **nvim-spectre**
+
+- **Purpose:** Project-wide search and replace
+- **Features:** Find and replace across multiple files
+- **Keybindings:**
+  - `<leader>sr` - Replace in files (Spectre)
+  - `<leader>sw` - Search current word (Spectre)
+  - `<leader>sf` - Search in current file (Spectre)
 
 #### **trouble.nvim**
 
@@ -587,11 +649,30 @@ Syntax highlighting for:
 #### **nvim-treesitter**
 
 - **Purpose:** Advanced syntax highlighting and text objects
-- **Features:** Incremental selection, indentation, folding
+- **Features:** Incremental selection, indentation, folding, text objects
 - **Keybindings:**
-  - `<C-space>` - Init selection
-  - `<C-space>` - Increment selection
+  - `<C-space>` - Init/increment selection
   - `<C-backspace>` - Decrement selection
+  - `af/if` - Around/inside function
+  - `ac/ic` - Around/inside class
+  - `aa/ia` - Around/inside argument
+  - `]m/[m` - Next/previous method
+  - `]]/[[` - Next/previous class
+
+#### **flash.nvim**
+
+- **Purpose:** Enhanced navigation with labels
+- **Features:** Jump to any visible location with labels
+- **Keybindings:**
+  - `<leader>j` - Flash jump
+  - `<leader>S` - Flash Treesitter
+
+#### **mini.ai**
+
+- **Purpose:** Extended text objects
+- **Features:** Additional text objects for better editing
+- **Keybindings:**
+  - `ao/io` - Around/inside block/conditional/loop
 
 ---
 
@@ -664,9 +745,8 @@ Syntax highlighting for:
 | `<leader>ef` | Toggle on current file |
 | `<leader>ec` | Collapse tree          |
 | `<leader>er` | Refresh tree           |
-| `<leader>eo` | Open oil               |
-| `<leader>of` | Oil floating window    |
-| `-`          | Open parent (oil)      |
+| `<leader>..` | Open parent (oil)      |
+| `<leader>.f` | Oil floating window    |
 
 #### Find (Telescope)
 
@@ -678,6 +758,21 @@ Syntax highlighting for:
 | `<leader>fc` | Grep cursor word |
 | `<leader>ft` | Find todos       |
 | `<leader>fb` | Browse buffers   |
+
+#### Search & Replace
+
+| Key          | Action                    |
+| ------------ | ------------------------- |
+| `<leader>sr` | Replace in files (Spectre)|
+| `<leader>sw` | Search current word       |
+| `<leader>sf` | Search in current file    |
+
+#### Navigation
+
+| Key          | Action           |
+| ------------ | ---------------- |
+| `<leader>j`  | Flash jump       |
+| `<leader>S`  | Flash Treesitter |
 
 #### Format & Markdown
 
@@ -759,20 +854,22 @@ Syntax highlighting for:
 
 #### LSP
 
-| Key          | Action                |
-| ------------ | --------------------- |
-| `gd`         | Go to definition      |
-| `gD`         | Go to declaration     |
-| `gi`         | Go to implementation  |
-| `gt`         | Go to type definition |
-| `gR`         | Show references       |
-| `K`          | Hover documentation   |
-| `<leader>ca` | Code actions          |
-| `<leader>rn` | Rename                |
-| `<leader>rs` | Restart LSP           |
-| `<leader>D`  | Buffer diagnostics    |
-| `[d`         | Previous diagnostic   |
-| `]d`         | Next diagnostic       |
+| Key          | Action                      |
+| ------------ | --------------------------- |
+| `<leader>gd` | Go to definition            |
+| `gD`         | Go to declaration           |
+| `gi`         | Go to implementation        |
+| `gt`         | Go to type definition       |
+| `gR`         | Show references             |
+| `<leader>k`  | Hover documentation         |
+| `<leader>ca` | Code actions                |
+| `<leader>rn` | Rename                      |
+| `<leader>rs` | Restart LSP                 |
+| `<leader>D`  | Buffer diagnostics          |
+| `[d`         | Previous diagnostic         |
+| `]d`         | Next diagnostic             |
+| `<leader>uh` | Toggle inlay hints          |
+| `<leader>uv` | Toggle virtual text diags   |
 
 #### Trouble
 
@@ -790,6 +887,15 @@ Syntax highlighting for:
 | ------------ | --------------- |
 | `<leader>wr` | Restore session |
 | `<leader>ws` | Save session    |
+
+#### Documentation Search
+
+| Key          | Action                    |
+| ------------ | ------------------------- |
+| `<leader>zd` | Zeal documentation search |
+| `<leader>zv` | DevDocs documentation     |
+| `<leader>zp` | Python pydoc              |
+| `<leader>zs` | Web search (editable)     |
 
 #### Misc
 
@@ -892,6 +998,28 @@ Syntax highlighting for:
 
 ---
 
-**Last Updated:** 2024  
-**Configuration Version:** 1.0  
+**Last Updated:** 2025  
+**Configuration Version:** 2.0  
 **Maintained by:** You
+
+---
+
+## Recent Updates
+
+### Version 2.0 Changes
+
+- **Custom Colorscheme:** Fully custom colorscheme with numeric color names (`color0-color12`) for easy customization
+- **Documentation Search:** New `docs.lua` module with smart context detection and Telescope integration
+- **Keybinding Updates:**
+  - LSP: `<leader>gd` and `<leader>k` (no longer override defaults)
+  - Oil: `<leader>..` and `<leader>.f`
+  - Substitute: `gs`, `gss`, `gsS`
+- **UI Improvements:**
+  - All plugins use theme colors automatically
+  - Icons and colors throughout UI elements
+  - Inlay hints enabled by default (toggle with `<leader>uh`)
+  - Virtual text diagnostics disabled by default (toggle with `<leader>uv`)
+- **Color System:**
+  - Base colors: `bg0-3`, `fg0-3` (kept original names)
+  - Syntax colors: `color0-color12` (numeric for easy changes)
+  - UI colors: `ui0-ui3` (following bg/fg pattern)
