@@ -1,6 +1,5 @@
 # Neovim Configuration Documentation
 
-> **Author:** perkelator  
 > **Last Updated:** 2025  
 > **Neovim Version:** 0.9+
 
@@ -51,8 +50,10 @@ go version  # For Go support
 # Backup existing config
 mv ~/.config/nvim ~/.config/nvim.backup
 
-# Clone this configuration
-git clone https://github.com/Perkelatorz/dotfiles ~/.config/nvim
+# Clone or copy this configuration
+cp -r /path/to/this/config ~/.config/nvim
+# Or if using git:
+# git clone <your-repo> ~/.config/nvim
 
 # Launch Neovim (plugins will auto-install)
 nvim
@@ -74,7 +75,7 @@ nvim
 ~/.config/nvim/
 ├── init.lua                    # Entry point
 ├── lazy-lock.json             # Plugin version lock
-└── lua/perkelator/
+└── lua/nvim/
     ├── core/
     │   ├── init.lua           # Core module loader
     │   ├── options.lua        # Vim options
@@ -893,4 +894,4 @@ Syntax highlighting for:
 
 **Last Updated:** 2024  
 **Configuration Version:** 1.0  
-**Maintained by:** perkelator
+**Maintained by:** You
