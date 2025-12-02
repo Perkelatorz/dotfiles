@@ -219,6 +219,11 @@ return {
 			-- CSV
 			{ "<leader>cs", desc = "Toggle CSV view" },
 
+			-- Color picker (ccc.nvim)
+			{ "<leader>cp", desc = "󰏘 Color picker" },
+			{ "<leader>cc", desc = "󰁱 Convert color format" },
+			{ "<leader>ch", desc = "󰌁 Toggle color highlighter" },
+
 			-- Arrow (file bookmarks)
 			{ ";", desc = "Arrow bookmarks" },
 			{ "m", desc = "Arrow buffer bookmarks" },
