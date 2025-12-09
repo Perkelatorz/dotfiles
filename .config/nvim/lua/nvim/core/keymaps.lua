@@ -19,3 +19,6 @@ keymap.set("n", "<leader>=", "<C-x>", { desc = "Decrement number" }) -- decremen
 -- spelling check
 keymap.set("n", "<leader>sc", ":set spell!<CR>", { desc = "Spell Check" })
 
+-- colorscheme toggle
+keymap.set("n", "<leader>ct", "<cmd>ColorschemeToggle<CR>", { desc = "Toggle colorscheme (custom/nightfox)" })
+

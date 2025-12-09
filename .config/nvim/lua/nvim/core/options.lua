@@ -32,7 +32,7 @@ opt.cursorlineopt = "number,line" -- Only highlight line number and line, not en
 -- turn on termguicolors for colorscheme to work
 -- (have to use iterm2 or any other true color terminal)
 opt.termguicolors = true
-opt.background = "dark" -- Dark Alabaster theme
+opt.background = "dark" -- Purpleator theme
 opt.signcolumn = "yes" -- show sign column so that text doesn't shift
 
 -- backspace

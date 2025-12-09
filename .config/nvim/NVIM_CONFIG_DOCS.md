@@ -33,16 +33,94 @@ This Neovim configuration is optimized for multi-language development with a foc
 
 ### Prerequisites
 
+#### Quick Reference
+
+| Category | Tool | Required | Purpose |
+|----------|------|----------|---------|
+| **Core** | Neovim 0.9+ | ✅ Yes | Editor |
+| **Core** | Git | ✅ Yes | Plugin management |
+| **Core** | Node.js + npm | ✅ Yes | LSP servers, JS/TS tools |
+| **Languages** | Python 3 | ⚠️ For Python | Python development, pydoc |
+| **Languages** | Go | ⚠️ For Go | Go development |
+| **Optional** | LazyGit | ❌ No | Enhanced git UI (`<leader>lg`) |
+| **Optional** | Zeal | ❌ No | Offline docs (`<leader>zd`) |
+| **Optional** | API Keys | ❌ No | CodeCompanion AI features |
+
+**Legend:** ✅ Required | ⚠️ Required for specific language | ❌ Optional
+
+#### Required System Tools
+
 ```bash
-# Neovim 0.9+
+# Neovim 0.9+ (required)
 nvim --version
 
-# Required tools
+# Git (required for plugin management)
 git --version
-node --version  # For many LSP servers
-python3 --version  # For Python support
-go version  # For Go support
+
+# Node.js and npm (required for many LSP servers and JavaScript/TypeScript)
+node --version
+npm --version
 ```
+
+#### Language Runtimes (Required for specific languages)
+
+```bash
+# Python 3 (required for Python development)
+python3 --version
+# Note: Python is also used for pydoc documentation search
+
+# Go (required for Go development)
+go version
+```
+
+#### Optional External Tools
+
+These tools enhance functionality but are not required for basic operation:
+
+```bash
+# LazyGit - Enhanced git interface (optional, for <leader>lg)
+# Install: https://github.com/jesseduffield/lazygit
+lazygit --version
+
+# Zeal - Offline documentation browser (optional, for <leader>zd)
+# Install: https://zealdocs.org/
+zeal --version
+# Note: DevDocs is web-based and requires no installation (<leader>zv)
+```
+
+#### API Keys (Optional - for AI features)
+
+If you want to use CodeCompanion AI features, set these environment variables or add them to `secrets.lua`:
+
+```bash
+# Anthropic API key (for CodeCompanion)
+export ANTHROPIC_API_KEY="your-key-here"
+
+# OpenAI API key (alternative for CodeCompanion)
+export OPENAI_API_KEY="your-key-here"
+```
+
+Or create `~/.config/nvim/secrets.lua`:
+```lua
+return {
+  ANTHROPIC_API_KEY = "your-anthropic-key-here",
+  OPENAI_API_KEY = "your-openai-key-here",
+}
+```
+
+**Note:** `secrets.lua` is in `.gitignore` and will not be synced via yadm.
+
+#### Environment Variables (Optional)
+
+These environment variables can customize behavior:
+
+```bash
+# Custom development directory for auto-session
+# Default: ~/Dev
+export DEV_DIR="/path/to/your/dev/directory"
+```
+
+**Note:** These are optional and have sensible defaults if not set.
 
 ### Setup
 
@@ -61,9 +139,48 @@ nvim
 
 ### Post-Installation
 
-1. **Mason will auto-install:** LSP servers, linters, formatters
-2. **Treesitter will install:** Language parsers
-3. **Run health check:** `:checkhealth`
+1. **Mason will auto-install:** LSP servers, linters, formatters (see [Mason Tools](#mason-tools) below)
+2. **Treesitter will install:** Language parsers automatically
+3. **Run health check:** `:checkhealth` to verify everything is working
+
+#### Mason Tools (Auto-installed)
+
+Mason will automatically install these tools when you first open Neovim:
+
+**LSP Servers:**
+- `pyright`, `pylsp`, `ruff` - Python
+- `gopls` - Go
+- `omnisharp` - C#
+- `ts_ls`, `eslint` - JavaScript/TypeScript
+- `bashls` - Bash
+- `powershell_es` - PowerShell
+- `dockerls`, `docker_compose_language_service` - Docker
+- `ansiblels` - Ansible
+- `terraformls` - Terraform
+- `jsonls`, `yamlls` - JSON/YAML
+- `lemminx` - XML
+- `marksman` - Markdown
+- `html`, `cssls` - Web
+- `lua_ls` - Lua
+- `typos_lsp` - Typo detection
+
+**Formatters & Linters:**
+- `prettier` - JS/TS/JSON/YAML/MD/CSS/HTML
+- `stylua` - Lua
+- `ruff` - Python (linter/formatter)
+- `mypy` - Python type checker
+- `isort` - Python import sorter
+- `gofumpt`, `goimports` - Go
+- `golangci-lint` - Go linter
+- `csharpier` - C# formatter
+- `shfmt` - Shell formatter
+- `ansible-lint`, `hadolint`, `markdownlint`, `yamllint`, `tflint` - Various linters
+
+**Debug Adapters:**
+- `debugpy` - Python debugging (installed via Mason)
+- `delve` - Go debugging (installed via Mason)
+
+**Note:** All Mason tools are installed to `~/.local/share/nvim/mason/` and are machine-specific (not synced).
 
 ---
 
@@ -336,6 +453,10 @@ Syntax highlighting for:
   - `<leader>zv` - DevDocs documentation search
   - `<leader>zp` - Python pydoc (terminal split)
   - `<leader>zs` - Web search (editable query)
+- **Dependencies:**
+  - **Zeal:** Optional, install from https://zealdocs.org/ (for `<leader>zd`)
+  - **DevDocs:** Web-based, no installation needed (for `<leader>zv`)
+  - **Python:** Required for `<leader>zp` (uses `python -m pydoc`)
 - **Configuration:** `docs-config.lua` - Array-based configuration for filetypes and docsets
 - **Supported Languages:** Python, JavaScript/TypeScript, Go, C#, Lua, Bash, and more
 
@@ -415,6 +536,10 @@ Syntax highlighting for:
   - `neotest-go` - Go tests
   - `neotest-jest` - Jest (JavaScript)
   - `neotest-vitest` - Vitest (JavaScript)
+- **Dependencies:**
+  - **Python:** `pytest` must be installed (`pip install pytest`)
+  - **Go:** Built-in `go test` (no additional install needed)
+  - **JavaScript:** `jest` or `vitest` must be installed via npm (`npm install --save-dev jest` or `npm install --save-dev vitest`)
 - **Keybindings:**
   - `<leader>tr` - Run nearest test
   - `<leader>tf` - Run current test file
@@ -466,7 +591,8 @@ Syntax highlighting for:
 #### **dap-python**
 
 - **Purpose:** Python debugging
-- **Debugger:** debugpy
+- **Debugger:** `debugpy` (auto-installed via Mason)
+- **Dependencies:** Python 3.x
 - **Keybindings:**
   - `<leader>dpt` - Debug test method
   - `<leader>dpc` - Debug test class
@@ -475,7 +601,8 @@ Syntax highlighting for:
 #### **dap-go**
 
 - **Purpose:** Go debugging
-- **Debugger:** delve
+- **Debugger:** `delve` (auto-installed via Mason)
+- **Dependencies:** Go 1.16+
 - **Keybindings:**
   - `<leader>dgt` - Debug Go test
   - `<leader>dgl` - Debug last Go test

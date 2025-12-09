@@ -1,23 +1,27 @@
--- Fully custom colorscheme - Dark Alabaster
+-- Fully custom colorscheme - Purpleator
 -- All colors defined here for complete control
+-- Can switch to nightfox with :ColorschemeToggle or <leader>ct
 
 local M = {}
+
+-- Current theme state
+local current_theme = "custom" -- "custom" or "nightfox"
 
 function M.setup()
 	local utils = require("nvim.core.utils")
 
-	-- Color palette - bright colors with great contrast
+	-- Color palette - Purpleator theme with purple undertones
 	-- Syntax colors use numeric names (color0-color16) so you can change colors without updating variable names
 	local colors = {
-		-- Base colors - almost black purple background (keep original names)
-		bg0 = "#1a1520", -- Almost black purple background
-		bg1 = "#252030", -- Lighter purple (more contrast from bg0)
-		bg2 = "#302a40", -- Even lighter purple (more contrast from bg1)
-		bg3 = "#3a3550", -- Borders/separators (purple tint, more visible)
-		fg0 = "#f0f0f0", -- Base text (bright white-gray)
-		fg1 = "#d8d8d8", -- Secondary text (more contrast from fg0)
-		fg2 = "#c0c0c0", -- Tertiary text (more contrast from fg1)
-		fg3 = "#a8a8a8", -- Dimmed text (more contrast from fg2)
+		-- Base colors - purple undertone backgrounds (Purpleator theme)
+		bg0 = "#1a1420", -- Deep purple-black background
+		bg1 = "#251d2e", -- Lighter purple (more contrast from bg0)
+		bg2 = "#30283c", -- Even lighter purple (more contrast from bg1)
+		bg3 = "#3d344a", -- Borders/separators (purple tint, more visible)
+		fg0 = "#f0f0f0", -- Base text (bright white-gray) - kept same
+		fg1 = "#d8d8d8", -- Secondary text (more contrast from fg0) - kept same
+		fg2 = "#c0c0c0", -- Tertiary text (more contrast from fg1) - kept same
+		fg3 = "#a8a8a8", -- Dimmed text (more contrast from fg2) - kept same
 
 		-- Syntax colors - bright, high contrast (numeric names for easy changes)
 		color0 = "#d87070", -- Errors (muted red)
@@ -42,6 +46,8 @@ function M.setup()
 	}
 
 	-- Export colors globally for other tools to use
+	_G.purpleator_colors = colors
+	-- Keep old name for backwards compatibility
 	_G.alabaster_colors = colors
 
 	-- Set background
@@ -63,7 +69,7 @@ function M.setup()
 	vim.api.nvim_set_hl(0, "ColorColumn", { bg = colors.bg1 })
 
 	-- Window separator
-	vim.api.nvim_set_hl(0, "WinSeparator", { fg = colors.ui2er, bold = false })
+	vim.api.nvim_set_hl(0, "WinSeparator", { fg = colors.ui3, bold = false })
 
 	-- Indent guides (set early for indent-blankline)
 	vim.api.nvim_set_hl(0, "IndentBlanklineIndent1", { fg = colors.bg3, nocombine = true })
@@ -85,11 +91,11 @@ function M.setup()
 	vim.api.nvim_set_hl(0, "Function", { fg = colors.color6, bold = true })
 	vim.api.nvim_set_hl(0, "@function", { fg = colors.color6, bold = true })
 	vim.api.nvim_set_hl(0, "@function.call", { fg = colors.color6, bold = true })
-	vim.api.nvim_set_hl(0, "@function.definition", { fg = colors.color6_bright, bold = true })
+	vim.api.nvim_set_hl(0, "@function.definition", { fg = colors.color7, bold = true })
 	vim.api.nvim_set_hl(0, "@function.builtin", { fg = colors.color10, bold = false }) -- Builtins stay normal
 	-- Python-specific function highlights (same yellow)
 	vim.api.nvim_set_hl(0, "@function.call.python", { fg = colors.color6, bold = true })
-	vim.api.nvim_set_hl(0, "@function.definition.python", { fg = colors.color6_bright, bold = true })
+	vim.api.nvim_set_hl(0, "@function.definition.python", { fg = colors.color7, bold = true })
 	vim.api.nvim_set_hl(0, "@function.python", { fg = colors.color6, bold = true })
 	vim.api.nvim_set_hl(0, "@function.builtin.python", { fg = colors.color10, bold = false })
 
@@ -103,10 +109,10 @@ function M.setup()
 	vim.api.nvim_set_hl(0, "@repeat", { fg = colors.color4, bold = true })
 
 	-- Syntax highlighting - Strings (light green)
-	vim.api.nvim_set_hl(0, "String", { fg = colors.color1_light, bold = false })
-	vim.api.nvim_set_hl(0, "@string", { fg = colors.color1_light, bold = false })
-	vim.api.nvim_set_hl(0, "@string.regex", { fg = colors.color1_light, bold = false })
-	vim.api.nvim_set_hl(0, "@string.escape", { fg = colors.color1_light, bold = false })
+	vim.api.nvim_set_hl(0, "String", { fg = colors.color2, bold = false })
+	vim.api.nvim_set_hl(0, "@string", { fg = colors.color2, bold = false })
+	vim.api.nvim_set_hl(0, "@string.regex", { fg = colors.color2, bold = false })
+	vim.api.nvim_set_hl(0, "@string.escape", { fg = colors.color2, bold = false })
 
 	-- Syntax highlighting - Comments (italic for readability)
 	vim.api.nvim_set_hl(0, "Comment", { fg = colors.color1, italic = true, bold = false })
@@ -297,7 +303,54 @@ function M.setup()
 	vim.g.terminal_color_15 = colors.fg0
 end
 
--- Auto-run setup
+-- Function to apply custom theme
+function M.apply_custom()
+	current_theme = "custom"
+	M.setup()
+	vim.notify("Colorscheme: Purpleator", vim.log.levels.INFO)
+end
+
+-- Function to apply nightfox
+function M.apply_nightfox()
+	current_theme = "nightfox"
+	-- Check if nightfox is available
+	local nightfox_ok, _ = pcall(require, "nightfox")
+	if not nightfox_ok then
+		vim.notify("Nightfox not installed. Run :Lazy to install plugins.", vim.log.levels.WARN)
+		return
+	end
+	vim.cmd("colorscheme nightfox")
+	vim.notify("Colorscheme: Nightfox", vim.log.levels.INFO)
+end
+
+-- Toggle between custom and nightfox
+function M.toggle()
+	if current_theme == "custom" then
+		M.apply_nightfox()
+	else
+		M.apply_custom()
+	end
+end
+
+-- Get current theme
+function M.get_current()
+	return current_theme
+end
+
+-- Create user commands
+vim.api.nvim_create_user_command("ColorschemeCustom", M.apply_custom, {
+	desc = "Switch to custom Purpleator colorscheme",
+})
+
+vim.api.nvim_create_user_command("ColorschemeNightfox", M.apply_nightfox, {
+	desc = "Switch to Nightfox colorscheme",
+})
+
+vim.api.nvim_create_user_command("ColorschemeToggle", M.toggle, {
+	desc = "Toggle between custom and Nightfox colorscheme",
+})
+
+-- Auto-run setup (default to custom)
 M.setup()
 
 return M

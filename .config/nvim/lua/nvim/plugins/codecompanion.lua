@@ -1,5 +1,6 @@
 return {
 	"olimorris/codecompanion.nvim",
+	-- Prepared for v18 - no version pin, will auto-update
 	dependencies = {
 		"nvim-lua/plenary.nvim",
 		"nvim-treesitter/nvim-treesitter",
@@ -25,47 +26,55 @@ return {
 			return
 		end
 
-		codecompanion.setup({
-			strategies = {
-				chat = {
-					adapter = "anthropic",
-				},
-				inline = {
-					adapter = "anthropic",
-				},
-			},
-			adapters = {
-				http = {
-					anthropic = function()
-						return require("codecompanion.adapters").extend("anthropic", {
-							env = {
-								api_key = get_api_key("ANTHROPIC_API_KEY"),
-							},
-						})
-					end,
-				},
-			},
-			display = {
-				chat = {
-					window = {
-						layout = "vertical",
-						width = 0.45,
-						height = 0.8,
-						relative = "editor",
-						border = "rounded",
+		-- Configuration prepared for v18 compatibility
+		-- If v18 has breaking changes, this will need updates
+		local ok, result = pcall(function()
+			return codecompanion.setup({
+				strategies = {
+					chat = {
+						adapter = "anthropic",
+					},
+					inline = {
+						adapter = "anthropic",
 					},
 				},
-				inline = {
-					diff = {
-						enabled = true,
-						close_chat_at = 240,
+				adapters = {
+					http = {
+						anthropic = function()
+							return require("codecompanion.adapters").extend("anthropic", {
+								env = {
+									api_key = get_api_key("ANTHROPIC_API_KEY"),
+								},
+							})
+						end,
 					},
 				},
-			},
-			opts = {
-				log_level = "ERROR",
-			},
-		})
+				display = {
+					chat = {
+						window = {
+							layout = "vertical",
+							width = 0.45,
+							height = 0.8,
+							relative = "editor",
+							border = "rounded",
+						},
+					},
+					inline = {
+						diff = {
+							enabled = true,
+							close_chat_at = 240,
+						},
+					},
+				},
+				opts = {
+					log_level = "ERROR",
+				},
+			})
+		end)
+
+		if not ok then
+			vim.notify("CodeCompanion setup failed - may need v18 migration. Error: " .. tostring(result), vim.log.levels.WARN)
+		end
 
 		-- set keymaps
 		local keymap = vim.keymap
