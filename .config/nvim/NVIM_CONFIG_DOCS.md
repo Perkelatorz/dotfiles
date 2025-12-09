@@ -349,16 +349,22 @@ Syntax highlighting for:
 #### **colorscheme.lua**
 
 - **Purpose:** Fully custom colorscheme with complete control
-- **Theme:** Dark Alabaster-inspired with bright, high-contrast colors
+- **Theme:** Purpleator - Dark theme with purple undertones and bright, high-contrast colors
 - **Color System:**
-  - **Base colors:** `bg0-3` (backgrounds), `fg0-3` (foregrounds)
+  - **Base colors:** `bg0-3` (backgrounds with purple undertones), `fg0-3` (foregrounds)
   - **Syntax colors:** `color0-color12` (numeric names for easy changes)
   - **UI colors:** `ui0-ui3` (gray scale)
 - **Features:**
   - All colors defined in one place
   - Numeric color names allow changing values without updating variable names
-  - Colors exported globally via `_G.alabaster_colors` for plugin integration
+  - Colors exported globally via `_G.purpleator_colors` (and `_G.alabaster_colors` for backwards compatibility)
   - Automatic theme application to all UI elements (Telescope, lualine, which-key, etc.)
+  - Quick toggle between custom theme and Nightfox
+- **Theme Switching:**
+  - `<leader>ct` - Toggle between Purpleator and Nightfox
+  - `:ColorschemeToggle` - Toggle themes
+  - `:ColorschemeCustom` - Switch to Purpleator
+  - `:ColorschemeNightfox` - Switch to Nightfox
 - **Color Palette:**
   - `color0`: Errors (red)
   - `color1`: Comments, hints (bright green)
@@ -434,10 +440,15 @@ Syntax highlighting for:
 
 #### **arrow.nvim**
 
-- **Purpose:** File bookmarks
+- **Purpose:** File bookmarks for quick navigation
+- **Features:**
+  - Persistent file bookmarks (saved per project)
+  - Buffer bookmarks (per-session)
+  - Simple keybindings for fast access
 - **Keybindings:**
-  - `;` - Open bookmarks
-  - `m` - Buffer bookmarks
+  - `;` - Open file bookmarks menu
+  - `m` - Open buffer bookmarks menu
+  - Press number (1-9) to jump to bookmark
 
 #### **docs.lua** (Documentation Search)
 
@@ -615,6 +626,8 @@ Syntax highlighting for:
 
 - **Purpose:** AI coding assistant
 - **Features:** Chat, inline prompts, code actions
+- **Status:** Prepared for v18 compatibility (auto-updates to latest version)
+- **Configuration:** API keys from `secrets.lua` or environment variables
 - **Keybindings:**
   - `<leader>aa` - CodeCompanion actions
   - `<leader>ac` - Toggle chat
@@ -623,6 +636,35 @@ Syntax highlighting for:
   - `<leader>ap` - Inline prompt
 
 ---
+
+### 🌐 Web Development
+
+#### **prelive.nvim** (Live Server)
+
+- **Purpose:** Live development server with auto-reload (like VSCode Live Server)
+- **Features:**
+  - Pure Lua implementation (no external dependencies)
+  - Fast and lightweight (uses Neovim's built-in `vim.uv`)
+  - Auto-reloads HTML/CSS/JS on file changes
+  - Automatic browser opening
+  - Multiple directory serving support
+- **Keybindings:**
+  - `<leader>ls` - Start live server and open current file
+  - `<leader>lS` - Show live server status
+  - `<leader>lc` - Stop serving a directory
+  - `<leader>lC` - Stop all live servers
+  - `<leader>ll` - Open live server log
+- **Commands:**
+  - `:PreLiveGo [dir] [file]` - Start server (opens current file if no args)
+  - `:PreLiveStatus` - Show status and open directory in browser
+  - `:PreLiveClose` - Select directory to stop
+  - `:PreLiveCloseAll` - Stop all servers
+  - `:PreLiveLog` - View log file
+- **Usage:**
+  1. Open an HTML file
+  2. Press `<leader>ls` or run `:PreLiveGo`
+  3. Browser opens automatically with live reload
+  4. Edit files - changes appear instantly in browser
 
 ### 🌐 HTTP Client
 
@@ -847,12 +889,13 @@ Syntax highlighting for:
 
 #### Core Navigation
 
-| Key          | Action                  |
-| ------------ | ----------------------- |
-| `<leader>nh` | Clear search highlights |
-| `<leader>+`  | Increment number        |
-| `<leader>=`  | Decrement number        |
-| `<leader>sc` | Toggle spell check      |
+| Key          | Action                      |
+| ------------ | --------------------------- |
+| `<leader>nh` | Clear search highlights     |
+| `<leader>+`  | Increment number            |
+| `<leader>=`  | Decrement number            |
+| `<leader>sc` | Toggle spell check          |
+| `<leader>ct` | Toggle colorscheme (custom/nightfox) |
 
 #### AI (CodeCompanion)
 
@@ -1030,8 +1073,18 @@ Syntax highlighting for:
 | ------------ | ---------------- |
 | `<leader>lg` | Open LazyGit     |
 | `<leader>cs` | Toggle CSV view  |
-| `;`          | Arrow bookmarks  |
-| `m`          | Buffer bookmarks |
+| `;`          | Arrow file bookmarks  |
+| `m`          | Arrow buffer bookmarks |
+
+#### Live Server
+
+| Key          | Action                      |
+| ------------ | -------------------------- |
+| `<leader>ls` | Start live server          |
+| `<leader>lS` | Show live server status    |
+| `<leader>lc` | Stop serving a directory   |
+| `<leader>lC` | Stop all live servers      |
+| `<leader>ll` | Open live server log       |
 | `[t`         | Previous todo    |
 | `]t`         | Next todo        |
 
@@ -1126,12 +1179,22 @@ Syntax highlighting for:
 ---
 
 **Last Updated:** 2025  
-**Configuration Version:** 2.0  
+**Configuration Version:** 2.1  
 **Maintained by:** You
 
 ---
 
 ## Recent Updates
+
+### Version 2.1 Changes
+
+- **Theme Renamed:** Custom colorscheme renamed to "Purpleator" with purple undertones
+- **Theme Toggle:** Added quick toggle between Purpleator and Nightfox (`<leader>ct`)
+- **Live Server:** Added prelive.nvim for live development server (like VSCode Live Server)
+  - Pure Lua, no external dependencies
+  - Auto-reload on file changes
+  - Keybindings: `<leader>ls`, `<leader>lS`, `<leader>lc`, `<leader>lC`, `<leader>ll`
+- **CodeCompanion:** Prepared for v18 compatibility (removed version pin)
 
 ### Version 2.0 Changes
 
