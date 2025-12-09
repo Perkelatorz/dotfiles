@@ -77,6 +77,7 @@ return {
 			{ "<leader>+", desc = "󰎎 Increment number" },
 			{ "<leader>=", desc = "󰎐 Decrement number" },
 			{ "<leader>sc", desc = "󰓆 Toggle spell check" },
+			{ "<leader>ct", desc = "🎨 Toggle colorscheme (custom/nightfox)" },
 
 			-- AI (CodeCompanion) with icons
 			{ "<leader>aa", desc = "󰚩 CodeCompanion actions", mode = { "n", "v" } },
@@ -179,6 +180,13 @@ return {
 			{ "<leader>dgt", desc = "󰆍 Debug Go test" },
 			{ "<leader>dgl", desc = "󰄉 Debug last Go test" },
 
+			-- Live Server
+			{ "<leader>ls", desc = "Start live server and open current file" },
+			{ "<leader>lS", desc = "Show live server status" },
+			{ "<leader>lc", desc = "Stop serving a directory" },
+			{ "<leader>lC", desc = "Stop all live servers" },
+			{ "<leader>ll", desc = "Open live server log" },
+
 			-- HTTP (rest.nvim / http.nvim etc)
 			{ "<leader>kr", desc = "Run HTTP request" },
 			{ "<leader>kt", desc = "Toggle HTTP view" },
@@ -219,14 +227,15 @@ return {
 			-- CSV
 			{ "<leader>cs", desc = "Toggle CSV view" },
 
+			-- Arrow (file bookmarks)
+			{ ";", desc = "Arrow bookmarks" },
+			{ "m", desc = "Arrow buffer bookmarks" },
+
 			-- Color picker (ccc.nvim)
 			{ "<leader>cp", desc = "󰏘 Color picker" },
 			{ "<leader>cc", desc = "󰁱 Convert color format" },
 			{ "<leader>ch", desc = "󰌁 Toggle color highlighter" },
 
-			-- Arrow (file bookmarks)
-			{ ";", desc = "Arrow bookmarks" },
-			{ "m", desc = "Arrow buffer bookmarks" },
 		})
 	end,
 }
