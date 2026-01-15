@@ -131,6 +131,13 @@ return {
 		official_bang = "!mdn",
 	},
 	{
+		filetype = "svelte",
+		icon = "",
+		zeal_default = "svelte",
+		official_domain = "svelte.dev",
+		official_bang = "!svelte",
+	},
+	{
 		filetype = "dockerfile",
 		icon = "",
 		zeal_default = "docker",
@@ -262,8 +269,13 @@ return {
 	},
 	{
 		type = "docset_override",
+		docset = "svelte",
+		official_domain = "svelte.dev",
+		official_bang = "!svelte",
+	},
+	{
+		type = "docset_override",
 		docset = "neovim",
 		official_domain = "neovim.io",
 	},
 }
-

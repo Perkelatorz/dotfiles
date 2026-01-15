@@ -1,5 +1,9 @@
 return {
 	"nvim-treesitter/nvim-treesitter",
+	-- Load on buffer events to be available early for plugins that need it
+	-- Also load on VeryLazy to ensure it's available for lazy-loaded plugins
+	event = { "BufReadPost", "BufNewFile", "VeryLazy" },
+	priority = 1000, -- High priority to load before other VeryLazy plugins
 	dependencies = {
 		"windwp/nvim-ts-autotag",
 	},
