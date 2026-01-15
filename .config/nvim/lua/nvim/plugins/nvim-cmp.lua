@@ -14,6 +14,8 @@ return {
 		"saadparwaiz1/cmp_luasnip", -- for autocompletion
 		"rafamadriz/friendly-snippets", -- useful snippets
 		"onsails/lspkind.nvim", -- vs-code like pictograms
+		"Exafunction/codeium.nvim", -- AI completion (Windsurf/Codeium)
+		"hrsh7th/cmp-nvim-lsp", -- LSP completion source
 	},
 	config = function()
 		local utils = require("nvim.core.utils")
@@ -57,21 +59,30 @@ return {
 				["<C-e>"] = cmp.mapping.abort(), -- close completion window
 				["<CR>"] = cmp.mapping.confirm({ select = false }),
 			}),
-			-- sources for autocompletion
-			sources = cmp.config.sources({
-				{ name = "nvim_lsp" },
-				{ name = "luasnip" }, -- snippets
-				{ name = "buffer" }, -- text within current buffer
-				{ name = "path" }, -- file system paths
-			}),
+		-- sources for autocompletion
+		sources = cmp.config.sources({
+			{ name = "codeium", priority = 1, max_item_count = 3 }, -- AI completion (highest priority, limited items)
+			{ name = "nvim_lsp", priority = 2 },
+			{ name = "luasnip", priority = 3 }, -- snippets
+			{ name = "buffer", priority = 4 }, -- text within current buffer
+			{ name = "path", priority = 5 }, -- file system paths
+		}),
 
-			-- configure lspkind for vs-code like pictograms in completion menu
-			formatting = {
-				format = lspkind.cmp_format({
-					maxwidth = 50,
-					ellipsis_char = "...",
-				}),
-			},
+		-- configure lspkind for vs-code like pictograms in completion menu
+		formatting = {
+			format = lspkind.cmp_format({
+				mode = "symbol_text",
+				maxwidth = 50,
+				ellipsis_char = "...",
+				menu = {
+					codeium = "[AI]",
+					nvim_lsp = "[LSP]",
+					luasnip = "[Snip]",
+					buffer = "[Buf]",
+					path = "[Path]",
+				},
+			}),
+		},
 		})
 	end,
 }

@@ -79,12 +79,43 @@ return {
 			{ "<leader>sc", desc = "󰓆 Toggle spell check" },
 			{ "<leader>ct", desc = "🎨 Toggle colorscheme (custom/nightfox)" },
 
-			-- AI (CodeCompanion) with icons
-			{ "<leader>aa", desc = "󰚩 CodeCompanion actions", mode = { "n", "v" } },
-			{ "<leader>ac", desc = "󰨀 Toggle CodeCompanion chat", mode = { "n", "v" } },
-			{ "<leader>ai", desc = "󰆐 Add selection to chat", mode = "v" },
-			{ "<leader>at", desc = "󰨀 Open CodeCompanion chat" },
-			{ "<leader>ap", desc = "󰉺 Inline CodeCompanion prompt", mode = { "n", "v" } },
+		-- AI Tools with icons
+		-- CodeCompanion
+		{ "<leader>aa", desc = "󰚩 CodeCompanion actions", mode = { "n", "v" } },
+		{ "<leader>ac", desc = "󰨀 Toggle CodeCompanion chat", mode = { "n", "v" } },
+		{ "<leader>ai", desc = "󰆐 Add selection to chat", mode = "v" },
+		{ "<leader>at", desc = "󰨀 Open CodeCompanion chat" },
+		{ "<leader>ap", desc = "󰉺 Inline CodeCompanion prompt", mode = { "n", "v" } },
+		-- OpenCode
+		{ "<leader>ao", group = "󰚩 OpenCode", mode = { "n", "v" } },
+		{ "<leader>ao", desc = "󰚩 Toggle OpenCode", mode = "n" },
+		{ "<leader>aO", desc = "󰚩 Toggle OpenCode", mode = "n" },
+		{ "<leader>aoi", desc = "󰆐 OpenCode input" },
+		{ "<leader>aoo", desc = "󰨞 OpenCode output" },
+		{ "<leader>aoq", desc = "󰅙 Close OpenCode" },
+		{ "<leader>aoc", desc = "󰭻 Quick chat" },
+		-- OpenCode Context
+		{ "<leader>aos", desc = "󰒅 Send selection", mode = "v" },
+		{ "<leader>aof", desc = "󰈔 Send current file" },
+		{ "<leader>aob", desc = "󰅩 Send current block" },
+		{ "<leader>aod", desc = "󰔫 Send diagnostics" },
+		{ "<leader>aol", desc = "󰉿 Send current line" },
+		{ "<leader>aoe", desc = "󰅚 Explain error" },
+		-- OpenCode Codebase Context
+		{ "<leader>aoP", desc = "󰙅 Send project structure" },
+		{ "<leader>aoG", desc = "󰱼 Send files by pattern" },
+		{ "<leader>aoK", desc = "󰈔 Send key project files" },
+		{ "<leader>aoD", desc = "󰉋 Send directory contents" },
+		{ "<leader>aog", desc = "󰊢 Send git diff" },
+		{ "<leader>aoG", desc = "󰜘 Send git log" },
+		-- OpenCode Utilities
+		{ "<leader>aop", desc = "󰉋 Copy file path" },
+		{ "<leader>aoh", desc = "󰋼 Show OpenCode help" },
+		-- Windsurf/Codeium
+		{ "<leader>aw", desc = "󱚟 Toggle Windsurf/Codeium" },
+		{ "<leader>aC", desc = "󰭹 Windsurf Chat (browser)" },
+		{ "<leader>aA", desc = "󰷖 Authenticate Windsurf" },
+		{ "<leader>aS", desc = "󰋼 Windsurf status" },
 
 			-- Explorer (nvim-tree) with icons
 			{ "<leader>ee", desc = "󰉋 Toggle file explorer" },

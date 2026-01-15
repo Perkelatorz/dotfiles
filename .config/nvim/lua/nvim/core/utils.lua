@@ -8,7 +8,11 @@ local M = {}
 function M.safe_require(module)
   local ok, result = pcall(require, module)
   if not ok then
-    vim.notify("Failed to load module: " .. module, vim.log.levels.WARN)
+    -- Don't warn for treesitter if it's not loaded yet (it loads lazily)
+    -- This prevents spam in logs when plugins check for treesitter before it's loaded
+    if module ~= "nvim-treesitter.configs" then
+      vim.notify("Failed to load module: " .. module, vim.log.levels.WARN)
+    end
     return nil, false
   end
   return result, true

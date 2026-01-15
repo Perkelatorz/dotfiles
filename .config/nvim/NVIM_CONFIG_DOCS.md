@@ -45,6 +45,7 @@ This Neovim configuration is optimized for multi-language development with a foc
 | **Optional** | LazyGit | ❌ No | Enhanced git UI (`<leader>lg`) |
 | **Optional** | Zeal | ❌ No | Offline docs (`<leader>zd`) |
 | **Optional** | API Keys | ❌ No | CodeCompanion AI features |
+| **Optional** | Windsurf/Codeium Account | ❌ No | AI autocompletion (completely free) |
 
 **Legend:** ✅ Required | ⚠️ Required for specific language | ❌ Optional
 
@@ -88,9 +89,9 @@ zeal --version
 # Note: DevDocs is web-based and requires no installation (<leader>zv)
 ```
 
-#### API Keys (Optional - for AI features)
+#### API Keys & AI Setup (Optional - for AI features)
 
-If you want to use CodeCompanion AI features, set these environment variables or add them to `secrets.lua`:
+**CodeCompanion:** If you want to use CodeCompanion AI features, set these environment variables or add them to `secrets.lua`:
 
 ```bash
 # Anthropic API key (for CodeCompanion)
@@ -109,6 +110,14 @@ return {
 ```
 
 **Note:** `secrets.lua` is in `.gitignore` and will not be synced via yadm.
+
+**Windsurf/Codeium:** Free AI autocompletion requires authentication:
+1. Open Neovim and run `:Codeium Auth`
+2. Browser opens - create free account or log in
+3. Copy authentication token and paste in Neovim
+4. AI suggestions appear automatically while typing (inline ghost text)
+5. No API key required - managed through Windsurf/Codeium account
+6. Completely free with no usage limits
 
 #### Environment Variables (Optional)
 
@@ -624,7 +633,7 @@ Syntax highlighting for:
 
 #### **codecompanion.nvim**
 
-- **Purpose:** AI coding assistant
+- **Purpose:** AI coding assistant (Chat-based)
 - **Features:** Chat, inline prompts, code actions
 - **Status:** Prepared for v18 compatibility (auto-updates to latest version)
 - **Configuration:** API keys from `secrets.lua` or environment variables
@@ -634,6 +643,61 @@ Syntax highlighting for:
   - `<leader>ai` - Add selection to chat (visual)
   - `<leader>at` - Open chat
   - `<leader>ap` - Inline prompt
+
+#### **opencode.nvim**
+
+- **Purpose:** AI coding assistant (OpenCode integration)
+- **Features:** AI-powered code generation, chat, and refactoring
+- **Keybindings:**
+  - `<leader>ao` - Launch OpenCode
+  - `<leader>aog` - Toggle OpenCode
+  - `<leader>aoi` - Open input window
+  - `<leader>aoo` - Open output window
+  - `<leader>aoq` - Close UI windows
+  - `<leader>ao/` - Quick chat (experimental)
+
+#### **codeium.nvim (Windsurf)**
+
+- **Purpose:** AI autocompletion (inline suggestions + chat)
+- **Status:** Actively maintained, completely FREE
+- **Features:**
+  - Workspace-aware context using LSP
+  - Integrated with nvim-cmp
+  - Inline virtual text (ghost text) suggestions
+  - Built-in chat feature (opens in browser)
+  - Multi-line completions
+  - Fast response (75ms idle delay)
+- **Keybindings (Insert Mode):**
+  - `<Tab>` - Accept full suggestion
+  - `<M-w>` (Alt-W) - Accept next word only
+  - `<M-l>` (Alt-L) - Accept next line only
+  - `<C-]>` - Clear suggestion
+  - `<M-]>` / `<M-[>` (Alt-] / Alt-[) - Cycle through suggestions
+- **Keybindings (Normal Mode):**
+  - `<leader>aw` - Toggle Windsurf/Codeium
+  - `<leader>aC` - Open Windsurf Chat (browser)
+  - `<leader>aA` - Authenticate Windsurf
+  - `<leader>aS` - Show Windsurf status
+- **Commands:**
+  - `:Codeium Auth` - Authenticate (first time setup)
+  - `:Codeium Toggle` - Toggle on/off globally
+  - `:Codeium Chat` - Open chat in browser
+  - `:Codeium Status` - Check connection status
+- **Setup:**
+  1. First time: Run `:Codeium Auth`
+  2. Browser opens with authentication page
+  3. Create free account or log in
+  4. Copy token and paste in Neovim
+  5. Suggestions appear automatically while typing
+- **nvim-cmp Integration:**
+  - AI suggestions appear in completion menu with `[AI]` label
+  - Highest priority in completion sources
+  - Limited to 3 items to avoid overwhelming other sources
+- **Virtual Text Features:**
+  - Ghost text appears inline as you type
+  - Intelligent Tab handling (accepts when no menu visible)
+  - Workspace-aware using LSP root detection
+  - Customizable delay and filetypes
 
 ---
 
@@ -897,8 +961,9 @@ Syntax highlighting for:
 | `<leader>sc` | Toggle spell check          |
 | `<leader>ct` | Toggle colorscheme (custom/nightfox) |
 
-#### AI (CodeCompanion)
+#### AI Assistants
 
+**CodeCompanion (Chat-based AI)**
 | Key          | Action                |
 | ------------ | --------------------- |
 | `<leader>aa` | CodeCompanion actions |
@@ -906,6 +971,30 @@ Syntax highlighting for:
 | `<leader>ai` | Add to chat (visual)  |
 | `<leader>at` | Open chat             |
 | `<leader>ap` | Inline prompt         |
+
+**OpenCode**
+| Key           | Action             |
+| ------------- | ------------------ |
+| `<leader>ao`  | Launch OpenCode    |
+| `<leader>aog` | Toggle OpenCode    |
+| `<leader>aoi` | Open input window  |
+| `<leader>aoo` | Open output window |
+| `<leader>aoq` | Close UI windows   |
+| `<leader>ao/` | Quick chat         |
+
+**Windsurf/Codeium (Autocompletion)**
+| Key          | Action                       |
+| ------------ | ---------------------------- |
+| `<Tab>`      | Accept full suggestion       |
+| `<M-w>`      | Accept next word (Alt-W)     |
+| `<M-l>`      | Accept next line (Alt-L)     |
+| `<C-]>`      | Clear suggestion             |
+| `<M-]>`      | Next suggestion (Alt-])      |
+| `<M-[>`      | Previous suggestion (Alt-[)  |
+| `<leader>aw` | Toggle Windsurf              |
+| `<leader>aC` | Open Windsurf Chat (browser) |
+| `<leader>aA` | Authenticate Windsurf        |
+| `<leader>aS` | Show Windsurf status         |
 
 #### File Explorer
 
