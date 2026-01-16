@@ -88,7 +88,8 @@ return {
 
 		local keymap = vim.keymap
 
-		keymap.set("n", "<leader>..", "<cmd>Oil<CR>", { desc = "Open parent directory in oil" })
-		keymap.set("n", "<leader>.f", "<cmd>Oil --float<CR>", { desc = "Open oil in floating window" })
+		-- Oil uses `-` by default to open parent directory
+		-- Add floating window variant
+		keymap.set("n", "<leader>-", "<cmd>Oil --float<CR>", { desc = "Oil (floating)" })
 	end,
 }

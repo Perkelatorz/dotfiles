@@ -68,7 +68,8 @@ return {
 			{ "<leader>n", group = "󰐊 Clear" },
 			{ "<leader>o", group = "󰏖 Oil" },
 			{ "<leader>r", group = "󰑄 Rename/Restart" },
-			{ "<leader>t", group = "󰙨 Test" },
+			{ "<leader>s", group = "  Svelte" },
+			{ "<leader>t", group = "󰔃 Toggle" },
 			{ "<leader>w", group = "󰁯 Session" },
 			{ "<leader>x", group = "󰔫 Trouble" },
 
@@ -76,57 +77,53 @@ return {
 			{ "<leader>nh", desc = "󰐊 Clear search highlights" },
 			{ "<leader>+", desc = "󰎎 Increment number" },
 			{ "<leader>=", desc = "󰎐 Decrement number" },
-			{ "<leader>sc", desc = "󰓆 Toggle spell check" },
-			{ "<leader>ct", desc = "🎨 Toggle colorscheme (custom/nightfox)" },
+			{ "<leader>ct", desc = "🎨 Toggle colorscheme" },
+			{ "<leader>ts", desc = "󰓆 Toggle spell check" },
+			
+			-- Svelte/SvelteKit templates
+			{ "<leader>sc", desc = "  New component" },
+			{ "<leader>sp", desc = "  New page" },
+			{ "<leader>sl", desc = "  New layout" },
 
-		-- AI Tools with icons
-		-- CodeCompanion
-		{ "<leader>aa", desc = "󰚩 CodeCompanion actions", mode = { "n", "v" } },
-		{ "<leader>ac", desc = "󰨀 Toggle CodeCompanion chat", mode = { "n", "v" } },
-		{ "<leader>ai", desc = "󰆐 Add selection to chat", mode = "v" },
-		{ "<leader>at", desc = "󰨀 Open CodeCompanion chat" },
-		{ "<leader>ap", desc = "󰉺 Inline CodeCompanion prompt", mode = { "n", "v" } },
-		-- OpenCode
-		{ "<leader>ao", group = "󰚩 OpenCode", mode = { "n", "v" } },
-		{ "<leader>ao", desc = "󰚩 Toggle OpenCode", mode = "n" },
-		{ "<leader>aO", desc = "󰚩 Toggle OpenCode", mode = "n" },
-		{ "<leader>aoi", desc = "󰆐 OpenCode input" },
-		{ "<leader>aoo", desc = "󰨞 OpenCode output" },
-		{ "<leader>aoq", desc = "󰅙 Close OpenCode" },
-		{ "<leader>aoc", desc = "󰭻 Quick chat" },
-		-- OpenCode Context
-		{ "<leader>aos", desc = "󰒅 Send selection", mode = "v" },
-		{ "<leader>aof", desc = "󰈔 Send current file" },
-		{ "<leader>aob", desc = "󰅩 Send current block" },
-		{ "<leader>aod", desc = "󰔫 Send diagnostics" },
-		{ "<leader>aol", desc = "󰉿 Send current line" },
-		{ "<leader>aoe", desc = "󰅚 Explain error" },
-		-- OpenCode Codebase Context
-		{ "<leader>aoP", desc = "󰙅 Send project structure" },
-		{ "<leader>aoG", desc = "󰱼 Send files by pattern" },
-		{ "<leader>aoK", desc = "󰈔 Send key project files" },
-		{ "<leader>aoD", desc = "󰉋 Send directory contents" },
-		{ "<leader>aog", desc = "󰊢 Send git diff" },
-		{ "<leader>aoG", desc = "󰜘 Send git log" },
-		-- OpenCode Utilities
-		{ "<leader>aop", desc = "󰉋 Copy file path" },
-		{ "<leader>aoh", desc = "󰋼 Show OpenCode help" },
+		-- AI Tools (all under <leader>a)
+		{ "<leader>a", group = "󰚩 AI" },
+		-- OpenCode (lowercase = common, uppercase = project)
+		{ "<leader>ao", desc = "󰚩 OpenCode" },
+		{ "<leader>ai", desc = "󰆐 Input window" },
+		{ "<leader>aO", desc = "󰨞 Output window" },
+		{ "<leader>aq", desc = "󰅙 Close" },
+		{ "<leader>ac", desc = "󰭻 Chat" },
+		-- Send Context
+		{ "<leader>as", desc = "󰒅 Send selection", mode = "v" },
+		{ "<leader>af", desc = "󰈔 Send file" },
+		{ "<leader>ab", desc = "󰅩 Send block" },
+		{ "<leader>ad", desc = "󰔫 Send diagnostics" },
+		{ "<leader>al", desc = "󰉿 Send line" },
+		{ "<leader>ae", desc = "󰅚 Send error" },
+		{ "<leader>ag", desc = "󰊢 Send git diff" },
+		-- Project Context
+		{ "<leader>aP", desc = "󰙅 Project structure" },
+		{ "<leader>aG", desc = "󰱼 Files by pattern" },
+		{ "<leader>aK", desc = "󰈔 Key files" },
+		{ "<leader>aD", desc = "󰉋 Directory" },
+		{ "<leader>aL", desc = "󰜘 Git log" },
+		-- Utils
+		{ "<leader>ap", desc = "󰉋 Copy file path" },
+		{ "<leader>a?", desc = "󰋼 Help" },
 		-- Windsurf/Codeium
-		{ "<leader>aw", desc = "󱚟 Toggle Windsurf/Codeium" },
-		{ "<leader>aC", desc = "󰭹 Windsurf Chat (browser)" },
-		{ "<leader>aA", desc = "󰷖 Authenticate Windsurf" },
+		{ "<leader>aw", desc = "󱚟 Windsurf toggle" },
+		{ "<leader>aC", desc = "󰭹 Windsurf chat" },
+		{ "<leader>aA", desc = "󰷖 Windsurf auth" },
 		{ "<leader>aS", desc = "󰋼 Windsurf status" },
 
-			-- Explorer (nvim-tree) with icons
-			{ "<leader>ee", desc = "󰉋 Toggle file explorer" },
-			{ "<leader>ef", desc = "󰈔 Toggle file explorer on current file" },
-			{ "<leader>ec", desc = "󰝥 Collapse file explorer" },
-			{ "<leader>er", desc = "󰑓 Refresh file explorer" },
-			{ "<leader>eo", desc = "󰏖 Open oil file explorer" },
+			-- Explorer (nvim-tree)
+			{ "<leader>ee", desc = "󰉋 Toggle tree" },
+			{ "<leader>ef", desc = "󰈔 Find in tree" },
+			{ "<leader>ec", desc = "󰝥 Collapse tree" },
+			{ "<leader>er", desc = "󰑓 Refresh tree" },
 
-			-- Oil
-			{ "<leader>..", desc = "Open parent directory in oil" },
-			{ "<leader>.f", desc = "Open oil in floating window" },
+			-- Oil (uses `-` by default for parent dir)
+			{ "<leader>-", desc = "󰏖 Oil (floating)" },
 
 			-- Find (telescope) with icons
 			{ "<leader>ff", desc = "󰱼 Fuzzy find files in cwd" },
@@ -136,10 +133,6 @@ return {
 			{ "<leader>ft", desc = "󰔫 Find todos" },
 			{ "<leader>fb", desc = "󰈔 Open telescope buffers" },
 			
-			-- Search & Replace (spectre) with icons
-			{ "<leader>sr", desc = "󰍉 Replace in files (Spectre)" },
-			{ "<leader>sw", desc = "󰊢 Search current word (Spectre)" },
-			{ "<leader>sf", desc = "󰈔 Search in current file (Spectre)" },
 			
 			-- Flash navigation with icons
 			{ "<leader>j", desc = "󰥔 Flash jump" },
@@ -159,13 +152,13 @@ return {
 			{ "<leader>xl", desc = "󰦨 Open trouble location list" },
 			{ "<leader>xt", desc = "󰔫 Open todos in trouble" },
 
-			-- LSP with icons (keymaps are auto-detected from lspconfig)
-			{ "<leader>D", desc = "󰔫 Show buffer diagnostics" },
-			{ "<leader>gd", desc = "󰞔 Show LSP definitions" },
-			{ "<leader>k", desc = "󰋼 Show LSP hover documentation" },
+			-- LSP (uses Neovim defaults: K=hover, gd=definition, gD=declaration, gi=impl, gr=refs)
+			{ "gR", desc = "󰞔 References (Telescope)" },
+			{ "<leader>ca", desc = "󰨞 Code action" },
+			{ "<leader>rn", desc = "󰑓 Rename" },
+			{ "<leader>D", desc = "󰔫 Diagnostics (Telescope)" },
+			{ "<leader>d", desc = "󰔫 Line diagnostic" },
 			{ "<leader>rs", desc = "󰑄 Restart LSP" },
-			{ "[d", desc = "󰅝 Go to previous diagnostic" },
-			{ "]d", desc = "󰅞 Go to next diagnostic" },
 			
 			-- UI toggles
 			{ "<leader>u", group = "󰨞 UI Toggle" },
@@ -177,39 +170,6 @@ return {
 			{ "<leader>mv", desc = "󰍍 Toggle markdown preview" },
 			{ "<leader>ms", desc = "󰐊 Stop markdown preview" },
 
-			-- Test (neotest / test runners) with icons
-			{ "<leader>tr", desc = "󰙨 Run nearest test" },
-			{ "<leader>tf", desc = "󰈔 Run current test file" },
-			{ "<leader>td", desc = "󰆍 Debug nearest test" },
-			{ "<leader>ts", desc = "󰐊 Stop nearest test" },
-			{ "<leader>ta", desc = "󰗀 Attach to nearest test" },
-			{ "<leader>tw", desc = "󰔡 Toggle watch current file" },
-			{ "<leader>tS", desc = "󰔫 Toggle test summary" },
-			{ "<leader>to", desc = "󰨞 Show test output" },
-			{ "<leader>tO", desc = "󰨞 Toggle test output panel" },
-			{ "[T", desc = "󰅝 Jump to previous failed test" },
-			{ "]T", desc = "󰅞 Jump to next failed test" },
-
-			-- Debug with icons
-			{ "<leader>db", desc = "󰝥 Toggle breakpoint" },
-			{ "<leader>dB", desc = "󰝥 Set conditional breakpoint" },
-			{ "<leader>dc", desc = "󰐊 Continue/Start debugging" },
-			{ "<leader>di", desc = "󰐊 Step into" },
-			{ "<leader>do", desc = "󰐊 Step over" },
-			{ "<leader>dO", desc = "󰐊 Step out" },
-			{ "<leader>dr", desc = "󰨞 Open REPL" },
-			{ "<leader>dl", desc = "󰄉 Run last debug session" },
-			{ "<leader>dt", desc = "󰐊 Terminate debug session" },
-			{ "<leader>du", desc = "󰨞 Toggle debug UI" },
-			{ "<leader>dh", desc = "󰋼 Debug hover" },
-			{ "<leader>dp", desc = "󰨞 Debug preview" },
-			{ "<leader>df", desc = "󰈔 Show frames" },
-			{ "<leader>ds", desc = "󰨞 Show scopes" },
-			{ "<leader>dpt", desc = "󰆍 Debug Python test method" },
-			{ "<leader>dpc", desc = "󰆍 Debug Python test class" },
-			{ "<leader>dps", desc = "󰆍 Debug Python selection", mode = "v" },
-			{ "<leader>dgt", desc = "󰆍 Debug Go test" },
-			{ "<leader>dgl", desc = "󰄉 Debug last Go test" },
 
 			-- Live Server
 			{ "<leader>ls", desc = "Start live server and open current file" },
@@ -218,15 +178,16 @@ return {
 			{ "<leader>lC", desc = "Stop all live servers" },
 			{ "<leader>ll", desc = "Open live server log" },
 
-			-- HTTP (rest.nvim / http.nvim etc)
-			{ "<leader>kr", desc = "Run HTTP request" },
-			{ "<leader>kt", desc = "Toggle HTTP view" },
-			{ "<leader>kp", desc = "Jump to previous request" },
-			{ "<leader>kn", desc = "Jump to next request" },
-			{ "<leader>ki", desc = "Inspect HTTP request" },
-			{ "<leader>kc", desc = "Copy as cURL" },
-			{ "<leader>ks", desc = "Open HTTP scratchpad" },
-			{ "<leader>kq", desc = "Close HTTP view" },
+			-- HTTP Client (under <leader>H - capital H)
+			{ "<leader>H", group = "󰖟 HTTP" },
+			{ "<leader>Hr", desc = "󰜏 Run request" },
+			{ "<leader>Ht", desc = "󰨞 Toggle view" },
+			{ "<leader>H[", desc = "󰅝 Previous request" },
+			{ "<leader>H]", desc = "󰅞 Next request" },
+			{ "<leader>Hi", desc = "󰋼 Inspect" },
+			{ "<leader>Hc", desc = "󰆒 Copy as cURL" },
+			{ "<leader>Hs", desc = "󰧮 Scratchpad" },
+			{ "<leader>Hq", desc = "󰅙 Close" },
 
 			-- Git Hunks (gitsigns) with icons
 			{ "<leader>hs", desc = "󰐖 Stage hunk" },
@@ -246,11 +207,6 @@ return {
 			{ "[t", desc = "Previous todo comment" },
 			{ "]t", desc = "Next todo comment" },
 
-			-- Substitute (keymaps are auto-detected from substitute plugin)
-			{ "<leader>ss", desc = "󰍉 Substitute word" },
-			{ "gs", desc = "󰍉 Substitute with motion/visual", mode = { "n", "x" } },
-			{ "gss", desc = "󰍉 Substitute line" },
-			{ "gsS", desc = "󰍉 Substitute to end of line" },
 
 			-- LazyGit
 			{ "<leader>lg", desc = "Open lazy git" },
@@ -262,9 +218,7 @@ return {
 			{ ";", desc = "Arrow bookmarks" },
 			{ "m", desc = "Arrow buffer bookmarks" },
 
-			-- Color picker (ccc.nvim)
-			{ "<leader>cp", desc = "󰏘 Color picker" },
-			{ "<leader>cc", desc = "󰁱 Convert color format" },
+			-- Color highlighter (nvim-highlight-colors)
 			{ "<leader>ch", desc = "󰌁 Toggle color highlighter" },
 
 		})

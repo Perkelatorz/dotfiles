@@ -16,8 +16,8 @@ keymap.set("n", "<leader>nh", ":nohl<CR>", { desc = "Clear search highlights" })
 keymap.set("n", "<leader>+", "<C-a>", { desc = "Increment number" }) -- increment
 keymap.set("n", "<leader>=", "<C-x>", { desc = "Decrement number" }) -- decrement
 
--- spelling check
-keymap.set("n", "<leader>sc", ":set spell!<CR>", { desc = "Spell Check" })
+-- spelling check (moved from <leader>sc to avoid conflict with Svelte)
+keymap.set("n", "<leader>ts", ":set spell!<CR>", { desc = "Toggle spell check" })
 
 -- colorscheme toggle
 keymap.set("n", "<leader>ct", "<cmd>ColorschemeToggle<CR>", { desc = "Toggle colorscheme (custom/nightfox)" })

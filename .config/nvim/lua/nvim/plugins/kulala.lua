@@ -55,13 +55,14 @@ return {
 
 		local keymap = vim.keymap
 
-		keymap.set("n", "<leader>kr", kulala.run, { desc = "Run HTTP request" })
-		keymap.set("n", "<leader>kt", kulala.toggle_view, { desc = "Toggle HTTP view" })
-		keymap.set("n", "<leader>kp", kulala.jump_prev, { desc = "Jump to previous request" })
-		keymap.set("n", "<leader>kn", kulala.jump_next, { desc = "Jump to next request" })
-		keymap.set("n", "<leader>ki", kulala.inspect, { desc = "Inspect HTTP request" })
-		keymap.set("n", "<leader>kc", kulala.copy, { desc = "Copy as cURL" })
-		keymap.set("n", "<leader>ks", kulala.scratchpad, { desc = "Open HTTP scratchpad" })
-		keymap.set("n", "<leader>kq", kulala.close, { desc = "Close HTTP view" })
+		-- HTTP/REST client keybindings (under <leader>H - capital H for HTTP)
+		keymap.set("n", "<leader>Hr", kulala.run, { desc = "Run HTTP request" })
+		keymap.set("n", "<leader>Ht", kulala.toggle_view, { desc = "Toggle HTTP view" })
+		keymap.set("n", "<leader>H[", kulala.jump_prev, { desc = "Previous request" })
+		keymap.set("n", "<leader>H]", kulala.jump_next, { desc = "Next request" })
+		keymap.set("n", "<leader>Hi", kulala.inspect, { desc = "Inspect request" })
+		keymap.set("n", "<leader>Hc", kulala.copy, { desc = "Copy as cURL" })
+		keymap.set("n", "<leader>Hs", kulala.scratchpad, { desc = "HTTP scratchpad" })
+		keymap.set("n", "<leader>Hq", kulala.close, { desc = "Close HTTP view" })
 	end,
 }

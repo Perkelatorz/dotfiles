@@ -113,6 +113,22 @@ local settings_by_ft = {
 		textwidth = 120,
 		colorcolumn = "120",
 	},
+	scss = {
+		tabstop = 2,
+		shiftwidth = 2,
+		expandtab = true,
+		textwidth = 120,
+		colorcolumn = "120",
+	},
+	
+	-- Svelte
+	svelte = {
+		tabstop = 2,
+		shiftwidth = 2,
+		expandtab = true,
+		textwidth = 100,
+		colorcolumn = "100",
+	},
 	
 	-- Lua
 	lua = {
