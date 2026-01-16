@@ -271,21 +271,24 @@ Language-specific configurations:
 
 ### LSP Servers (via Mason)
 
-| Language              | LSP Server        | Features                    |
-| --------------------- | ----------------- | --------------------------- |
-| Python                | `pyright`         | Type checking, IntelliSense |
-| Go                    | `gopls`           | Full Go language support    |
-| C#                    | `omnisharp`       | .NET development            |
-| JavaScript/TypeScript | `ts_ls`, `eslint` | Modern JS/TS support        |
-| Bash                  | `bashls`          | Shell script analysis       |
-| PowerShell            | `powershell_es`   | PowerShell scripting        |
-| Docker                | `dockerls`        | Dockerfile support          |
-| Ansible               | `ansiblels`       | Playbook validation         |
-| Terraform             | `terraformls`     | IaC support                 |
-| JSON                  | `jsonls`          | Schema validation           |
-| YAML                  | `yamlls`          | Schema validation           |
-| XML                   | `lemminx`         | XML support                 |
-| Markdown              | `marksman`        | Markdown LSP                |
+| Language              | LSP Server             | Features                           |
+| --------------------- | ---------------------- | ---------------------------------- |
+| Python                | `pyright`              | Type checking, IntelliSense        |
+| Go                    | `gopls`                | Full Go language support           |
+| C#                    | `omnisharp`            | .NET development                   |
+| JavaScript/TypeScript | `ts_ls`, `eslint`      | Modern JS/TS support               |
+| **Svelte/SvelteKit**  | `svelte`               | **Full Svelte support + snippets** |
+| **Emmet**             | `emmet_language_server`| **Fast HTML expansion**            |
+| **Tailwind CSS**      | `tailwindcss`          | **Class autocomplete + previews**  |
+| Bash                  | `bashls`               | Shell script analysis              |
+| PowerShell            | `powershell_es`        | PowerShell scripting               |
+| Docker                | `dockerls`             | Dockerfile support                 |
+| Ansible               | `ansiblels`            | Playbook validation                |
+| Terraform             | `terraformls`          | IaC support                        |
+| JSON                  | `jsonls`               | Schema validation                  |
+| YAML                  | `yamlls`               | Schema validation                  |
+| XML                   | `lemminx`              | XML support                        |
+| Markdown              | `marksman`             | Markdown LSP                       |
 
 ### Linters & Formatters
 
@@ -299,7 +302,7 @@ Language-specific configurations:
 | `goimports`     | Import manager   | Go                 |
 | `golangci-lint` | Linter           | Go                 |
 | `csharpier`     | Formatter        | C#                 |
-| `prettier`      | Formatter        | JS/TS/JSON/YAML/MD |
+| `prettier`      | Formatter        | JS/TS/Svelte/JSON/YAML/MD |
 | `stylua`        | Formatter        | Lua                |
 | `shfmt`         | Formatter        | Bash/Shell         |
 | `ansible-lint`  | Linter           | Ansible            |
@@ -312,12 +315,70 @@ Language-specific configurations:
 
 Syntax highlighting for:
 
-- Python, Go, C#, JavaScript, TypeScript, TSX
+- Python, Go, C#, JavaScript, TypeScript, TSX, **Svelte**
 - Bash, PowerShell, Lua, Vim
 - JSON, YAML, XML, TOML, Markdown
 - Dockerfile, HCL (Terraform), Helm
-- HTML, CSS, GraphQL
+- HTML, CSS, **SCSS**, GraphQL
 - Git (commit, rebase, diff, config)
+
+---
+
+## Svelte/SvelteKit Development
+
+**See [`SVELTE_SNIPPETS_REFERENCE.md`](./SVELTE_SNIPPETS_REFERENCE.md) for complete guide!**
+
+### Quick Start
+
+This config provides comprehensive Svelte/SvelteKit development support:
+
+1. **LSP Support:**
+   - Svelte language server for full IDE features
+   - Emmet for fast HTML expansion
+   - Tailwind CSS autocomplete with color previews
+
+2. **Snippets:** 50+ pre-built patterns
+   - Component structure: `scomp`, `sprop`, `sreact`
+   - SvelteKit routing: `kit-load`, `kit-action`
+   - Control flow: `sif`, `seach`, `sawait`
+
+3. **File Templates:**
+   - `:SvelteComponent Name` - New component
+   - `:SveltePage` - New page (+page.svelte)
+   - `:SvelteServer` - Server load function
+   - See full list in reference doc
+
+4. **Intelligent Autocomplete:**
+   - Tailwind classes with color/spacing previews
+   - Svelte syntax suggestions
+   - Component prop types
+
+### Keybindings
+
+| Key | Action |
+|-----|--------|
+| `<leader>sc` | New Svelte component |
+| `<leader>sp` | New SvelteKit page |
+| `<leader>sl` | New SvelteKit layout |
+
+### Workflow Example
+
+```svelte
+<!-- 1. Create component -->
+:SvelteComponent Card
+
+<!-- 2. Use snippet for props -->
+sprop<Tab> → export let title = '';
+
+<!-- 3. Use Emmet for HTML -->
+article.card>header>h3{Title}^p{Content}
+<C-y>, → Expands to full HTML
+
+<!-- 4. Add Tailwind with autocomplete -->
+<div class="flex items-center gap-4 bg-blue-[see previews!]">
+```
+
+**📚 Full documentation:** [`SVELTE_SNIPPETS_REFERENCE.md`](./SVELTE_SNIPPETS_REFERENCE.md)
 
 ---
 
@@ -354,6 +415,20 @@ Syntax highlighting for:
 
 - **Purpose:** Better UI for `vim.ui.select` and `vim.ui.input`
 - **Features:** Improved prompts and selection menus
+
+#### **nvim-highlight-colors**
+
+- **Purpose:** Automatic color code highlighter
+- **Features:**
+  - Real-time color highlighting with background/foreground/virtual text modes
+  - Supports HEX, RGB, HSL, named colors (red, blue, etc.)
+  - Tailwind CSS color support
+  - No manual color picking needed - colors are highlighted automatically
+  - Lightweight and fast
+- **Keybindings:**
+  - `<leader>ch` - Toggle color highlighter
+- **Supported Formats:** HEX, RGB, HSL, named colors, Tailwind CSS
+- **Works in:** All filetypes (CSS, HTML, JS, TS, Lua, config files, etc.)
 
 #### **colorscheme.lua**
 
@@ -949,40 +1024,69 @@ Syntax highlighting for:
 
 **Leader:** `<Space>`
 
+### Philosophy
+
+This config **respects Neovim defaults** and only adds bindings that enhance functionality:
+- LSP uses standard Neovim keys: `K` (hover), `gd` (definition), `gD` (declaration), `gi` (implementation), `gr` (references)
+- Diagnostic navigation: `[d` / `]d` (previous/next)
+- Git hunk navigation: `[h` / `]h` (previous/next)
+- Todo navigation: `[t` / `]t` (previous/next)
+
 ### Quick Reference by Category
 
 #### Core Navigation
 
 | Key          | Action                      |
 | ------------ | --------------------------- |
+| `jk`         | Exit insert mode            |
 | `<leader>nh` | Clear search highlights     |
 | `<leader>+`  | Increment number            |
 | `<leader>=`  | Decrement number            |
 | `<leader>sc` | Toggle spell check          |
-| `<leader>ct` | Toggle colorscheme (custom/nightfox) |
+| `<leader>ct` | Toggle colorscheme          |
 
-#### AI Assistants
+#### AI Tools (all under `<leader>a`)
 
-**CodeCompanion (Chat-based AI)**
-| Key          | Action                |
-| ------------ | --------------------- |
-| `<leader>aa` | CodeCompanion actions |
-| `<leader>ac` | Toggle chat           |
-| `<leader>ai` | Add to chat (visual)  |
-| `<leader>at` | Open chat             |
-| `<leader>ap` | Inline prompt         |
+**OpenCode (lowercase = common, UPPERCASE = project context)**
 
-**OpenCode**
-| Key           | Action             |
-| ------------- | ------------------ |
-| `<leader>ao`  | Launch OpenCode    |
-| `<leader>aog` | Toggle OpenCode    |
-| `<leader>aoi` | Open input window  |
-| `<leader>aoo` | Open output window |
-| `<leader>aoq` | Close UI windows   |
-| `<leader>ao/` | Quick chat         |
+*Main Commands:*
+| Key          | Action             |
+| ------------ | ------------------ |
+| `<leader>ao` | OpenCode           |
+| `<leader>ai` | Input window       |
+| `<leader>aO` | Output window      |
+| `<leader>aq` | Close              |
+| `<leader>ac` | Chat               |
 
-**Windsurf/Codeium (Autocompletion)**
+*Send Context to OpenCode:*
+| Key          | Action             |
+| ------------ | ------------------ |
+| `<leader>as` | Send selection (visual) |
+| `<leader>af` | Send file          |
+| `<leader>ab` | Send block/function|
+| `<leader>ad` | Send diagnostics   |
+| `<leader>al` | Send line          |
+| `<leader>ae` | Send error         |
+| `<leader>ag` | Send git diff      |
+
+*Project Context:*
+| Key          | Action             |
+| ------------ | ------------------ |
+| `<leader>aP` | Project structure  |
+| `<leader>aG` | Files by pattern   |
+| `<leader>aK` | Key project files  |
+| `<leader>aD` | Directory contents |
+| `<leader>aL` | Git log            |
+
+*Utils:*
+| Key          | Action             |
+| ------------ | ------------------ |
+| `<leader>ap` | Copy file path     |
+| `<leader>a?` | Show help          |
+
+**Windsurf/Codeium (AI Autocompletion)**
+
+*In Insert Mode:*
 | Key          | Action                       |
 | ------------ | ---------------------------- |
 | `<Tab>`      | Accept full suggestion       |
@@ -991,21 +1095,25 @@ Syntax highlighting for:
 | `<C-]>`      | Clear suggestion             |
 | `<M-]>`      | Next suggestion (Alt-])      |
 | `<M-[>`      | Previous suggestion (Alt-[)  |
+
+*Normal Mode:*
+| Key          | Action                       |
+| ------------ | ---------------------------- |
 | `<leader>aw` | Toggle Windsurf              |
-| `<leader>aC` | Open Windsurf Chat (browser) |
+| `<leader>aC` | Windsurf Chat (browser)      |
 | `<leader>aA` | Authenticate Windsurf        |
-| `<leader>aS` | Show Windsurf status         |
+| `<leader>aS` | Windsurf status              |
 
 #### File Explorer
 
 | Key          | Action                 |
 | ------------ | ---------------------- |
 | `<leader>ee` | Toggle nvim-tree       |
-| `<leader>ef` | Toggle on current file |
+| `<leader>ef` | Find file in tree      |
 | `<leader>ec` | Collapse tree          |
 | `<leader>er` | Refresh tree           |
-| `<leader>..` | Open parent (oil)      |
-| `<leader>.f` | Oil floating window    |
+| `-`          | Oil parent dir (default)|
+| `<leader>-`  | Oil floating window    |
 
 #### Find (Telescope)
 
@@ -1017,14 +1125,6 @@ Syntax highlighting for:
 | `<leader>fc` | Grep cursor word |
 | `<leader>ft` | Find todos       |
 | `<leader>fb` | Browse buffers   |
-
-#### Search & Replace
-
-| Key          | Action                    |
-| ------------ | ------------------------- |
-| `<leader>sr` | Replace in files (Spectre)|
-| `<leader>sw` | Search current word       |
-| `<leader>sf` | Search in current file    |
 
 #### Navigation
 
@@ -1041,58 +1141,18 @@ Syntax highlighting for:
 | `<leader>mv` | Toggle markdown preview |
 | `<leader>ms` | Stop markdown preview   |
 
-#### Testing
-
-| Key          | Action               |
-| ------------ | -------------------- |
-| `<leader>tr` | Run nearest test     |
-| `<leader>tf` | Run test file        |
-| `<leader>td` | Debug test           |
-| `<leader>ts` | Stop test            |
-| `<leader>ta` | Attach to test       |
-| `<leader>tw` | Toggle watch         |
-| `<leader>tS` | Toggle summary       |
-| `<leader>to` | Show output          |
-| `<leader>tO` | Toggle output panel  |
-| `[T`         | Previous failed test |
-| `]T`         | Next failed test     |
-
-#### Debugging
-
-| Key           | Action                 |
-| ------------- | ---------------------- |
-| `<leader>db`  | Toggle breakpoint      |
-| `<leader>dB`  | Conditional breakpoint |
-| `<leader>dc`  | Continue/Start         |
-| `<leader>di`  | Step into              |
-| `<leader>do`  | Step over              |
-| `<leader>dO`  | Step out               |
-| `<leader>dr`  | Open REPL              |
-| `<leader>dl`  | Run last               |
-| `<leader>dt`  | Terminate              |
-| `<leader>du`  | Toggle UI              |
-| `<leader>dh`  | Hover                  |
-| `<leader>dp`  | Preview                |
-| `<leader>df`  | Show frames            |
-| `<leader>ds`  | Show scopes            |
-| `<leader>dpt` | Debug Python test      |
-| `<leader>dpc` | Debug Python class     |
-| `<leader>dps` | Debug Python selection |
-| `<leader>dgt` | Debug Go test          |
-| `<leader>dgl` | Debug last Go test     |
-
-#### HTTP Client
+#### HTTP/REST Client (under `<leader>H` - capital H)
 
 | Key          | Action           |
 | ------------ | ---------------- |
-| `<leader>kr` | Run request      |
-| `<leader>kt` | Toggle view      |
-| `<leader>kp` | Previous request |
-| `<leader>kn` | Next request     |
-| `<leader>ki` | Inspect          |
-| `<leader>kc` | Copy as cURL     |
-| `<leader>ks` | Open scratchpad  |
-| `<leader>kq` | Close view       |
+| `<leader>Hr` | Run request      |
+| `<leader>Ht` | Toggle view      |
+| `<leader>H[` | Previous request |
+| `<leader>H]` | Next request     |
+| `<leader>Hi` | Inspect          |
+| `<leader>Hc` | Copy as cURL     |
+| `<leader>Hs` | Scratchpad       |
+| `<leader>Hq` | Close view       |
 
 #### Git Hunks
 
@@ -1113,20 +1173,30 @@ Syntax highlighting for:
 
 #### LSP
 
+**Default Neovim keys (no leader required):**
+| Key    | Action                      |
+| ------ | --------------------------- |
+| `K`    | Hover documentation         |
+| `gd`   | Go to definition            |
+| `gD`   | Go to declaration           |
+| `gi`   | Go to implementation        |
+| `gr`   | Go to references            |
+| `[d`   | Previous diagnostic         |
+| `]d`   | Next diagnostic             |
+
+**Enhanced with Telescope:**
 | Key          | Action                      |
 | ------------ | --------------------------- |
-| `<leader>gd` | Go to definition            |
-| `gD`         | Go to declaration           |
-| `gi`         | Go to implementation        |
-| `gt`         | Go to type definition       |
-| `gR`         | Show references             |
-| `<leader>k`  | Hover documentation         |
+| `gR`         | References (Telescope)      |
+| `<leader>D`  | Buffer diagnostics (Telescope) |
+
+**LSP Actions:**
+| Key          | Action                      |
+| ------------ | --------------------------- |
 | `<leader>ca` | Code actions                |
-| `<leader>rn` | Rename                      |
+| `<leader>rn` | Rename symbol               |
 | `<leader>rs` | Restart LSP                 |
-| `<leader>D`  | Buffer diagnostics          |
-| `[d`         | Previous diagnostic         |
-| `]d`         | Next diagnostic             |
+| `<leader>d`  | Line diagnostic (float)     |
 | `<leader>uh` | Toggle inlay hints          |
 | `<leader>uv` | Toggle virtual text diags   |
 
@@ -1139,6 +1209,38 @@ Syntax highlighting for:
 | `<leader>xq` | Quickfix              |
 | `<leader>xl` | Location list         |
 | `<leader>xt` | Todos                 |
+
+#### Svelte/SvelteKit
+
+**Full guide:** [`SVELTE_SNIPPETS_REFERENCE.md`](./SVELTE_SNIPPETS_REFERENCE.md)
+
+| Key          | Action                    |
+| ------------ | ------------------------- |
+| `<leader>sc` | New Svelte component      |
+| `<leader>sp` | New SvelteKit page        |
+| `<leader>sl` | New SvelteKit layout      |
+
+**Commands:**
+- `:SvelteComponent Name` - Create component
+- `:SveltePage` - Create +page.svelte
+- `:SvelteServer` - Create +page.server.ts
+- `:SvelteActions` - Create form actions
+
+**Snippets:** Type prefix + `<Tab>` to expand
+- `scomp` - Component boilerplate
+- `sprop` - Export prop
+- `sreact` - Reactive statement
+- `kit-load` - Load function
+- `kit-action` - Form action
+- [50+ more in reference doc](./SVELTE_SNIPPETS_REFERENCE.md)
+
+**Emmet:** `<C-y>,` expands abbreviations
+- `div.flex>p*3` → HTML structure
+- Perfect for PicoCSS semantic HTML
+
+**Tailwind:** Autocomplete with color/spacing previews
+- Type `bg-` → see all colors with previews
+- Auto-detects `tailwind.config.js`
 
 #### Session
 
@@ -1155,6 +1257,18 @@ Syntax highlighting for:
 | `<leader>zv` | DevDocs documentation     |
 | `<leader>zp` | Python pydoc              |
 | `<leader>zs` | Web search (editable)     |
+
+#### Color Highlighter
+
+| Key          | Action           |
+| ------------ | ---------------- |
+| `<leader>ch` | Toggle color highlighter |
+
+**Features:**
+- Automatically highlights color codes in all files
+- Supports HEX, RGB, HSL, named colors, Tailwind CSS
+- Lightweight real-time highlighting
+- No manual interaction needed
 
 #### Misc
 

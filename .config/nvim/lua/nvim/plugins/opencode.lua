@@ -29,21 +29,20 @@ return {
 		-- Main OpenCode Commands
 		-- ============================================
 		
-		-- Toggle OpenCode UI
-		keymap.set("n", "<leader>ao", "<cmd>Opencode<cr>", { desc = "Toggle OpenCode" })
-		keymap.set("n", "<leader>aO", "<cmd>Opencode<cr>", { desc = "Toggle OpenCode" })
+		-- Toggle OpenCode UI (main command)
+		keymap.set("n", "<leader>ao", "<cmd>Opencode<cr>", { desc = "OpenCode" })
 		
-		-- Quick access to input/output
-		keymap.set("n", "<leader>aoi", "<cmd>OpencodeInput<cr>", { desc = "OpenCode input" })
-		keymap.set("n", "<leader>aoo", "<cmd>OpencodeOutput<cr>", { desc = "OpenCode output" })
-		keymap.set("n", "<leader>aoq", "<cmd>OpencodeClose<cr>", { desc = "Close OpenCode" })
+		-- Window management
+		keymap.set("n", "<leader>ai", "<cmd>OpencodeInput<cr>", { desc = "OpenCode input" })
+		keymap.set("n", "<leader>aO", "<cmd>OpencodeOutput<cr>", { desc = "OpenCode output" })
+		keymap.set("n", "<leader>aq", "<cmd>OpencodeClose<cr>", { desc = "OpenCode close" })
 		
 		-- ============================================
 		-- Context Management - Send Code to OpenCode
 		-- ============================================
 		
 		-- Send current selection to OpenCode (visual mode)
-		keymap.set("v", "<leader>aos", function()
+		keymap.set("v", "<leader>as", function()
 			-- Get the selected text
 			local start_pos = vim.fn.getpos("'<")
 			local end_pos = vim.fn.getpos("'>")
@@ -76,7 +75,7 @@ return {
 		end, { desc = "Send selection to OpenCode" })
 		
 		-- Send current file to OpenCode
-		keymap.set("n", "<leader>aof", function()
+		keymap.set("n", "<leader>af", function()
 			local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
 			local content = table.concat(lines, "\n")
 			local filename = vim.fn.expand("%:p")
@@ -92,7 +91,7 @@ return {
 		end, { desc = "Send current file to OpenCode" })
 		
 		-- Send current function/block to OpenCode
-		keymap.set("n", "<leader>aob", function()
+		keymap.set("n", "<leader>ab", function()
 			-- Use treesitter to get current function
 			local ts_ok, ts_utils = pcall(require, "nvim-treesitter.ts_utils")
 			if not ts_ok then
@@ -126,7 +125,7 @@ return {
 		end, { desc = "Send current block to OpenCode" })
 		
 		-- Send diagnostics to OpenCode
-		keymap.set("n", "<leader>aod", function()
+		keymap.set("n", "<leader>ad", function()
 			local diagnostics = vim.diagnostic.get(0)
 			if #diagnostics == 0 then
 				vim.notify("No diagnostics in current buffer", vim.log.levels.INFO)
@@ -154,7 +153,7 @@ return {
 		-- ============================================
 		
 		-- Ask about current line
-		keymap.set("n", "<leader>aol", function()
+		keymap.set("n", "<leader>al", function()
 			local line = vim.fn.getline(".")
 			local line_num = vim.fn.line(".")
 			local filename = vim.fn.expand("%:.")
@@ -170,7 +169,7 @@ return {
 		end, { desc = "Ask about current line" })
 		
 		-- Explain error under cursor
-		keymap.set("n", "<leader>aoe", function()
+		keymap.set("n", "<leader>ae", function()
 			local diagnostics = vim.diagnostic.get(0, { lnum = vim.fn.line(".") - 1 })
 			if #diagnostics == 0 then
 				vim.notify("No diagnostic at cursor", vim.log.levels.WARN)
@@ -190,15 +189,15 @@ return {
 			end, 100)
 		end, { desc = "Explain error under cursor" })
 		
-		-- Quick chat (empty prompt)
-		keymap.set("n", "<leader>aoc", "<cmd>Opencode<cr>", { desc = "Quick chat" })
+		-- Quick chat (same as main toggle)
+		keymap.set("n", "<leader>ac", "<cmd>Opencode<cr>", { desc = "OpenCode chat" })
 		
 		-- ============================================
 		-- Codebase Context - Give OpenCode Full Project Access
 		-- ============================================
 		
 		-- Send project structure (tree view)
-		keymap.set("n", "<leader>aoP", function()
+		keymap.set("n", "<leader>aP", function()
 			local cwd = vim.fn.getcwd()
 			local cmd = "find . -type f -not -path '*/\\.*' -not -path '*/node_modules/*' -not -path '*/vendor/*' -not -path '*/__pycache__/*' -not -path '*/target/*' -not -path '*/dist/*' -not -path '*/build/*' | head -500"
 			
@@ -220,7 +219,7 @@ return {
 		end, { desc = "Send project structure" })
 		
 		-- Send multiple files by glob pattern
-		keymap.set("n", "<leader>aoG", function()
+		keymap.set("n", "<leader>aG", function()
 			vim.ui.input({ prompt = "Enter glob pattern (e.g., **/*.lua, src/**/*.ts): " }, function(pattern)
 				if not pattern or pattern == "" then
 					return
@@ -269,7 +268,7 @@ return {
 		end, { desc = "Send files by pattern" })
 		
 		-- Send key project files (README, config, etc.)
-		keymap.set("n", "<leader>aoK", function()
+		keymap.set("n", "<leader>aK", function()
 			local cwd = vim.fn.getcwd()
 			local key_files = {
 				"README.md", "README.txt", "README",
@@ -307,7 +306,7 @@ return {
 		end, { desc = "Send key project files" })
 		
 		-- Send directory contents (current or specified)
-		keymap.set("n", "<leader>aoD", function()
+		keymap.set("n", "<leader>aD", function()
 			vim.ui.input({ 
 				prompt = "Enter directory (or leave empty for current file's dir): ",
 				default = vim.fn.expand("%:h")
@@ -358,7 +357,7 @@ return {
 		end, { desc = "Send directory contents" })
 		
 		-- Send git diff (uncommitted changes)
-		keymap.set("n", "<leader>aog", function()
+		keymap.set("n", "<leader>ag", function()
 			local handle = io.popen("git diff HEAD")
 			if not handle then
 				vim.notify("Failed to get git diff (is this a git repo?)", vim.log.levels.ERROR)
@@ -382,7 +381,7 @@ return {
 		end, { desc = "Send git diff" })
 		
 		-- Send recent git changes (last N commits)
-		keymap.set("n", "<leader>aoG", function()
+		keymap.set("n", "<leader>aL", function()
 			vim.ui.input({ 
 				prompt = "Number of recent commits to include: ",
 				default = "5"
@@ -416,43 +415,43 @@ return {
 		-- ============================================
 		
 		-- Copy file path for context
-		keymap.set("n", "<leader>aop", function()
+		keymap.set("n", "<leader>ap", function()
 			local filepath = vim.fn.expand("%:p")
 			vim.fn.setreg("+", filepath)
 			vim.notify("File path copied: " .. filepath, vim.log.levels.INFO)
 		end, { desc = "Copy file path" })
 		
 		-- Show OpenCode help
-		keymap.set("n", "<leader>aoh", function()
+		keymap.set("n", "<leader>a?", function()
 			local help_text = [[
-OpenCode Keybindings:
+OpenCode Keybindings (all under <leader>a):
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Main Commands:
-  <leader>ao  - Toggle OpenCode
-  <leader>aoi - Open input window
-  <leader>aoo - Open output window
-  <leader>aoq - Close OpenCode
-  <leader>aoc - Quick chat
+Main:
+  ao  - Toggle OpenCode
+  ai  - Input window
+  aO  - Output window
+  aq  - Close
+  ac  - Chat
 
-Context Management (Send to OpenCode):
-  <leader>aos - Send selection (visual mode)
-  <leader>aof - Send current file
-  <leader>aob - Send current function/block
-  <leader>aod - Send diagnostics
-  <leader>aol - Send current line
-  <leader>aoe - Explain error under cursor
+Send Context (lowercase):
+  as  - Selection (visual)
+  af  - File
+  ab  - Block/function
+  ad  - Diagnostics
+  al  - Line
+  ae  - Error
+  ag  - Git diff
 
-Codebase Context (Full Project Access):
-  <leader>aoP - Send project structure
-  <leader>aoG - Send files by glob pattern
-  <leader>aoK - Send key project files
-  <leader>aoD - Send directory contents
-  <leader>aog - Send git diff
-  <leader>aoG - Send git log with changes
+Project Context (uppercase):
+  aP  - Project structure
+  aG  - Files by pattern
+  aK  - Key files
+  aD  - Directory
+  aL  - Git log
 
-Utilities:
-  <leader>aop - Copy file path
-  <leader>aoh - Show this help
+Utils:
+  ap  - Copy file path
+  a?  - This help
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ]]
 			vim.notify(help_text, vim.log.levels.INFO)

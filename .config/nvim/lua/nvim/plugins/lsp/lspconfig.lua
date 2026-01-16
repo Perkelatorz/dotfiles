@@ -26,42 +26,27 @@ return {
 			
 			local opts = { buffer = bufnr, silent = true }
 
+			-- Enhanced references with Telescope (better than default gr)
 			opts.desc = "Show LSP references"
 			keymap.set("n", "gR", "<cmd>Telescope lsp_references<CR>", opts)
 
-			opts.desc = "Go to declaration"
-			keymap.set("n", "gD", vim.lsp.buf.declaration, opts)
-
-			opts.desc = "Show LSP definitions"
-			keymap.set("n", "<leader>gd", "<cmd>Telescope lsp_definitions<CR>", opts)
-
-			opts.desc = "Show LSP implementations"
-			keymap.set("n", "gi", "<cmd>Telescope lsp_implementations<CR>", opts)
-
-			opts.desc = "Show LSP type definitions"
-			keymap.set("n", "gt", "<cmd>Telescope lsp_type_definitions<CR>", opts)
-
-			opts.desc = "See available code actions"
+			-- Code actions (standard binding)
+			opts.desc = "Code actions"
 			keymap.set({ "n", "v" }, "<leader>ca", vim.lsp.buf.code_action, opts)
 
-			opts.desc = "Smart rename"
+			-- Rename (standard binding)
+			opts.desc = "Rename symbol"
 			keymap.set("n", "<leader>rn", vim.lsp.buf.rename, opts)
 
-			opts.desc = "Show buffer diagnostics"
+			-- Diagnostics in Telescope (enhanced view)
+			opts.desc = "Buffer diagnostics"
 			keymap.set("n", "<leader>D", "<cmd>Telescope diagnostics bufnr=0<CR>", opts)
 
-			opts.desc = "Show line diagnostics"
+			-- Diagnostic float (quick view)
+			opts.desc = "Line diagnostics"
 			keymap.set("n", "<leader>d", vim.diagnostic.open_float, opts)
 
-			opts.desc = "Go to previous diagnostic"
-			keymap.set("n", "[d", vim.diagnostic.goto_prev, opts)
-
-			opts.desc = "Go to next diagnostic"
-			keymap.set("n", "]d", vim.diagnostic.goto_next, opts)
-
-			opts.desc = "Show documentation for what is under cursor"
-			keymap.set("n", "<leader>k", vim.lsp.buf.hover, opts)
-
+			-- Restart LSP
 			opts.desc = "Restart LSP"
 			keymap.set("n", "<leader>rs", ":LspRestart<CR>", opts)
 			
@@ -257,6 +242,123 @@ return {
 						},
 						-- Optional flags or root_dir can be added here if desired
 						-- flags = { debounce_text_changes = 150 },
+					})
+				end,
+
+				-- Svelte Language Server
+				svelte = function()
+					lspconfig.svelte.setup({
+						on_attach = on_attach,
+						capabilities = capabilities,
+						filetypes = { "svelte" },
+						settings = {
+							svelte = {
+								plugin = {
+									svelte = {
+										compilerWarnings = {
+											-- Adjust warnings as needed
+											["a11y-accesskey"] = "ignore",
+										},
+										-- Use TypeScript version from workspace
+										useNewTransformation = true,
+									},
+								},
+							},
+						},
+					})
+				end,
+
+				-- Emmet Language Server for fast HTML expansion
+				emmet_language_server = function()
+					lspconfig.emmet_language_server.setup({
+						on_attach = on_attach,
+						capabilities = capabilities,
+						filetypes = { 
+							"html", "css", "scss", "sass", "less",
+							"svelte", "vue",
+							"javascriptreact", "typescriptreact"
+						},
+						init_options = {
+							-- Show abbreviation suggestions
+							showAbbreviationSuggestions = true,
+							-- Show expanded abbreviations
+							showExpandedAbbreviation = "always",
+							-- Emmet preferences
+							preferences = {},
+							-- Include languages
+							includeLanguages = {
+								svelte = "html",
+								vue = "html",
+							},
+						},
+					})
+				end,
+
+				-- Tailwind CSS Language Server (auto-detects tailwind.config.js)
+				tailwindcss = function()
+					lspconfig.tailwindcss.setup({
+						on_attach = on_attach,
+						capabilities = capabilities,
+						filetypes = { 
+							"html", "css", "scss", "sass", "less",
+							"svelte", "vue",
+							"javascriptreact", "typescriptreact"
+						},
+						settings = {
+							tailwindCSS = {
+								-- Class attributes to check
+								classAttributes = { "class", "className", "classList", "ngClass" },
+								-- Include Svelte as HTML
+								includeLanguages = {
+									svelte = "html",
+									vue = "html",
+								},
+								-- Experimental features
+								experimental = {
+									classRegex = {
+										-- Support for class: directive in Svelte
+										"class:([\\w-]+)",
+									},
+								},
+								-- Lint settings
+								lint = {
+									cssConflict = "warning",
+									invalidApply = "error",
+									invalidScreen = "error",
+									invalidVariant = "error",
+									invalidConfigPath = "error",
+									invalidTailwindDirective = "error",
+									recommendedVariantOrder = "warning",
+								},
+								-- Validate on file types
+								validate = true,
+							},
+						},
+						-- Only activate if tailwind.config.js/ts or tailwind in package.json exists
+						root_dir = function(fname)
+							local root_pattern = require("lspconfig").util.root_pattern(
+								"tailwind.config.js",
+								"tailwind.config.ts",
+								"tailwind.config.cjs",
+								"tailwind.config.mjs"
+							)
+							local root = root_pattern(fname)
+							if root then
+								return root
+							end
+							-- Also check package.json for tailwindcss dependency
+							local package_json = require("lspconfig").util.root_pattern("package.json")(fname)
+							if package_json then
+								local package = vim.fn.json_decode(vim.fn.readfile(package_json .. "/package.json"))
+								if package and (
+									(package.dependencies and package.dependencies.tailwindcss) or
+									(package.devDependencies and package.devDependencies.tailwindcss)
+								) then
+									return package_json
+								end
+							end
+							return nil
+						end,
 					})
 				end,
 
