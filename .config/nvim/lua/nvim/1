@@ -22,7 +22,6 @@ return {
 		mason_lspconfig.setup({
 			ensure_installed = {
 				"html",
-				"ts_ls", -- TypeScript/JavaScript (replaces deprecated tsserver)
 				"svelte",
 				"emmet_ls",
 				"tailwindcss",
@@ -41,6 +40,7 @@ return {
 				"omnisharp",
 				"yamlls",
 				"eslint",
+				"ts_ls",
 				"bashls",
 				"docker_compose_language_service",
 				"typos_lsp",

@@ -16,14 +16,14 @@ return {
 
 		-- Track inlay hint state per buffer
 		local inlay_hint_enabled = {}
-		
+
 		local on_attach = function(client, bufnr)
 			-- Start with inlay hints enabled by default
 			if client.supports_method("textDocument/inlayHint") then
 				inlay_hint_enabled[bufnr] = true
 				vim.lsp.inlay_hint(bufnr, true)
 			end
-			
+
 			local opts = { buffer = bufnr, silent = true }
 
 			-- Enhanced references with Telescope (better than default gr)
@@ -49,7 +49,7 @@ return {
 			-- Restart LSP
 			opts.desc = "Restart LSP"
 			keymap.set("n", "<leader>rs", ":LspRestart<CR>", opts)
-			
+
 			-- Toggle inlay hints
 			if client.supports_method("textDocument/inlayHint") then
 				opts.desc = "Toggle inlay hints"
@@ -60,7 +60,7 @@ return {
 				end, opts)
 			end
 		end
-		
+
 		-- Global toggle for virtual text diagnostics
 		local virtual_text_enabled = false
 		vim.keymap.set("n", "<leader>uv", function()
@@ -75,7 +75,7 @@ return {
 		if capabilities.textDocument and capabilities.textDocument.inlayHint then
 			capabilities.textDocument.inlayHint.dynamicRegistration = false
 		end
-		
+
 		-- Configure diagnostics using the modern API
 		vim.diagnostic.config({
 			virtual_text = false, -- Disable inline diagnostic text
@@ -273,10 +273,16 @@ return {
 					lspconfig.emmet_language_server.setup({
 						on_attach = on_attach,
 						capabilities = capabilities,
-						filetypes = { 
-							"html", "css", "scss", "sass", "less",
-							"svelte", "vue",
-							"javascriptreact", "typescriptreact"
+						filetypes = {
+							"html",
+							"css",
+							"scss",
+							"sass",
+							"less",
+							"svelte",
+							"vue",
+							"javascriptreact",
+							"typescriptreact",
 						},
 						init_options = {
 							-- Show abbreviation suggestions
@@ -299,10 +305,16 @@ return {
 					lspconfig.tailwindcss.setup({
 						on_attach = on_attach,
 						capabilities = capabilities,
-						filetypes = { 
-							"html", "css", "scss", "sass", "less",
-							"svelte", "vue",
-							"javascriptreact", "typescriptreact"
+						filetypes = {
+							"html",
+							"css",
+							"scss",
+							"sass",
+							"less",
+							"svelte",
+							"vue",
+							"javascriptreact",
+							"typescriptreact",
 						},
 						settings = {
 							tailwindCSS = {
@@ -350,10 +362,13 @@ return {
 							local package_json = require("lspconfig").util.root_pattern("package.json")(fname)
 							if package_json then
 								local package = vim.fn.json_decode(vim.fn.readfile(package_json .. "/package.json"))
-								if package and (
-									(package.dependencies and package.dependencies.tailwindcss) or
-									(package.devDependencies and package.devDependencies.tailwindcss)
-								) then
+								if
+									package
+									and (
+										(package.dependencies and package.dependencies.tailwindcss)
+										or (package.devDependencies and package.devDependencies.tailwindcss)
+									)
+								then
 									return package_json
 								end
 							end
