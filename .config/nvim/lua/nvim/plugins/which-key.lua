@@ -36,57 +36,58 @@ return {
 			},
 			win = {
 				border = "rounded",
+				padding = { 1, 2 }, -- Extra padding for breathing room
+				title = true,
+				title_pos = "center",
 			},
 			layout = {
 				height = { min = 4, max = 25 },
 				width = { min = 20, max = 50 },
-				spacing = 3,
+				spacing = 4, -- More spacing between columns
 				align = "left",
 			},
 			show_help = true,
+			show_keys = true,
 			triggers = { "<leader>" },
-			colors = {
-				bg = colors.bg0 or "#1a1520",
-				fg = colors.fg1 or "#d8d8d8", -- Text color (fg1)
-				border = colors.ui3 or "#404040",
-				group = colors.color1 or "#5BF65B", -- Group names (colored)
-				key = colors.color6 or "#FFD343", -- Key bindings (colored)
-				separator = colors.ui3 or "#404040",
-			},
 		})
 
 		which_key.add({
-			-- Groups with icons
+			-- Groups with consistent icons
 			{ "<leader>a", group = "󰚩 AI" },
+			{ "<leader>b", group = "󰓩 Buffer" },
 			{ "<leader>c", group = "󰨞 Code" },
+			{ "<leader>d", group = "󰒕 Diff" },
 			{ "<leader>e", group = "󰉋 Explorer" },
 			{ "<leader>f", group = "󰱼 Find" },
+			{ "<leader>g", group = "󰬴 Case" },
 			{ "<leader>h", group = "󰊢 Git Hunk" },
-			-- Note: <leader>k is used for LSP hover, HTTP commands use <leader>kr, <leader>kt, etc.
+			{ "<leader>H", group = "󰖟 HTTP" },
 			{ "<leader>l", group = "󰒲 Lazy" },
-			{ "<leader>m", group = "󰍍 Markdown/Format" },
-			{ "<leader>n", group = "󰐊 Clear" },
+			{ "<leader>m", group = "󰍍 Markdown" },
+			{ "<leader>n", group = "󰐊 Clear/Number" },
 			{ "<leader>o", group = "󰏖 Oil" },
 			{ "<leader>r", group = "󰑄 Rename/Restart" },
-			{ "<leader>s", group = "  Svelte" },
-			{ "<leader>t", group = "󰔃 Toggle" },
-			{ "<leader>w", group = "󰁯 Session" },
+			{ "<leader>s", group = "󰜁 Svelte" },
+			{ "<leader>t", group = "󰔃 Toggle/Tab" },
+			{ "<leader>u", group = "󰔡 UI Toggle" },
+			{ "<leader>v", group = "󰄳 Version/Checkpoint" },
+			{ "<leader>w", group = "󰁯 Window/Session" },
 			{ "<leader>x", group = "󰔫 Trouble" },
 
-			-- Core keymaps with icons
+			-- Core keymaps
 			{ "<leader>nh", desc = "󰐊 Clear search highlights" },
 			{ "<leader>+", desc = "󰎎 Increment number" },
 			{ "<leader>=", desc = "󰎐 Decrement number" },
-			{ "<leader>ct", desc = "🎨 Toggle colorscheme" },
-			{ "<leader>ts", desc = "󰓆 Toggle spell check" },
+			{ "<leader>ct", desc = "󰏘 Toggle colorscheme" },
 			
-			-- Svelte/SvelteKit templates
-			{ "<leader>sc", desc = "  New component" },
-			{ "<leader>sp", desc = "  New page" },
-			{ "<leader>sl", desc = "  New layout" },
-
-		-- AI Tools (all under <leader>a)
-		{ "<leader>a", group = "󰚩 AI" },
+			-- Quick actions
+			{ "<leader>w", desc = "󰆓 Save file" },
+			{ "<leader>W", desc = "󰆓 Save all files" },
+			{ "<leader>q", desc = "󰅙 Quit window" },
+			{ "<leader>Q", desc = "󰅚 Force quit window" },
+			{ "<leader>sr", desc = "󰛔 Search and replace word", mode = { "n", "v" } },
+			
+			-- AI Tools (all under <leader>a)
 		-- OpenCode (lowercase = common, uppercase = project)
 		{ "<leader>ao", desc = "󰚩 OpenCode" },
 		{ "<leader>ai", desc = "󰆐 Input window" },
@@ -161,25 +162,22 @@ return {
 			{ "<leader>rs", desc = "󰑄 Restart LSP" },
 			
 			-- UI toggles
-			{ "<leader>u", group = "󰨞 UI Toggle" },
-			{ "<leader>uh", desc = "󰨞 Toggle inlay hints" },
+			{ "<leader>uh", desc = "󰘨 Toggle inlay hints" },
 			{ "<leader>uv", desc = "󰨞 Toggle virtual text diagnostics" },
 
-			-- Markdown with icons
-			{ "<leader>mm", group = "󰍍 Markdown" },
-			{ "<leader>mv", desc = "󰍍 Toggle markdown preview" },
-			{ "<leader>ms", desc = "󰐊 Stop markdown preview" },
+			-- Markdown
+			{ "<leader>mv", desc = "󰍔 Toggle markdown preview" },
+			{ "<leader>ms", desc = "󰅙 Stop markdown preview" },
 
 
 			-- Live Server
-			{ "<leader>ls", desc = "Start live server and open current file" },
-			{ "<leader>lS", desc = "Show live server status" },
-			{ "<leader>lc", desc = "Stop serving a directory" },
-			{ "<leader>lC", desc = "Stop all live servers" },
-			{ "<leader>ll", desc = "Open live server log" },
+			{ "<leader>ls", desc = "󰀂 Start live server" },
+			{ "<leader>lS", desc = "󰋼 Live server status" },
+			{ "<leader>lc", desc = "󰅙 Stop serving directory" },
+			{ "<leader>lC", desc = "󰅙 Stop all live servers" },
+			{ "<leader>ll", desc = "󰌱 Live server log" },
 
-			-- HTTP Client (under <leader>H - capital H)
-			{ "<leader>H", group = "󰖟 HTTP" },
+			-- HTTP Client
 			{ "<leader>Hr", desc = "󰜏 Run request" },
 			{ "<leader>Ht", desc = "󰨞 Toggle view" },
 			{ "<leader>H[", desc = "󰅝 Previous request" },
@@ -204,22 +202,136 @@ return {
 			{ "]h", desc = "󰅞 Next git hunk" },
 
 			-- Todo comments
-			{ "[t", desc = "Previous todo comment" },
-			{ "]t", desc = "Next todo comment" },
+			{ "[t", desc = "󰅝 Previous todo comment" },
+			{ "]t", desc = "󰅞 Next todo comment" },
+			
+			-- Buffer navigation
+			{ "[b", desc = "󰅝 Previous buffer" },
+			{ "]b", desc = "󰅞 Next buffer" },
+			{ "<leader>bd", desc = "󰅙 Delete buffer" },
+			{ "<leader>bD", desc = "󰅙 Force delete buffer" },
+			
+			-- Quickfix navigation
+			{ "[q", desc = "󰅝 Previous quickfix item" },
+			{ "]q", desc = "󰅞 Next quickfix item" },
+			{ "[Q", desc = "󰅝 First quickfix item" },
+			{ "]Q", desc = "󰅞 Last quickfix item" },
+			
+			-- Location list navigation
+			{ "[l", desc = "󰅝 Previous location item" },
+			{ "]l", desc = "󰅞 Next location item" },
+			{ "[L", desc = "󰅝 First location item" },
+			{ "]L", desc = "󰅞 Last location item" },
+			
+			-- Diagnostic navigation (enhanced)
+			{ "[d", desc = "󰅝 Previous diagnostic" },
+			{ "]d", desc = "󰅞 Next diagnostic" },
+			{ "[D", desc = "󰅝 Previous error" },
+			{ "]D", desc = "󰅞 Next error" },
+			
+			-- Window management
+			{ "<leader>w=", desc = "󰕴 Equalize windows" },
+			{ "<leader>w|", desc = "󰕩 Maximize width" },
+			{ "<leader>w_", desc = "󰕧 Maximize height" },
+			
+			-- Tab management
+			{ "<leader>tn", desc = "󰎔 New tab" },
+			{ "<leader>tc", desc = "󰅙 Close tab" },
+			{ "<leader>to", desc = "󰅙 Close other tabs" },
+			{ "<leader>tp", desc = "󰅝 Previous tab" },
+			{ "<leader>tN", desc = "󰅞 Next tab" },
+			{ "<leader>tm", desc = "󰅟 Move tab" },
+			{ "<leader>t1", desc = "󰎤 Tab 1" },
+			{ "<leader>t2", desc = "󰎧 Tab 2" },
+			{ "<leader>t3", desc = "󰎪 Tab 3" },
+			{ "<leader>t4", desc = "󰎭 Tab 4" },
+			{ "<leader>t5", desc = "󰎱 Tab 5" },
+			
+			-- Toggles  
+			{ "<leader>tr", desc = "󰔡 Toggle relative numbers" },
+			{ "<leader>tw", desc = "󰖶 Toggle wrap" },
+			{ "<leader>tl", desc = "󰌑 Toggle whitespace" },
+			{ "<leader>tt", desc = "󰆍 Toggle terminal" },
+			{ "<leader>tf", desc = "󰆍 Floating terminal" },
+			{ "<leader>tv", desc = "󰆍 Vertical terminal" },
+			{ "<leader>tS", desc = "󰔌 Shutdown all terminals" },
+			
+			-- Spell checking
+			{ "[s", desc = "󰅝 Previous misspelled" },
+			{ "]s", desc = "󰅞 Next misspelled" },
+			{ "z=", desc = "󰓆 Spelling suggestions" },
+			{ "zg", desc = "󰐕 Add to dictionary" },
+			{ "zw", desc = "󰅖 Mark as misspelled" },
+			{ "zug", desc = "󰩹 Remove from dictionary" },
+			
+			-- Case conversion
+			{ "<leader>gu", desc = "󰬴 Uppercase word", mode = { "n", "v" } },
+			{ "<leader>gl", desc = "󰬲 Lowercase word", mode = { "n", "v" } },
+			{ "<leader>g~", desc = "󰬱 Toggle case word", mode = { "n", "v" } },
+			
+			-- Number format
+			{ "<leader>nx", desc = "󰘧 Convert to hex" },
+			{ "<leader>nr", desc = "󰘧 Revert from hex" },
+			
+			-- Diff shortcuts
+			{ "<leader>dt", desc = "󰒕 Diff this" },
+			{ "<leader>do", desc = "󰒕 Diff off" },
+			{ "<leader>du", desc = "󰒕 Diff update" },
+			
+			-- Quick config edit
+			{ "<leader>ev", desc = "󰏫 Edit init.lua" },
+			{ "<leader>sv", desc = "󰑓 Source init.lua" },
+			
+			-- File reload (for AI tool changes)
+			{ "<leader>R", desc = "󰑓 Reload buffers from disk" },
+			{ "<leader>U", desc = "󰕌 Undo to previous save" },
+			
+			-- File paths
+			{ "<leader>fp", desc = "󰈔 Copy full path" },
+			{ "<leader>fr", desc = "󰈔 Copy relative path" },
+			{ "<leader>fn", desc = "󰈔 Copy filename" },
+			
+			-- Terminal management
+			{ "<leader>tt", desc = "󰆍 Toggle terminal" },
+			{ "<leader>tf", desc = "󰆍 Floating terminal" },
+			{ "<leader>tv", desc = "󰆍 Vertical terminal" },
+			{ "<leader>tS", desc = "󰔌 Shutdown all terminals" },
 
 
 			-- LazyGit
-			{ "<leader>lg", desc = "Open lazy git" },
+			{ "<leader>lg", desc = "󰊢 Open lazy git" },
 
 			-- CSV
-			{ "<leader>cs", desc = "Toggle CSV view" },
+			{ "<leader>cs", desc = "󰌟 Toggle CSV view" },
 
 			-- Arrow (file bookmarks)
-			{ ";", desc = "Arrow bookmarks" },
-			{ "m", desc = "Arrow buffer bookmarks" },
+			{ ";", desc = "󰃀 Arrow bookmarks" },
+			{ "m", desc = "󰃀 Arrow buffer bookmarks" },
 
 			-- Color highlighter (nvim-highlight-colors)
 			{ "<leader>ch", desc = "󰌁 Toggle color highlighter" },
+			
+			-- Svelte templates
+			{ "<leader>sc", desc = "󰜁 New component" },
+			{ "<leader>sp", desc = "󰜁 New page" },
+			{ "<leader>sl", desc = "󰜁 New layout" },
+			
+			-- Visual mode improvements
+			{ "<", desc = "󰉵 Indent left (stay in visual)", mode = "v" },
+			{ ">", desc = "󰉶 Indent right (stay in visual)", mode = "v" },
+			{ "J", desc = "󰜮 Move lines down", mode = "v" },
+			{ "K", desc = "󰜷 Move lines up", mode = "v" },
+			{ "p", desc = "󰆒 Paste without yank", mode = "v" },
+			
+			-- Version/Checkpoint system (AI edit recovery)
+			{ "<leader>vc", desc = "󰄳 Create checkpoint" },
+			{ "<leader>vr", desc = "󰕌 Restore checkpoint" },
+			{ "<leader>vd", desc = "󰒕 Diff with checkpoint" },
+			{ "<leader>vx", desc = "󰩺 Delete checkpoint" },
+			{ "<leader>vC", desc = "󰄳 Checkpoint open files" },
+			{ "<leader>vP", desc = "󰄳 Checkpoint entire project" },
+			{ "<leader>vR", desc = "󰕌 Restore all files" },
+			{ "<leader>vS", desc = "󰒕 Show all changes" },
 
 		})
 	end,

@@ -11,17 +11,33 @@ function M.setup()
 	local utils = require("nvim.core.utils")
 
 	-- Color palette - Purpleator theme with purple undertones
-	-- Syntax colors use numeric names (color0-color16) so you can change colors without updating variable names
+	-- 
+	-- COLOR PHILOSOPHY:
+	-- Base foreground colors (fg0-fg3) are used for most text elements like variables, 
+	-- parameters, punctuation, operators, brackets, etc. This creates a calm base.
+	-- 
+	-- Bright colors (color0-color12) are RESERVED for important syntax elements:
+	-- - Keywords (if, for, def, class) - Needs to stand out
+	-- - Functions - Important to identify
+	-- - Strings - Content that matters
+	-- - Numbers - Literal values
+	-- - Types/Classes - Structure definition
+	-- - Comments - Documentation
+	-- - Builtins - Special language features
+	-- 
+	-- This creates visual hierarchy: your eye goes to important keywords and functions,
+	-- while variables, operators, and punctuation fade into a comfortable reading color.
+	--
 	local colors = {
 		-- Base colors - purple undertone backgrounds (Purpleator theme)
 		bg0 = "#1a1420", -- Deep purple-black background
 		bg1 = "#251d2e", -- Lighter purple (more contrast from bg0)
 		bg2 = "#30283c", -- Even lighter purple (more contrast from bg1)
 		bg3 = "#3d344a", -- Borders/separators (purple tint, more visible)
-		fg0 = "#f0f0f0", -- Base text (bright white-gray) - kept same
-		fg1 = "#d8d8d8", -- Secondary text (more contrast from fg0) - kept same
-		fg2 = "#c0c0c0", -- Tertiary text (more contrast from fg1) - kept same
-		fg3 = "#a8a8a8", -- Dimmed text (more contrast from fg2) - kept same
+		fg0 = "#f0f0f0", -- Brightest text - for UI elements, important text
+		fg1 = "#d8d8d8", -- Base reading color - variables, properties, most code
+		fg2 = "#c0c0c0", -- Dimmed - parameters, operators, less important
+		fg3 = "#a8a8a8", -- Most dimmed - punctuation, brackets, noise
 
 		-- Syntax colors - bright, high contrast (numeric names for easy changes)
 		color0 = "#d87070", -- Errors (muted red)
@@ -128,26 +144,39 @@ function M.setup()
 	vim.api.nvim_set_hl(0, "@number", { fg = colors.color5, bold = false })
 	vim.api.nvim_set_hl(0, "@float", { fg = colors.color5, bold = false })
 
-	-- Syntax highlighting - Booleans (True/False)
+	-- Syntax highlighting - Booleans (True/False) - keep bright for importance
 	vim.api.nvim_set_hl(0, "Boolean", { fg = colors.color9, bold = true })
 	vim.api.nvim_set_hl(0, "@boolean", { fg = colors.color9, bold = true })
+	
+	-- Additional elements that should use base color
+	vim.api.nvim_set_hl(0, "@property", { fg = colors.fg1, bold = false }) -- object.property
+	vim.api.nvim_set_hl(0, "@field", { fg = colors.fg1, bold = false }) -- struct fields
+	vim.api.nvim_set_hl(0, "@parameter", { fg = colors.fg2, bold = false }) -- function parameters
+	vim.api.nvim_set_hl(0, "@namespace", { fg = colors.fg1, bold = false }) -- namespaces, modules
+	vim.api.nvim_set_hl(0, "@label", { fg = colors.fg2, bold = false }) -- labels
+	vim.api.nvim_set_hl(0, "@tag", { fg = colors.color4, bold = false }) -- HTML/XML tags - keep colored
+	vim.api.nvim_set_hl(0, "@tag.attribute", { fg = colors.fg1, bold = false }) -- HTML attributes
+	vim.api.nvim_set_hl(0, "@tag.delimiter", { fg = colors.fg3, bold = false }) -- <, >, /
 
-	-- Syntax highlighting - Operators
-	vim.api.nvim_set_hl(0, "Operator", { fg = colors.color8, bold = false })
-	vim.api.nvim_set_hl(0, "@operator", { fg = colors.color8, bold = false })
-	vim.api.nvim_set_hl(0, "@operator.assignment", { fg = colors.color8, bold = false })
-	vim.api.nvim_set_hl(0, "@operator.comparison", { fg = colors.color8, bold = false })
-	vim.api.nvim_set_hl(0, "@operator.arithmetic", { fg = colors.color8, bold = false })
-	vim.api.nvim_set_hl(0, "@operator.logical", { fg = colors.color8, bold = false })
-	vim.api.nvim_set_hl(0, "@operator.python", { fg = colors.color8, bold = false })
+	-- Syntax highlighting - Operators (slightly brighter than base, but not neon)
+	-- Using a soft teal/cyan that's between base gray and bright cyan
+	local operator_color = "#8fa0b0" -- Soft blue-gray, slightly brighter than fg2
+	vim.api.nvim_set_hl(0, "Operator", { fg = operator_color, bold = false })
+	vim.api.nvim_set_hl(0, "@operator", { fg = operator_color, bold = false })
+	vim.api.nvim_set_hl(0, "@operator.assignment", { fg = operator_color, bold = false }) -- =, +=, etc.
+	vim.api.nvim_set_hl(0, "@operator.comparison", { fg = operator_color, bold = false }) -- ==, !=, etc.
+	vim.api.nvim_set_hl(0, "@operator.arithmetic", { fg = operator_color, bold = false }) -- +, -, *, /
+	vim.api.nvim_set_hl(0, "@operator.logical", { fg = operator_color, bold = false }) -- and, or
+	vim.api.nvim_set_hl(0, "@operator.python", { fg = operator_color, bold = false })
 
-	-- Syntax highlighting - Variables
-	vim.api.nvim_set_hl(0, "Identifier", { fg = colors.fg0, bold = false })
-	vim.api.nvim_set_hl(0, "@variable", { fg = colors.fg0, bold = false })
-	vim.api.nvim_set_hl(0, "@variable.builtin", { fg = colors.color10, bold = false })
-	vim.api.nvim_set_hl(0, "@variable.parameter", { fg = colors.fg0, bold = false })
+	-- Syntax highlighting - Variables (use dimmer base color for regular variables)
+	vim.api.nvim_set_hl(0, "Identifier", { fg = colors.fg1, bold = false }) -- Dimmed base color
+	vim.api.nvim_set_hl(0, "@variable", { fg = colors.fg1, bold = false }) -- Dimmed base color
+	vim.api.nvim_set_hl(0, "@variable.builtin", { fg = colors.color10, bold = false }) -- Builtins stay cyan
+	vim.api.nvim_set_hl(0, "@variable.parameter", { fg = colors.fg2, bold = false }) -- Parameters even dimmer
+	vim.api.nvim_set_hl(0, "@variable.member", { fg = colors.fg1, bold = false }) -- Object properties
 	-- Python-specific variable highlights
-	vim.api.nvim_set_hl(0, "@variable.python", { fg = colors.fg0, bold = false })
+	vim.api.nvim_set_hl(0, "@variable.python", { fg = colors.fg1, bold = false })
 
 	-- Syntax highlighting - Types/Classes (blue-green, bold for emphasis)
 	vim.api.nvim_set_hl(0, "Type", { fg = colors.color3, bold = true })
@@ -164,12 +193,12 @@ function M.setup()
 	vim.api.nvim_set_hl(0, "@constant.builtin", { fg = colors.color10, bold = true })
 	vim.api.nvim_set_hl(0, "@constant.macro", { fg = colors.color4, bold = true })
 
-	-- Syntax highlighting - Brackets
-	vim.api.nvim_set_hl(0, "@punctuation.bracket", { fg = colors.color11, bold = true })
-	-- Syntax highlighting - Punctuation (bright cyan, bold for maximum visibility)
-	vim.api.nvim_set_hl(0, "@punctuation.delimiter", { fg = colors.color12, bold = true })
-	vim.api.nvim_set_hl(0, "@punctuation.special", { fg = colors.color12, bold = true })
-	vim.api.nvim_set_hl(0, "@punctuation", { fg = colors.color12, bold = true })
+	-- Syntax highlighting - Brackets (dimmed to reduce noise)
+	vim.api.nvim_set_hl(0, "@punctuation.bracket", { fg = colors.fg3, bold = false }) -- (), [], {}
+	-- Syntax highlighting - Punctuation (dimmed - commas, semicolons, dots)
+	vim.api.nvim_set_hl(0, "@punctuation.delimiter", { fg = colors.fg3, bold = false })
+	vim.api.nvim_set_hl(0, "@punctuation.special", { fg = colors.fg2, bold = false })
+	vim.api.nvim_set_hl(0, "@punctuation", { fg = colors.fg3, bold = false })
 
 	-- Syntax highlighting - Preprocessor (bold for emphasis)
 	vim.api.nvim_set_hl(0, "PreProc", { fg = colors.color0, bold = true })
@@ -254,12 +283,15 @@ function M.setup()
 	vim.api.nvim_set_hl(0, "CmpItemKind", { fg = colors.color4, bold = false })
 	vim.api.nvim_set_hl(0, "CmpItemMenu", { fg = colors.ui1, bold = false })
 
-	-- Which-key
-	vim.api.nvim_set_hl(0, "WhichKey", { fg = colors.color1, bold = false }) -- Group names (colored)
-	vim.api.nvim_set_hl(0, "WhichKeyGroup", { fg = colors.color1, bold = false }) -- Group names (colored)
-	vim.api.nvim_set_hl(0, "WhichKeySeparator", { fg = colors.ui3, bold = false })
-	vim.api.nvim_set_hl(0, "WhichKeyDesc", { fg = colors.fg1, bold = false }) -- Description text (fg1)
-	vim.api.nvim_set_hl(0, "WhichKeyValue", { fg = colors.color6, bold = false }) -- Key values (colored)
+	-- Which-key (purple-themed for Purpleator)
+	vim.api.nvim_set_hl(0, "WhichKey", { fg = colors.color6, bold = true }) -- Key bindings - bright yellow
+	vim.api.nvim_set_hl(0, "WhichKeyGroup", { fg = colors.color4, bold = false }) -- Groups - muted purple
+	vim.api.nvim_set_hl(0, "WhichKeySeparator", { fg = colors.bg3, bold = false }) -- Separator - subtle
+	vim.api.nvim_set_hl(0, "WhichKeyDesc", { fg = colors.fg1, bold = false }) -- Description - base color
+	vim.api.nvim_set_hl(0, "WhichKeyValue", { fg = colors.color10, bold = false }) -- Values - cyan
+	vim.api.nvim_set_hl(0, "WhichKeyFloat", { bg = colors.bg1 }) -- Background - lighter purple
+	vim.api.nvim_set_hl(0, "WhichKeyBorder", { fg = colors.color4, bg = colors.bg1 }) -- Border - purple accent
+	vim.api.nvim_set_hl(0, "WhichKeyTitle", { fg = colors.color4, bg = colors.bg1, bold = true }) -- Title - purple
 
 	-- NvimTree
 	vim.api.nvim_set_hl(0, "NvimTreeNormal", { fg = colors.fg0, bg = colors.bg0, bold = false })
