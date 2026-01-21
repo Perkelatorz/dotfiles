@@ -243,6 +243,19 @@ autocmd("FileType", {
 	desc = "Enable spell checking for text-like files",
 })
 
+-- Detect bash from shebang
+autocmd({ "BufRead", "BufNewFile" }, {
+	group = augroup("ShebangDetection", { clear = true }),
+	pattern = "*",
+	callback = function()
+		local line1 = vim.fn.getline(1)
+		if line1:match("^#!.*/bash") or line1:match("^#!.*/env%s+bash") then
+			vim.bo.filetype = "bash"
+		end
+	end,
+	desc = "Detect bash from shebang",
+})
+
 -- Optimize for large files (>1MB)
 autocmd("BufReadPre", {
 	group = augroup("LargeFile", { clear = true }),

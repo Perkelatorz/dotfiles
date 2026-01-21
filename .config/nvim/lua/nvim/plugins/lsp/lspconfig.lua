@@ -417,6 +417,29 @@ return {
 						},
 					})
 				end,
+
+				-- Bash Language Server
+				bashls = function()
+					lspconfig.bashls.setup({
+						on_attach = on_attach,
+						capabilities = capabilities,
+						filetypes = { "sh", "bash", "zsh" },
+						settings = {
+							bash = {
+								filetypes = { "sh", "bash", "zsh" },
+							},
+						},
+					})
+				end,
+
+				-- Hyprland Language Server (hyprls)
+				hyprls = function()
+					lspconfig.hyprls.setup({
+						on_attach = on_attach,
+						capabilities = capabilities,
+						filetypes = { "hyprlang" },
+					})
+				end,
 			},
 		})
 	end,

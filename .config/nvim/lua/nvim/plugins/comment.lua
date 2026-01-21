@@ -22,5 +22,9 @@ return {
 		end
 		
 		comment.setup(opts)
+		
+		-- Set comment format for hyprlang (uses # for comments)
+		local ft = require("Comment.ft")
+		ft.hyprlang = "#%s"
 	end,
 }

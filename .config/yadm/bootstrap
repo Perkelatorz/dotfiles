@@ -1,25 +1,12 @@
-#echo "🔐 Setting up Neovim API keys..."
-
-SECRETS_FILE="$HOME/.config/nvim/secrets.lua"
-
-if [ -f "$SECRETS_FILE" ]; then
-    echo "   ✓ secrets.lua already exists, skipping..."
-else
-    echo "   Creating secrets.lua template..."
-    cat > "$SECRETS_FILE" << 'EOF'
-return {
-  ANTHROPIC_API_KEY = "your-anthropic-key-here",
-  OPENAI_API_KEY = "your-openai-key-here",
-}
-EOF
-    echo "   ✓ Created $SECRETS_FILE"
-    echo "   ⚠️  Please edit this file and add your actual API keys!"
-fi
-!/bin/bash
+#!/bin/bash
 set -euo pipefail
 
+# YADM Bootstrap Script
+# Automates Arch Linux package installation and system setup
+
+# Configuration
 PKG_DIR="$HOME/.config/yadm/packages"
-echo "🚀 Starting Arch Linux Setup..."
+SECRETS_FILE="$HOME/.config/nvim/secrets.lua"
 
 # Track installation stats
 core_pacman_installed=0
@@ -31,19 +18,28 @@ extra_pacman_skipped=0
 extra_aur_installed=0
 extra_aur_skipped=0
 
+# --- Utility Functions ---
+
 ensure_paru() {
     if ! command -v paru &>/dev/null; then
-        echo "🔧 Installing 'paru' helper..."
+        echo "🔧 Installing 'paru' AUR helper..."
         tmpdir="$(mktemp -d)"
+        trap "rm -rf '$tmpdir'" EXIT
         git clone https://aur.archlinux.org/paru.git "$tmpdir/paru"
         (cd "$tmpdir/paru" && makepkg -si --noconfirm)
         rm -rf "$tmpdir"
+        trap - EXIT
     fi
 }
 
 read_pkg_file() {
     # Read non-empty, non-comment lines from a file into stdout
-    grep -v '^\s*#' "$1" | grep -v '^\s*$' || true
+    local file="$1"
+    if [[ ! -f "$file" ]]; then
+        echo "⚠️  Warning: Package file '$file' not found" >&2
+        return 1
+    fi
+    grep -v '^\s*#' "$file" | grep -v '^\s*$' || true
 }
 
 dedupe_array() {
@@ -51,147 +47,274 @@ dedupe_array() {
     awk '!seen[$0]++'
 }
 
-filter_installed_pacman() {
-    # stdin: list of pacman package names
-    while read -r pkg; do
-        if pacman -Qi "$pkg" &>/dev/null; then
-            echo "installed $pkg"
-        else
-            echo "missing $pkg"
-        fi
-    done
-}
-
-filter_installed_paru() {
-    # stdin: list of AUR package names
-    while read -r pkg; do
-        if paru -Qi "$pkg" &>/dev/null; then
-            echo "installed $pkg"
-        else
-            echo "missing $pkg"
-        fi
-    done
-}
-
-install_pacman_batch() {
-    # args: package list
+filter_installed_packages_bulk() {
+    # Check multiple packages at once (much faster than one-by-one)
+    # Uses bulk queries: pacman -Q and paru -Q can check multiple packages at once
+    # args: package manager type, package array
+    local pkgmgr="$1"
+    shift
     local -a pkgs=("$@")
+    
     if [ ${#pkgs[@]} -eq 0 ]; then
         return 0
     fi
-    echo "   → Installing ${#pkgs[@]} pacman packages in a batch..."
-    if sudo pacman -S --needed --noconfirm "${pkgs[@]}"; then
+    
+    # Filter out empty packages
+    local -a valid_pkgs=()
+    for pkg in "${pkgs[@]}"; do
+        [[ -n "$pkg" ]] && valid_pkgs+=("$pkg")
+    done
+    
+    if [ ${#valid_pkgs[@]} -eq 0 ]; then
         return 0
+    fi
+    
+    # Query all packages at once - only installed ones will be in output
+    local installed_output
+    if [[ "$pkgmgr" == "pacman" ]]; then
+        installed_output=$(pacman -Q "${valid_pkgs[@]}" 2>/dev/null | awk '{print $1}' || true)
     else
-        echo "   ⚠️  Batch pacman install failed. Attempting per-package fallback..."
-        local installed=0
-        for p in "${pkgs[@]}"; do
-            if sudo pacman -S --needed --noconfirm "$p"; then
-                installed=$((installed+1))
-            else
-                echo "   ⚠️  Failed to install $p"
-            fi
-        done
-        # If we got here, return success anyway; individual failures already logged.
-        return 0
+        installed_output=$(paru -Q "${valid_pkgs[@]}" 2>/dev/null | awk '{print $1}' || true)
     fi
+    
+    # Check each package - if it's in the installed output, it's installed
+    for pkg in "${valid_pkgs[@]}"; do
+        if echo "$installed_output" | grep -Fxq "$pkg" 2>/dev/null; then
+            echo "installed $pkg"
+        else
+            echo "missing $pkg"
+        fi
+    done
 }
 
-install_paru_batch() {
-    # args: package list
+install_packages_batch() {
+    # Install packages in a single bulk operation (much faster than one-by-one)
+    # args: package manager type, package list
+    local pkgmgr="$1"
+    shift
     local -a pkgs=("$@")
+    
     if [ ${#pkgs[@]} -eq 0 ]; then
         return 0
     fi
-    echo "   → Installing ${#pkgs[@]} AUR packages in a batch..."
-    set +e
-    paru -S --needed --noconfirm "${pkgs[@]}"
-    local rc=$?
-    set -e
-    if [ $rc -ne 0 ]; then
-        echo "   ⚠️  Batch AUR install failed. Attempting per-package fallback..."
-        for p in "${pkgs[@]}"; do
-            set +e
-            paru -S --needed --noconfirm "$p"
-            if [ $? -ne 0 ]; then
-                echo "   ⚠️  Failed to install $p"
+    
+    local pkgmgr_name
+    if [[ "$pkgmgr" == "pacman" ]]; then
+        pkgmgr_name="pacman"
+        echo "   → Installing ${#pkgs[@]} pacman packages in bulk..."
+        # --needed skips already installed packages, --noconfirm is non-interactive
+        # This installs all packages in a single transaction (fastest method)
+        if sudo pacman -S --needed --noconfirm "${pkgs[@]}"; then
+            echo "   ✓ Successfully installed ${#pkgs[@]} packages"
+            return 0
+        else
+            echo "   ⚠️  Bulk pacman install had issues. Attempting per-package fallback..."
+            local failed=0
+            for p in "${pkgs[@]}"; do
+                if sudo pacman -S --needed --noconfirm "$p" >/dev/null 2>&1; then
+                    : # Success
+                else
+                    echo "   ⚠️  Failed to install $p"
+                    failed=$((failed + 1))
+                fi
+            done
+            if [ $failed -eq 0 ]; then
+                echo "   ✓ All packages installed successfully via fallback"
+            else
+                echo "   ⚠️  $failed package(s) failed to install"
             fi
+            return 0
+        fi
+    else
+        pkgmgr_name="AUR"
+        echo "   → Installing ${#pkgs[@]} AUR packages in bulk..."
+        # paru handles bulk AUR installations efficiently
+        set +e
+        if paru -S --needed --noconfirm "${pkgs[@]}"; then
             set -e
-        done
+            echo "   ✓ Successfully installed ${#pkgs[@]} packages"
+            return 0
+        else
+            set -e
+            echo "   ⚠️  Bulk AUR install had issues. Attempting per-package fallback..."
+            local failed=0
+            for p in "${pkgs[@]}"; do
+                set +e
+                if paru -S --needed --noconfirm "$p" >/dev/null 2>&1; then
+                    : # Success
+                else
+                    echo "   ⚠️  Failed to install $p"
+                    failed=$((failed + 1))
+                fi
+                set -e
+            done
+            if [ $failed -eq 0 ]; then
+                echo "   ✓ All packages installed successfully via fallback"
+            else
+                echo "   ⚠️  $failed package(s) failed to install"
+            fi
+            return 0
+        fi
     fi
-    return 0
+}
+
+process_packages() {
+    # Unified function to process packages (pacman or AUR)
+    # args: pkgmgr_type, package_file, installed_counter_var, skipped_counter_var
+    local pkgmgr="$1"
+    local pkg_file="$2"
+    local installed_var="$3"
+    local skipped_var="$4"
+    
+    if [[ ! -f "$pkg_file" ]]; then
+        echo "⚠️  $pkg_file not found. Skipping."
+        return 0
+    fi
+    
+    local pkgmgr_name
+    local pkgmgr_icon
+    if [[ "$pkgmgr" == "pacman" ]]; then
+        pkgmgr_name="pacman"
+        pkgmgr_icon="📦"
+    else
+        pkgmgr_name="AUR"
+        pkgmgr_icon="🔧"
+    fi
+    
+    mapfile -t packages < <(read_pkg_file "$pkg_file" | dedupe_array)
+    
+    if [ ${#packages[@]} -eq 0 ]; then
+        return 0
+    fi
+    
+    echo "$pkgmgr_icon Processing ${#packages[@]} $pkgmgr_name packages..."
+    
+    if [[ "$pkgmgr" == "aur" ]]; then
+        ensure_paru
+    fi
+    
+    # Split into installed vs missing (using bulk checking)
+    local installed_list=()
+    local missing_list=()
+    while read -r status pkg; do
+        if [[ "$status" == "installed" ]]; then
+            installed_list+=("$pkg")
+        else
+            missing_list+=("$pkg")
+        fi
+    done < <(
+        filter_installed_packages_bulk "$pkgmgr" "${packages[@]}"
+    )
+    
+    for p in "${installed_list[@]}"; do
+        echo "   ✓ $p (already installed)"
+    done
+    
+    # Update counters
+    eval "$skipped_var=\$((\$$skipped_var + \${#installed_list[@]}))"
+    
+    if [ ${#missing_list[@]} -gt 0 ]; then
+        install_packages_batch "$pkgmgr" "${missing_list[@]}"
+        eval "$installed_var=\$((\$$installed_var + \${#missing_list[@]}))"
+    fi
+}
+
+# --- Setup Functions ---
+
+setup_neovim_secrets() {
+    echo "🔐 Setting up Neovim API keys..."
+    
+    if [[ ! -d "$(dirname "$SECRETS_FILE")" ]]; then
+        mkdir -p "$(dirname "$SECRETS_FILE")"
+    fi
+    
+    if [ -f "$SECRETS_FILE" ]; then
+        echo "   ✓ secrets.lua already exists, skipping..."
+    else
+        echo "   Creating secrets.lua template..."
+        cat > "$SECRETS_FILE" << 'EOF'
+return {
+  ANTHROPIC_API_KEY = "your-anthropic-key-here",
+  OPENAI_API_KEY = "your-openai-key-here",
+}
+EOF
+        echo "   ✓ Created $SECRETS_FILE"
+        echo "   ⚠️  Please edit this file and add your actual API keys!"
+    fi
+}
+
+setup_hyprland_plugins() {
+    # Default plugins list - can be extended
+    local -a plugins=(
+        "https://github.com/Duckonaut/split-monitor-workspaces"
+    )
+    
+    # Check if hyprpm is available
+    if ! command -v hyprpm &> /dev/null; then
+        echo "⚠️  hyprpm command not found. Skipping Hyprland plugin setup."
+        echo "   (Please ensure Hyprland is properly installed)"
+        return 1
+    fi
+    
+    echo "🪟 Setting up Hyprland plugins..."
+    
+    # Update Hyprland repos
+    echo "   → Updating Hyprland repos..."
+    if ! hyprpm update; then
+        echo "   ⚠️  Failed to update Hyprland repos"
+        return 1
+    fi
+    echo "   ✓ Hyprland repos updated"
+    
+    # Add and enable each plugin
+    for plugin_url in "${plugins[@]}"; do
+        local plugin_name=$(basename "$plugin_url" .git)
+        
+        echo "   → Adding $plugin_name plugin..."
+        if ! hyprpm add "$plugin_url"; then
+            echo "   ⚠️  Failed to add $plugin_name plugin repository"
+            continue
+        fi
+        echo "   ✓ Plugin repository added"
+        
+        echo "   → Enabling $plugin_name plugin..."
+        if ! hyprpm enable "$plugin_name"; then
+            echo "   ⚠️  Failed to enable $plugin_name plugin"
+            continue
+        fi
+        echo "   ✓ Plugin enabled"
+    done
+    
+    # Reload the plugins
+    echo "   → Reloading plugins..."
+    if ! hyprpm reload; then
+        echo "   ⚠️  Failed to reload plugins"
+        return 1
+    fi
+    echo "   ✓ Plugins reloaded"
+    
+    echo "✅ Hyprland plugin setup complete!"
 }
 
 # --- PHASE 1: Install Core Dependencies (Non-Interactive) ---
 
+echo "🚀 Starting Arch Linux Setup..."
+echo
+
+# Setup Neovim secrets
+setup_neovim_secrets
+echo
+
 echo "🔄 Installing core system tools..."
 
-# Core pacman (batched)
-if [[ -f "$PKG_DIR/core.pkgs" ]]; then
-    mapfile -t core_packages < <(read_pkg_file "$PKG_DIR/core.pkgs" | dedupe_array)
-    if [ ${#core_packages[@]} -gt 0 ]; then
-        echo "📦 Processing ${#core_packages[@]} core pacman packages..."
-        sudo pacman -Sy --noconfirm
+# Update package database
+sudo pacman -Sy --noconfirm
 
-        # Split into installed vs missing
-        installed_list=()
-        missing_list=()
-        while read -r status pkg; do
-            if [[ "$status" == "installed" ]]; then
-                installed_list+=("$pkg")
-            else
-                missing_list+=("$pkg")
-            fi
-        done < <(
-            for p in "${core_packages[@]}"; do echo "$p"; done | filter_installed_pacman
-        )
+# Core pacman packages
+process_packages "pacman" "$PKG_DIR/core.pkgs" "core_pacman_installed" "core_pacman_skipped"
 
-        for p in "${installed_list[@]}"; do
-            echo "   ✓ $p (already installed)"
-        done
-        core_pacman_skipped=$((core_pacman_skipped + ${#installed_list[@]}))
-
-        if [ ${#missing_list[@]} -gt 0 ]; then
-            install_pacman_batch "${missing_list[@]}"
-            core_pacman_installed=$((core_pacman_installed + ${#missing_list[@]}))
-        fi
-    fi
-else
-    echo "⚠️  $PKG_DIR/core.pkgs not found. Skipping core pacman setup."
-fi
-
-# Core AUR (batched)
-if [[ -f "$PKG_DIR/core.aur" ]]; then
-    mapfile -t core_aur_packages < <(read_pkg_file "$PKG_DIR/core.aur" | dedupe_array)
-    if [ ${#core_aur_packages[@]} -gt 0 ]; then
-        echo "🔧 Processing ${#core_aur_packages[@]} core AUR packages..."
-        ensure_paru
-
-        installed_list=()
-        missing_list=()
-        while read -r status pkg; do
-            if [[ "$status" == "installed" ]]; then
-                installed_list+=("$pkg")
-            else
-                missing_list+=("$pkg")
-            fi
-        done < <(
-            for p in "${core_aur_packages[@]}"; do echo "$p"; done | filter_installed_paru
-        )
-
-        for p in "${installed_list[@]}"; do
-            echo "   ✓ $p (already installed)"
-        done
-        core_aur_skipped=$((core_aur_skipped + ${#installed_list[@]}))
-
-        if [ ${#missing_list[@]} -gt 0 ]; then
-            install_paru_batch "${missing_list[@]}"
-            core_aur_installed=$((core_aur_installed + ${#missing_list[@]}))
-        fi
-    fi
-else
-    echo "⚠️  $PKG_DIR/core.aur not found. Skipping core AUR setup."
-fi
+# Core AUR packages
+process_packages "aur" "$PKG_DIR/core.aur" "core_aur_installed" "core_aur_skipped"
 
 echo "✅ Core tools done."
 echo
@@ -249,61 +372,22 @@ mapfile -t final_aur < <(printf "%s\n" "${final_aur[@]}" | dedupe_array)
 
 # --- PHASE 3: Install extras (batched) ---
 
-# Ensure paru if needed
-if [ ${#final_aur[@]} -gt 0 ]; then
-    ensure_paru
-fi
-
-# Extra pacman (batched)
+# Process extra pacman packages
 if [ ${#final_packages[@]} -gt 0 ]; then
-    echo "📦 Processing ${#final_packages[@]} extra pacman packages..."
-    installed_list=()
-    missing_list=()
-    while read -r status pkg; do
-        if [[ "$status" == "installed" ]]; then
-            installed_list+=("$pkg")
-        else
-            missing_list+=("$pkg")
-        fi
-    done < <(
-        for p in "${final_packages[@]}"; do echo "$p"; done | filter_installed_pacman
-    )
-
-    for p in "${installed_list[@]}"; do
-        echo "   ✓ $p (already installed)"
-    done
-    extra_pacman_skipped=$((extra_pacman_skipped + ${#installed_list[@]}))
-
-    if [ ${#missing_list[@]} -gt 0 ]; then
-        install_pacman_batch "${missing_list[@]}"
-        extra_pacman_installed=$((extra_pacman_installed + ${#missing_list[@]}))
-    fi
+    # Create temporary file for processing
+    tmp_pkg_file=$(mktemp)
+    printf "%s\n" "${final_packages[@]}" > "$tmp_pkg_file"
+    process_packages "pacman" "$tmp_pkg_file" "extra_pacman_installed" "extra_pacman_skipped"
+    rm -f "$tmp_pkg_file"
 fi
 
-# Extra AUR (batched)
+# Process extra AUR packages
 if [ ${#final_aur[@]} -gt 0 ]; then
-    echo "🏗️  Processing ${#final_aur[@]} extra AUR packages..."
-    installed_list=()
-    missing_list=()
-    while read -r status pkg; do
-        if [[ "$status" == "installed" ]]; then
-            installed_list+=("$pkg")
-        else
-            missing_list+=("$pkg")
-        fi
-    done < <(
-        for p in "${final_aur[@]}"; do echo "$p"; done | filter_installed_paru
-    )
-
-    for p in "${installed_list[@]}"; do
-        echo "   ✓ $p (already installed)"
-    done
-    extra_aur_skipped=$((extra_aur_skipped + ${#installed_list[@]}))
-
-    if [ ${#missing_list[@]} -gt 0 ]; then
-        install_paru_batch "${missing_list[@]}"
-        extra_aur_installed=$((extra_aur_installed + ${#missing_list[@]}))
-    fi
+    # Create temporary file for processing
+    tmp_aur_file=$(mktemp)
+    printf "%s\n" "${final_aur[@]}" > "$tmp_aur_file"
+    process_packages "aur" "$tmp_aur_file" "extra_aur_installed" "extra_aur_skipped"
+    rm -f "$tmp_aur_file"
 fi
 
 # --- SUMMARY ---
@@ -321,62 +405,19 @@ total_installed=$((core_pacman_installed + core_aur_installed + extra_pacman_ins
 total_skipped=$((core_pacman_skipped + core_aur_skipped + extra_pacman_skipped + extra_aur_skipped))
 echo "🎯 Total: $total_installed installed, $total_skipped skipped"
 
-# --- Setup Hyprland ---
-#
-# This might need to be rewrote to handle a list of plugins
+# --- Hyprland Plugin Setup ---
 
-hyperland_setup() {
-    # Function to handle errors with a cross ❌
-    handle_error() {
-        echo -e "  Error: $1" >&2   # Nerd Font 'nf-fa-times_circle'
-        exit 1
-    }
+# Prompt the user for Hyprland plugin setup
+if command -v hyprpm &> /dev/null || command -v hyprland &> /dev/null; then
+    echo
+    read -p "Do you want to set up Hyprland plugins? (y/N): " choice
+    choice=${choice,,}
     
-    # Check if hyprpm is available
-    if ! command -v hyprpm &> /dev/null; then
-        handle_error "hyprpm command not found   (Please ensure Hyprland is properly installed)"
+    if [[ "$choice" == "y" || "$choice" == "yes" ]]; then
+        setup_hyprland_plugins
+    else
+        echo "⏭️  Skipping Hyprland plugin setup."
     fi
-    
-    # Update Hyprland repos
-    echo -e "  Updating Hyprland repos..."
-    if ! hyprpm update; then
-        handle_error "Failed to update Hyprland repos"
-    fi
-    echo -e "  Hyprland repos are now updated"
-    
-    # Add the plugin repository
-    echo -e "  Adding split-monitor-workspaces plugin repository..."
-    if ! hyprpm add https://github.com/Duckonaut/split-monitor-workspaces; then
-        handle_error "Failed to add split-monitor-workspaces plugin repository"
-    fi
-    echo -e "  Plugin repository added successfully"
-    
-    # Enable the plugin
-    echo -e "⚡ Enabling split-monitor-workspaces plugin..."
-    if ! hyprpm enable split-monitor-workspaces; then
-        handle_error "Failed to enable split-monitor-workspaces plugin"
-    fi
-    echo -e "  Plugin enabled successfully"
-    
-    # Reload the plugins
-    echo -e "  Reloading plugins..."
-    if ! hyprpm reload; then
-        handle_error "Failed to reload plugins"
-    fi
-    echo -e "  Plugins reloaded successfully"
-    
-    echo -e "🚀  All operations completed successfully!"
-}
-
-# Prompt the user
-read -p "Do you want to install hyperland plugins? (y/N): " choice
-choice=${choice,,}
-
-if [[ "$choice" == "y" || "$choice" == "yes" ]]; then
-    echo "User chose to proceed."
-    hyperland_setup
-else
-    echo "User chose not to proceed. Hyprland Plugins."
 fi
 
 

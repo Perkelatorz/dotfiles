@@ -24,7 +24,7 @@ return {
 			-- Web development
 			"html", "css", "scss", "javascript", "typescript", "tsx", "svelte",
 			-- Configuration
-			"json", "yaml", "xml", "dockerfile", "terraform", "hcl",
+			"json", "yaml", "xml", "dockerfile", "terraform", "hcl", "hyprlang",
 			-- Programming languages
 			"lua", "vim", "python", "go", "gomod", "gowork", "gosum", "c", "c_sharp", "bash", "powershell",
 			-- Documentation
@@ -139,9 +139,9 @@ return {
 				-- Web
 				"svelte", "html", "css", "scss", "javascript", "typescript", "tsx", "jsx",
 				-- Config
-				"json", "yaml", "xml", "dockerfile", "terraform", "hcl",
+				"json", "yaml", "xml", "dockerfile", "terraform", "hcl", "hyprlang",
 				-- Programming
-				"lua", "vim", "python", "go", "bash", "c", "c_sharp",
+				"lua", "vim", "python", "go", "bash", "sh", "zsh", "c", "c_sharp",
 				-- Documentation
 				"markdown",
 			},

@@ -14,9 +14,7 @@ WALLPAPER_DIR="${WALLPAPER_DIR:-$HOME/Pictures}"
 WALLPAPER_DIRS="${WALLPAPER_DIRS:-$WALLPAPER_DIR}"
 WAYBAR_DIR="${WAYBAR_DIR:-$HOME/.config/waybar}"
 LOG_FILE="${LOG_FILE:-$HOME/.cache/hypr/wallpaper.log}"
-RECENT_FILE="${RECENT_FILE:-$HOME/.cache/hypr/recent-wallpapers.txt}"
 CURRENT_WALLPAPER_FILE="${CURRENT_WALLPAPER_FILE:-$HOME/.cache/hypr/current-wallpaper.txt}"
-MAX_RECENT="${MAX_RECENT:-10}"
 VERBOSE="${VERBOSE:-false}"
 SKIP_WPGTK="${SKIP_WPGTK:-false}"
 
@@ -41,17 +39,6 @@ error() {
     log "ERROR" "$*"
     notify-send -u critical "Wallpaper Script Error" "$*" 2>/dev/null || true
     exit 1
-}
-
-# Save to recent wallpapers
-save_to_recent() {
-    local wallpaper="$1"
-    mkdir -p "$(dirname "$RECENT_FILE")"
-    # Remove if already exists, then prepend
-    grep -v "^${wallpaper}$" "$RECENT_FILE" 2>/dev/null > "${RECENT_FILE}.tmp" || true
-    echo "$wallpaper" > "$RECENT_FILE"
-    head -n $((MAX_RECENT - 1)) "${RECENT_FILE}.tmp" 2>/dev/null >> "$RECENT_FILE" || true
-    rm -f "${RECENT_FILE}.tmp"
 }
 
 # Save current wallpaper path
@@ -129,20 +116,9 @@ fi
 WALLPAPER_COUNT=$(echo "$WALLPAPER_LIST" | grep -c . || echo "0")
 log "INFO" "Found $WALLPAPER_COUNT wallpapers"
 
-# Load recent wallpapers if file exists
-RECENT_LIST=""
-if [ -f "$RECENT_FILE" ] && [ -s "$RECENT_FILE" ]; then
-    while IFS= read -r line || [ -n "$line" ]; do
-        if [ -n "$line" ] && [ -f "$line" ]; then
-            RECENT_LIST="${RECENT_LIST}${RECENT_LIST:+$'\n'}⭐ $(basename "$line")|$line"
-        fi
-    done < <(head -n 5 "$RECENT_FILE")
-fi
-
-# Build selection menu
+# Build selection menu (simplified - no recent/favorites)
 SELECTION=$( (
   echo "🎲 Random"
-  [ -n "$RECENT_LIST" ] && echo "$RECENT_LIST" && echo "---"
   echo "$WALLPAPER_LIST"
 ) | rofi -dmenu -i -p "Select Wallpaper ($WALLPAPER_COUNT found)")
 
@@ -153,10 +129,6 @@ if [ -z "$SELECTION" ]; then
 elif [ "$SELECTION" = "🎲 Random" ]; then
     FINAL_WALLPAPER=$(echo "$WALLPAPER_LIST" | shuf -n 1)
     log "INFO" "Selected random wallpaper: $FINAL_WALLPAPER"
-elif [[ "$SELECTION" == *"|"* ]]; then
-    # Handle recent wallpaper format: "⭐ name|path"
-    FINAL_WALLPAPER="${SELECTION##*|}"
-    log "INFO" "Selected recent wallpaper: $FINAL_WALLPAPER"
 else
     FINAL_WALLPAPER="$SELECTION"
     log "INFO" "Selected wallpaper: $FINAL_WALLPAPER"
@@ -173,7 +145,6 @@ log "INFO" "--- Starting Theme Update ---"
 
 # Save current wallpaper
 save_current "$FINAL_WALLPAPER"
-save_to_recent "$FINAL_WALLPAPER"
 
 # Step A: Run Pywal for instant Terminal/Waybar theme (optional)
 # Always try to run Pywal to regenerate colors, but handle failures gracefully
@@ -251,10 +222,13 @@ if [ -d "$WAYBAR_DIR" ]; then
         log "WARNING" "Pywal colors.sh not found, skipping Waybar CSS update"
         log "VERBOSE" "To fix: Install/reinstall pywal or run: wal -i \"$FINAL_WALLPAPER\" manually"
     else
-        # Source colors.sh safely
+        # Source colors.sh safely (temporarily disable -u to handle unbound variables)
+        set +u  # Temporarily allow unbound variables
         if ! source "$HOME/.cache/wal/colors.sh" 2>/dev/null; then
+            set -u  # Re-enable
             log "WARNING" "Failed to source colors.sh, skipping Waybar CSS update"
         else
+            set -u  # Re-enable
             # Generate CSS file
             log "VERBOSE" "Generating Waybar CSS from Pywal colors..."
             CSS_FILE="$WAYBAR_DIR/pywal-colors.css"
@@ -288,43 +262,73 @@ EOF
                 log "VERBOSE" "Waybar config found, CSS should be imported"
             fi
             
-            # Reload waybar if it's running
-            if pgrep -x waybar >/dev/null; then
+            # Start or reload waybar
+            log "VERBOSE" "Checking if waybar is running..."
+            if pgrep -x waybar >/dev/null 2>&1; then
+                # Waybar is running - reload it
+                log "VERBOSE" "Waybar is already running, will reload"
                 if [ "$CSS_CHANGED" = "true" ]; then
                     log "INFO" "Reloading Waybar to apply new colors..."
                 else
                     log "VERBOSE" "Reloading Waybar..."
                 fi
                 
-                # Try multiple reload methods
+                # Get waybar PID and reload
                 WAYBAR_PID=$(pgrep -x waybar | head -1)
                 
-                # Method 1: SIGUSR2 (standard waybar reload signal)
-                if kill -SIGUSR2 "$WAYBAR_PID" 2>/dev/null; then
-                    sleep 0.3  # Give waybar time to reload
-                    log "VERBOSE" "Sent SIGUSR2 to waybar (PID: $WAYBAR_PID)"
+                if [ -n "$WAYBAR_PID" ]; then
+                    # Send SIGUSR2 to reload waybar
+                    kill -SIGUSR2 "$WAYBAR_PID" 2>/dev/null && log "VERBOSE" "Sent reload signal to waybar (PID: $WAYBAR_PID)" || log "WARNING" "Failed to reload waybar"
+                    log "INFO" "✓ Waybar reloaded"
                 else
-                    log "WARNING" "Failed to send SIGUSR2 to waybar"
-                fi
-                
-                # Method 2: Alternative - use killall
-                if ! killall -0 waybar 2>/dev/null; then
-                    log "WARNING" "Waybar stopped unexpectedly"
-                fi
-                
-                # Verify waybar is still running and CSS was loaded
-                if pgrep -x waybar >/dev/null; then
-                    log "INFO" "✓ Waybar reloaded (check if colors updated)"
-                else
-                    log "WARNING" "Waybar may have crashed, check logs"
+                    log "WARNING" "Could not find waybar process"
                 fi
             else
-                log "VERBOSE" "Waybar is not running, CSS will be loaded on next start"
+                # Waybar is not running - start it
+                log "INFO" "Waybar is not running. Starting Waybar..."
+                if command -v waybar &>/dev/null; then
+                    log "VERBOSE" "Waybar command found, attempting to start..."
+                    # Start waybar in background using proper method for Hyprland
+                    # Use setsid to detach from terminal and run in background
+                    setsid waybar >/tmp/waybar.log 2>&1 < /dev/null &
+                    WAYBAR_START_PID=$!
+                    log "VERBOSE" "Started waybar with PID: $WAYBAR_START_PID"
+                    
+                    # Wait a bit and check if it started
+                    for i in {1..5}; do
+                        sleep 0.2
+                        if pgrep -x waybar >/dev/null; then
+                            log "INFO" "✓ Waybar started successfully (PID: $(pgrep -x waybar | head -1))"
+                            break
+                        fi
+                    done
+                    
+                    if ! pgrep -x waybar >/dev/null; then
+                        log "WARNING" "Waybar failed to start after 1 second"
+                        if [ -f /tmp/waybar.log ]; then
+                            log "WARNING" "Waybar error: $(tail -10 /tmp/waybar.log 2>/dev/null | head -5 | tr '\n' '; ')"
+                        fi
+                        log "WARNING" "Try running 'waybar' manually to see errors"
+                    fi
+                else
+                    log "WARNING" "Waybar command not found, cannot start"
+                fi
             fi
         fi
     fi
 else
     log "VERBOSE" "Waybar directory not found: $WAYBAR_DIR, skipping CSS update"
+    # Still try to start waybar if it's not running
+    if ! pgrep -x waybar >/dev/null; then
+        log "INFO" "Starting Waybar (CSS directory not found, but starting anyway)..."
+        if command -v waybar &>/dev/null; then
+            setsid waybar >/tmp/waybar.log 2>&1 < /dev/null &
+            sleep 0.5
+            if pgrep -x waybar >/dev/null; then
+                log "INFO" "✓ Waybar started"
+            fi
+        fi
+    fi
 fi
 
 # Step D: Update WPGtk with the same wallpaper (optional)
