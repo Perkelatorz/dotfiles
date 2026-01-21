@@ -72,6 +72,15 @@ local settings_by_ft = {
 		textwidth = 100,
 		colorcolumn = "100",
 	},
+	
+	-- Hyprland configuration
+	hyprlang = {
+		tabstop = 4,
+		shiftwidth = 4,
+		expandtab = true,
+		textwidth = 120,
+		colorcolumn = "120",
+	},
 	ps1 = {
 		tabstop = 2,
 		shiftwidth = 2,

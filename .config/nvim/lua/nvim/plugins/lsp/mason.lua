@@ -42,6 +42,7 @@ return {
 				"yamlls",
 				"eslint",
 				"bashls",
+				"hyprls",
 				"docker_compose_language_service",
 				"typos_lsp",
 				"gopls",

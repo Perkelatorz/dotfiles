@@ -145,5 +145,14 @@ opt.autoread = true
 vim.filetype.add({
 	extension = {
 		svelte = "svelte",
+		hl = "hyprlang",
+		sh = "bash",
+	},
+	pattern = {
+		["hypr*.conf"] = "hyprlang",
+		["hypr/.*%.conf"] = "hyprlang",
+		[".*bashrc"] = "bash",
+		[".*bash_profile"] = "bash",
+		[".*bash_aliases"] = "bash",
 	},
 })
