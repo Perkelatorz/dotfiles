@@ -368,6 +368,16 @@ if [ -f "$MATUGEN_CONFIG" ]; then
   MATUGEN_CONFIG_FINAL="$MATUGEN_CONFIG_EXPANDED"
   MATUGEN_CMD+=(--config "$MATUGEN_CONFIG_FINAL")
   log "VERBOSE" "Using matugen config: $MATUGEN_CONFIG (expanded to $MATUGEN_CONFIG_FINAL)"
+  # Create output directories so matugen can write configs (e.g. ~/.config/kitty/themes, ~/.config/rofi, ...)
+  while IFS= read -r outpath; do
+    [ -z "$outpath" ] && continue
+    outpath="${outpath/#\~/$HOME}"
+    outdir="$(dirname "$outpath")"
+    if [ -n "$outdir" ] && [ "$outdir" != "." ]; then
+      mkdir -p "$outdir"
+      log "VERBOSE" "Ensured output dir: $outdir"
+    fi
+  done < <(sed -n 's/^[[:space:]]*output_path[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' "$MATUGEN_CONFIG_EXPANDED")
 else
   log "WARNING" "No matugen config found at $MATUGEN_CONFIG - templates will not be generated"
 fi
