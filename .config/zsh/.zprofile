@@ -3,6 +3,16 @@ export LANG=en_US.UTF-8
 export EDITOR=nvim
 
 
+# Try different schemes to see which you like best
+export MATUGEN_SCHEME="vibrant"      # Bold, saturated colors
+#export MATUGEN_SCHEME="expressive"   # Creative, artistic palette
+#export MATUGEN_SCHEME="tonal-spot"   # Conservative, muted (your old default)
+#export MATUGEN_SCHEME="rainbow"      # Colorful, playful
+#export MATUGEN_SCHEME="fruit-salad"  # Bright, varied colors
+
+# Then run your script
+./your-script.sh
+
 # Supported applications should follow these rules if they are an option
 # Set XDG base directories (if not already set by system)
 export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
