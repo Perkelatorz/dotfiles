@@ -1,4 +1,4 @@
-return {
+	return {
 	"nvim-treesitter/nvim-treesitter",
 	build = ":TSUpdate",
 	-- Load immediately instead of lazy loading to ensure highlighting works
@@ -14,12 +14,7 @@ return {
 		-- Disable vim syntax to avoid conflicts with treesitter highlighting
 		vim.cmd("syntax off")
 		
-		-- Setup basic treesitter config
-		require("nvim-treesitter.config").setup({
-			install_dir = vim.fn.stdpath("data") .. "/site",
-		})
-		
-		-- List of parsers to ensure are installed
+		-- Parsers to ensure are installed; plugin installs only *missing* ones (no re-download every startup)
 		local ensure_installed = {
 			-- Web development
 			"html", "css", "scss", "javascript", "typescript", "tsx", "svelte",
@@ -33,25 +28,16 @@ return {
 			"gitignore", "query",
 		}
 		
+		-- Setup treesitter: use built-in ensure_installed so only missing parsers are installed once
+		require("nvim-treesitter.config").setup({
+			ensure_installed = ensure_installed,
+			auto_install = false, -- only install from ensure_installed, no on-demand install
+		})
+		
 		-- Svelte-specific parsers (used by helper commands)
 		local SVELTE_PARSERS = {
 			"svelte", "html", "javascript", "typescript", "css", "scss",
 		}
-		
-		-- Auto-install missing parsers on first file open
-		vim.api.nvim_create_autocmd("FileType", {
-			pattern = "*",
-			once = true,
-			callback = function()
-				local config = require("nvim-treesitter.config")
-				local installed = config.get_installed("parsers")
-				for _, parser in ipairs(ensure_installed) do
-					if not vim.list_contains(installed, parser) then
-						vim.cmd("TSInstall " .. parser)
-					end
-				end
-			end,
-		})
 
 		-- configure autotagging (w/ nvim-ts-autotag plugin)
 		local autotag, autotag_ok = utils.safe_require("nvim-ts-autotag")
