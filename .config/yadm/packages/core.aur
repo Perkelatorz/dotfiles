@@ -1,3 +1,10 @@
+# Quickshell / Quick Settings (see quickshell/DEPENDENCIES.md)
+awww-git
+# Lock fallback when swaylock not desired
+hyprlock
+# Font (bar default in Colors: JetBrainsMono Nerd Font)
+ttf-jetbrains-mono-nerd
+# Other
 cliphist
 anki-bin
 bambustudio-nvidia-bin
@@ -5,4 +12,3 @@ spotify
 wpgtk
 git-credential-manager-bin
 cursor-bin
-awww-git
