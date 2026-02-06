@@ -1,0 +1,98 @@
+import QtQuick
+import Quickshell.Io
+
+import "."
+
+Item {
+    id: cpuUsageWidget
+    required property var colors
+    property int pillIndex: 1
+
+    readonly property color pillColor: (colors.widgetPillColors && pillIndex >= 0 && pillIndex < colors.widgetPillColors.length) ? colors.widgetPillColors[pillIndex] : colors.primary
+    readonly property color pillTextColor: (colors.widgetTextOnPillColors && pillIndex >= 0 && pillIndex < colors.widgetTextOnPillColors.length) ? colors.widgetTextOnPillColors[pillIndex] : colors.textMain
+
+    property int cpuUsage: 0
+    property int lastCpuTotal: 0
+    property int lastCpuIdle: 0
+
+    implicitWidth: pill.width
+    implicitHeight: 28
+
+    Process {
+        id: cpuProc
+        command: ["sh", "-c", "head -1 /proc/stat"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var data = this.text
+                if (!data) return
+                var p = data.trim().split(/\s+/)
+                if (p.length < 9) return
+                var idle = parseInt(p[4]) + parseInt(p[5])
+                var total = 0
+                for (var i = 1; i <= 8; i++)
+                    total += parseInt(p[i])
+                if (cpuUsageWidget.lastCpuTotal > 0) {
+                    var dTotal = total - cpuUsageWidget.lastCpuTotal
+                    var dIdle = idle - cpuUsageWidget.lastCpuIdle
+                    if (dTotal > 0) {
+                        var u = Math.round(100 * (1 - dIdle / dTotal))
+                        cpuUsageWidget.cpuUsage = Math.max(0, Math.min(100, u))
+                    }
+                }
+                cpuUsageWidget.lastCpuTotal = total
+                cpuUsageWidget.lastCpuIdle = idle
+                cpuProc.running = false
+            }
+        }
+        Component.onCompleted: running = true
+    }
+
+    Timer {
+        interval: 2000
+        repeat: true
+        running: true
+        onTriggered: cpuProc.running = true
+    }
+
+    // Run btop/htop in a terminal (btop needs a TTY).
+    property string systemMonitorCommand: "kitty -e btop"
+
+    Process {
+        id: runMonitor
+        command: systemMonitorCommand.trim().split(/\s+/).filter(function(s) { return s.length > 0 })
+        running: false
+    }
+
+    Rectangle {
+        id: pill
+        height: cpuUsageWidget.implicitHeight - colors.widgetPillPaddingV * 2
+        width: Math.max(row.implicitWidth + colors.widgetPillPaddingH * 2, 52)
+        anchors.verticalCenter: parent.verticalCenter
+        radius: colors.widgetPillRadius
+        color: cpuUsageWidget.pillColor
+        border.width: 1
+        border.color: cpuUsageWidget.pillColor
+
+        MouseArea {
+            anchors.fill: parent
+            onClicked: runMonitor.running = true
+        }
+        Row {
+            id: row
+            anchors.centerIn: parent
+            spacing: 4
+            Text {
+                text: "\uF2DB"
+                color: cpuUsageWidget.pillTextColor
+                font.pixelSize: colors.cpuFontSize
+                font.family: colors.widgetIconFont
+            }
+            Text {
+                id: cpuText
+                text: cpuUsageWidget.cpuUsage + "%"
+                color: cpuUsageWidget.pillTextColor
+                font.pixelSize: colors.cpuFontSize
+            }
+        }
+    }
+}
