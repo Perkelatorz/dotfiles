@@ -11,6 +11,9 @@ CpuUsage 1.0 CpuUsage.qml
 IpAddressWidget 1.0 IpAddressWidget.qml
 PowerMenuContent 1.0 PowerMenuContent.qml
 PowerMenuWidget 1.0 PowerMenuWidget.qml
+QuickSettingCard 1.0 QuickSettingCard.qml
+QuickSettingsContent 1.0 QuickSettingsContent.qml
+QuickSettingsWidget 1.0 QuickSettingsWidget.qml
 MicrophoneWidget 1.0 MicrophoneWidget.qml
 MiniPlayerContent 1.0 MiniPlayerContent.qml
 NowPlayingWidget 1.0 NowPlayingWidget.qml

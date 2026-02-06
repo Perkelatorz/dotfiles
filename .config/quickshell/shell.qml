@@ -100,6 +100,7 @@ ShellRoot {
             property bool powerMenuVisible: false
             property bool nowPlayingPopupVisible: false
             property bool settingsMenuVisible: false
+            property bool quickSettingsMenuVisible: false
             property bool screenshotMenuVisible: false
             property var screenshotWidgetRef: null
             property int screenshotMenuMarginLeft: 0
@@ -304,6 +305,7 @@ ShellRoot {
                                         screenDelegate.calendarVisible = false
                                         screenDelegate.powerMenuVisible = false
                                         screenDelegate.settingsMenuVisible = false
+                                        screenDelegate.quickSettingsMenuVisible = false
                                         screenDelegate.screenshotMenuVisible = false
                                         screenDelegate.nowPlayingPopupVisible = !screenDelegate.nowPlayingPopupVisible
                                     }
@@ -399,6 +401,7 @@ ShellRoot {
                                         screenDelegate.calendarVisible = false
                                         screenDelegate.powerMenuVisible = false
                                         screenDelegate.settingsMenuVisible = false
+                                        screenDelegate.quickSettingsMenuVisible = false
                                         if (!screenDelegate.screenshotMenuVisible) {
                                             var pt = screenshotWidget.mapToItem(root, 0, 0)
                                             screenDelegate.screenshotMenuMarginLeft = Math.max(0, Math.floor(pt.x + (screenshotWidget.width - 168) / 2))
@@ -419,6 +422,7 @@ ShellRoot {
                                             screenDelegate.powerMenuVisible = false
                                             screenDelegate.nowPlayingPopupVisible = false
                                             screenDelegate.settingsMenuVisible = false
+                                            screenDelegate.quickSettingsMenuVisible = false
                                             screenDelegate.screenshotMenuVisible = false
                                             var pt = clockWidget.mapToItem(root, 0, 0)
                                             screenDelegate.calendarMarginLeft = Math.max(0, Math.floor(pt.x + (clockWidget.width - 200) / 2))
@@ -439,6 +443,21 @@ ShellRoot {
                                     visible: !screenDelegate.isVerticalScreen
                                 }
 
+                                QuickSettingsWidget {
+                                    colors: shellRoot.shellColors
+                                    Layout.alignment: Qt.AlignVCenter
+                                    onMenuToggleRequested: {
+                                        screenDelegate.quickSettingsMenuVisible = !screenDelegate.quickSettingsMenuVisible
+                                        if (screenDelegate.quickSettingsMenuVisible) {
+                                            screenDelegate.calendarVisible = false
+                                            screenDelegate.powerMenuVisible = false
+                                            screenDelegate.nowPlayingPopupVisible = false
+                                            screenDelegate.settingsMenuVisible = false
+                                            screenDelegate.screenshotMenuVisible = false
+                                        }
+                                    }
+                                }
+
                                 SettingsWidget {
                                     colors: shellRoot.shellColors
                                     Layout.alignment: Qt.AlignVCenter
@@ -449,6 +468,7 @@ ShellRoot {
                                             screenDelegate.calendarVisible = false
                                             screenDelegate.powerMenuVisible = false
                                             screenDelegate.nowPlayingPopupVisible = false
+                                            screenDelegate.quickSettingsMenuVisible = false
                                             screenDelegate.screenshotMenuVisible = false
                                         }
                                     }
@@ -465,11 +485,64 @@ ShellRoot {
                                             screenDelegate.calendarVisible = false
                                             screenDelegate.nowPlayingPopupVisible = false
                                             screenDelegate.settingsMenuVisible = false
+                                            screenDelegate.quickSettingsMenuVisible = false
                                             screenDelegate.screenshotMenuVisible = false
                                         }
                                     }
                                 }
                             }
+                        }
+                    }
+                }
+            }
+
+            // Quick Settings panel (right-aligned, below bar)
+            PanelWindow {
+                id: quickSettingsPanel
+                screen: screenDelegate.modelData
+                visible: screenDelegate.quickSettingsMenuVisible && (!bar.hyprMonitor || shellRoot.fullscreenMonitorNames.indexOf(bar.hyprMonitor.name) < 0)
+                implicitWidth: 360
+                implicitHeight: 560
+                color: "transparent"
+                exclusiveZone: 0
+
+                anchors.top: true
+                anchors.right: true
+                margins.top: 5
+                margins.right: 8
+
+                Component.onCompleted: {
+                    if (this.WlrLayershell != null) {
+                        this.WlrLayershell.layer = WlrLayer.Top
+                        this.WlrLayershell.namespace = "quickshell-quick-settings"
+                    }
+                }
+
+                Rectangle {
+                    anchors.fill: parent
+                    radius: 12
+                    color: shellRoot.shellColors.surfaceContainer
+                    border.width: 1
+                    border.color: shellRoot.shellColors.border
+                    QuickSettingsContent {
+                        anchors.fill: parent
+                        anchors.margins: 16
+                        colors: shellRoot.shellColors
+                        screenIndex: (function() {
+                            var s = Quickshell.screens
+                            if (!s || !screenDelegate.modelData) return 0
+                            for (var i = 0; i < s.length; i++)
+                                if (s[i] === screenDelegate.modelData) return i
+                            return 0
+                        })()
+                        onClose: function() { screenDelegate.quickSettingsMenuVisible = false }
+                        onOpenPowerRequested: {
+                            screenDelegate.quickSettingsMenuVisible = false
+                            screenDelegate.powerMenuVisible = true
+                        }
+                        onOpenSettingsRequested: {
+                            screenDelegate.quickSettingsMenuVisible = false
+                            screenDelegate.settingsMenuVisible = true
                         }
                     }
                 }

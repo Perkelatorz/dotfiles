@@ -1,0 +1,2 @@
+# Third-party clone; clone on each machine: git clone https://github.com/InioX/matugen-themes.git ~/.config/matugen-themes
+.config/matugen-themes
