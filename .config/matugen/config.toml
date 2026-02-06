@@ -1,58 +1,32 @@
-# Copy the sections you need into ~/.config/matugen/config.toml (create the file if needed).
-# select-wallpaper.sh runs matugen with this config and expands "~ to your home path
-# (matugen does not expand ~ itself, so the script writes an expanded copy to ~/.cache/hypr/).
-#
-# Get official templates:
-#   git clone https://github.com/InioX/matugen-themes.git ~/.config/matugen-themes
-# Then use input_path = "~/.config/matugen-themes/templates/<file>" for each template below.
-# See THEMING.md for full instructions.
+# Matugen config: only templates for installed apps.
+# select-wallpaper.sh runs matugen with this config and expands "~" to your home path.
+# Get templates: git clone https://github.com/InioX/matugen-themes.git ~/.config/matugen-themes
+# See quickshell/THEMING.md for full instructions.
 
 [config]
 # reload_apps = true
 
-# --- REQUIRED: Quickshell bar (this config's theme) ---
-# Script copies Colors.qml.tmpl.<style> to Colors.qml.tmpl before matugen runs.
+# --- REQUIRED: Quickshell bar ---
 [templates.quickshell_theme]
 input_path = "~/.config/quickshell/Colors.qml.tmpl"
 output_path = "~/.config/quickshell/Colors.qml"
 
-# --- Hyprland (use matugen-colors.conf so script can append high-contrast text) ---
-# In hyprland.conf: source = ~/.config/hypr/matugen-colors.conf
+# --- Hyprland ---
 [templates.hyprland]
 input_path = "~/.config/matugen-themes/templates/hyprland-colors.conf"
 output_path = "~/.config/hypr/matugen-colors.conf"
 
 # --- Kitty ---
-# In kitty.conf: include themes/Matugen.conf (or matugen-colors.conf)
-# select-wallpaper.sh reloads kitty if either file exists.
 [templates.kitty]
 input_path = "~/.config/matugen-themes/templates/kitty-colors.conf"
 output_path = "~/.config/kitty/themes/Matugen.conf"
-# Alternative single file: output_path = "~/.config/kitty/matugen-colors.conf"
 
-# --- Dunst (notifications) ---
-# In dunstrc: include the generated file or paste path; script reloads if "matugen" appears in dunstrc.
-[templates.dunst]
-input_path = "~/.config/matugen-themes/templates/dunstrc-colors"
-output_path = "~/.config/dunst/dunstrc"
-# Or output to a separate file and include it in dunstrc, e.g.:
-# output_path = "~/.config/dunst/colors-matugen"
-# Then in dunstrc: include = "~/.config/dunst/colors-matugen"
-
-# --- Rofi (launcher / style menu) ---
-# In config.rasi: @import "colors.rasi"
+# --- Rofi ---
 [templates.rofi]
 input_path = "~/.config/matugen-themes/templates/rofi-colors.rasi"
 output_path = "~/.config/rofi/colors.rasi"
 
-# --- Fuzzel (launcher) ---
-# In fuzzel.ini [main]: include = "~/.config/fuzzel/colors.ini"
-[templates.fuzzel]
-input_path = "~/.config/matugen-themes/templates/fuzzel.ini"
-output_path = "~/.config/fuzzel/colors.ini"
-
-# --- GTK 3 & 4 (Thunar, Nautilus, and most GUI apps) ---
-# In gtk-3.0/gtk.css and gtk-4.0/gtk.css: @import 'colors.css';
+# --- GTK 3 & 4 (Thunar and most GUI apps) ---
 [templates.gtk3]
 input_path = "~/.config/matugen-themes/templates/gtk-colors.css"
 output_path = "~/.config/gtk-3.0/colors.css"
@@ -61,73 +35,22 @@ output_path = "~/.config/gtk-3.0/colors.css"
 input_path = "~/.config/matugen-themes/templates/gtk-colors.css"
 output_path = "~/.config/gtk-4.0/colors.css"
 
-# --- Terminals ---
+# --- Alacritty ---
 [templates.alacritty]
 input_path = "~/.config/matugen-themes/templates/alacritty.toml"
 output_path = "~/.config/alacritty/colors.toml"
-# In alacritty.toml: import = ["colors.toml"]
-
-[templates.wezterm]
-input_path = "~/.config/matugen-themes/templates/wezterm_theme.toml"
-output_path = "~/.config/wezterm/colors/matugen_theme.toml"
-# In wezterm.lua: color_scheme = "matugen_theme"
 
 # --- Btop ---
-# In btop: choose theme "matugen"
 [templates.btop]
 input_path = "~/.config/matugen-themes/templates/btop.theme"
 output_path = "~/.config/btop/themes/matugen.theme"
 
-# --- Cava (audio visualizer) ---
-# In cava config: theme = 'matugen' (filename without path)
-[templates.cava]
-input_path = "~/.config/matugen-themes/templates/cava-colors.ini"
-output_path = "~/.config/cava/themes/matugen"
+# --- Qt5 (qt5ct) ---
+[templates.qt5ct]
+input_path = "~/.config/matugen-themes/templates/qtct-colors.conf"
+output_path = "~/.config/qt5ct/colors/matugen.conf"
 
-# --- Editors ---
-[templates.helix]
-input_path = "~/.config/matugen-themes/templates/helix.toml"
-output_path = "~/.config/helix/themes/matugen.toml"
-# In helix config.toml: theme = "matugen"
-
-# [templates.nvim]
-# input_path = "~/.config/matugen-themes/templates/nvim-colors.vim"
-# output_path = "~/.config/nvim/colors/matugen.vim"
-# In init.lua/vim: colorscheme matugen
-
-# --- Tmux ---
-[templates.tmux]
-input_path = "~/.config/matugen-themes/templates/tmux-colors.conf"
-output_path = "~/.config/tmux/generated.conf"
-# At end of tmux.conf: source-file ~/.config/tmux/generated.conf
-
-# --- Shell prompt ---
-[templates.starship]
-input_path = "~/.config/matugen-themes/templates/starship-colors.toml"
-output_path = "~/.config/starship.d/matugen.toml"
-# In starship.toml: include = ["~/.config/starship.d/matugen.toml"]
-
-# --- Qt apps (qt5ct / qt6ct) ---
-# [templates.qt5ct]
-# input_path = "~/.config/matugen-themes/templates/qtct-colors.conf"
-# output_path = "~/.config/qt5ct/colors/matugen.conf"
-# [templates.qt6ct]
-# input_path = "~/.config/matugen-themes/templates/qtct-colors.conf"
-# output_path = "~/.config/qt6ct/colors/matugen.conf"
-
-# --- Wlogout (logout screen) ---
-# [templates.wlogout]
-# input_path = "~/.config/matugen-themes/templates/colors.css"
-# output_path = "~/.config/wlogout/colors.css"
-# In style.css: @import "colors.css";
-
-# --- Zathura (PDF) ---
-# [templates.zathura]
-# input_path = "~/.config/matugen-themes/templates/zathura-colors"
-# output_path = "~/.config/zathura/zathurarc"
-
-# --- Yazi (file manager) ---
-# [templates.yazi]
-# input_path = "~/.config/matugen-themes/templates/yazi-theme.toml"
-# output_path = "~/.config/yazi/theme.toml"
-
+# --- Wlogout ---
+[templates.wlogout]
+input_path = "~/.config/matugen-themes/templates/colors.css"
+output_path = "~/.config/wlogout/colors.css"
