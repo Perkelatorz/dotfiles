@@ -40,10 +40,8 @@ wlogout
 sbctl
 obsidian
 qt5ct
-qt6ct
 kvantum
 zeal
-xfce4
 cachyos-xfce-settings
 thunar
 thunar-archive-plugin
@@ -53,4 +51,14 @@ thunar-shares-plugin
 thunar-vcs-plugin
 waybar
 rofi
-
+hypridle
+matugen
+grim
+slurp
+wireplumber
+wl-clipboard
+playerctl
+pavucontrol
+btop
+nm-connection-editor
+brightnessctl
