@@ -133,7 +133,7 @@ ShellRoot {
                     "screenshot=" + (screenshotWidgetVisible ? "true" : "false"),
                     "clock=" + (clockWidgetVisible ? "true" : "false")
                 ]
-                saveBarWidgetsProc.command = ["sh", "-c", "SCRIPT=\"${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/write-bar-widgets.sh\"; exec \"$SCRIPT\" " + args.join(" ")]
+                saveBarWidgetsProc.command = ["sh", "-c", "SCRIPT=\"${XDG_CONFIG_HOME:-$HOME/.config}/scripts/write-bar-widgets.sh\"; exec \"$SCRIPT\" " + args.join(" ")]
                 saveBarWidgetsProc.running = true
             }
             Process {

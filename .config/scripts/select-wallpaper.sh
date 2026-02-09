@@ -124,6 +124,9 @@ PREPROCESS_SAT="${PREPROCESS_SAT:-$DEFAULT_PREPROCESS_SAT}"
 # High contrast text generation
 GENERATE_HIGH_CONTRAST_TEXT="${GENERATE_HIGH_CONTRAST_TEXT:-true}"
 
+# GTK icon theme (used by gsettings and for env hint; set GTK_ICON_THEME in Hyprland env.conf too)
+GTK_ICON_THEME="${GTK_ICON_THEME:-Papirus-Dark}"
+
 mkdir -p "$(dirname "$LOG_FILE")"
 
 log() {
@@ -640,12 +643,21 @@ if [ "$MATUGEN_DRY_RUN" != "true" ]; then
     log "VERBOSE" "Rofi colors.rasi updated (reload on next open)"
   fi
 
-  # GTK 3/4: nudge apps to pick up new colors (restart or new windows for full effect)
+  # GTK 3/4: always rewrite gtk.css so it imports matugen colors and mtime updates (helps GTK pick up new colors)
+  for subdir in gtk-3.0 gtk-4.0; do
+    dir="$HOME/.config/$subdir"
+    if [ -f "$dir/colors.css" ]; then
+      printf '%s\n' '@import "colors.css";' > "$dir/gtk.css"
+      touch "$dir/colors.css" "$dir/gtk.css"
+      log "INFO" "Updated $dir/gtk.css so GTK loads matugen colors"
+    fi
+  done
   if [ -f "$HOME/.config/gtk-3.0/colors.css" ] || [ -f "$HOME/.config/gtk-4.0/colors.css" ]; then
     if command -v gsettings &>/dev/null; then
       gsettings set org.gnome.desktop.interface gtk-theme "" 2>/dev/null || true
       gsettings set org.gnome.desktop.interface gtk-theme "adw-gtk3-dark" 2>/dev/null || true
-      log "VERBOSE" "GTK colors updated (new app windows use new theme)"
+      gsettings set org.gnome.desktop.interface icon-theme "$GTK_ICON_THEME" 2>/dev/null || true
+      log "INFO" "GTK theme and icon theme set (restart GTK apps to apply)"
     fi
   fi
 

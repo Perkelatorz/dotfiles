@@ -25,7 +25,7 @@ while IFS= read -r line; do
     if [[ $line =~ \#\ (.*) ]]; then
       description="${BASH_REMATCH[1]}"
     else
-      description=$(echo "$action" | xargs) # Fallback to the command name
+      description=$(echo "$action" | xargs) # Fallback: the command name
     fi
 
     # Output: [Category] Keybind | Description
