@@ -30,7 +30,7 @@ Item {
     }
 
     // Scripts copy WAYLAND_DISPLAY from an existing process (e.g. kitty) so wl-copy works without opening a terminal.
-    readonly property string _scriptDir: "$HOME/.config/quickshell"
+    readonly property string _scriptDir: "$HOME/.config/scripts"
     function runScript(scriptName, envPrefix) {
         var ex = (envPrefix && envPrefix.length) ? (envPrefix + " ") : ""
         var path = screenshotWidget._scriptDir + "/" + scriptName

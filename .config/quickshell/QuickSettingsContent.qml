@@ -509,7 +509,7 @@ ColumnLayout {
             title: "Theme"
             status: quickSettingsRoot.themeStatus
             paletteColors: [quickSettingsRoot.colors.primary, quickSettingsRoot.colors.secondary, quickSettingsRoot.colors.tertiary, quickSettingsRoot.colors.error, quickSettingsRoot.colors.primaryContainer, quickSettingsRoot.colors.surfaceBright]
-            onClick: function() { quickSettingsRoot.runInSession("sh -c '\"$HOME/.config/quickshell/select-wallpaper.sh\" --material'") }
+            onClick: function() { quickSettingsRoot.runInSession("sh -c '\"$HOME/.config/scripts/select-wallpaper.sh\" --material'") }
         }
     }
 

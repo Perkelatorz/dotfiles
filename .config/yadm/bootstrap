@@ -9,7 +9,7 @@ set -euo pipefail
 PKG_DIR="$HOME/.config/yadm/packages"
 SECRETS_FILE="$HOME/.config/nvim/secrets.lua"
 MATUGEN_THEMES_DIR="$HOME/.config/matugen-themes"
-HYPR_SCRIPTS_DIR="$HOME/.config/hypr/scripts"
+SCRIPTS_DIR="$HOME/.config/scripts"
 
 # Track installation stats
 core_pacman_installed=0
@@ -246,10 +246,12 @@ setup_matugen_themes() {
     fi
 }
 
-setup_hypr_scripts_executable() {
-    if [[ -f "$HYPR_SCRIPTS_DIR/launch-quickshell.sh" ]]; then
-        chmod +x "$HYPR_SCRIPTS_DIR/launch-quickshell.sh"
-        echo "   ✓ launch-quickshell.sh made executable"
+setup_scripts_executable() {
+    if [[ -d "$SCRIPTS_DIR" ]]; then
+        for f in "$SCRIPTS_DIR"/*.sh; do
+            [[ -f "$f" ]] && chmod +x "$f"
+        done
+        echo "   ✓ Scripts in $SCRIPTS_DIR made executable"
     fi
 }
 
@@ -365,8 +367,8 @@ process_packages "aur" "$PKG_DIR/core.aur" "core_aur_installed" "core_aur_skippe
 # Post-install: matugen-themes for select-wallpaper.sh / Quickshell theme
 setup_matugen_themes
 
-# Ensure Hyprland launcher script is executable (yadm may not preserve +x)
-setup_hypr_scripts_executable
+# Ensure all dotfile scripts are executable (yadm may not preserve +x)
+setup_scripts_executable
 
 echo "✅ Core tools done."
 echo

@@ -1,7 +1,6 @@
 #!/bin/bash
-# File: ~/.local/bin/yadm-add-package
-# Quick package list manager - adds installed packages to lists
-# Usage: yadm-add-package
+# Quick package list manager - adds installed packages to yadm package lists.
+# Usage: add-package.sh (or bind to a key in Hyprland)
 
 set -euo pipefail
 
