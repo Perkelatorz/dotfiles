@@ -1,15 +1,15 @@
+[init]
+    defaultBranch = main
+
+[credential]
+    helper = manager
+    credentialStore = secretservice
+
+[includeIf "gitdir:~/code/personal/**"]
+    path = ~/.config/git/config-personal
+
+[includeIf "gitdir:~/code/work/**"]
+    path = ~/.config/git/config-work
 [user]
-    name = Your Public Name (Default)
-    email = your.public.email@example.com
-
-[includeIf "gitdir:~/code/work/"]
-    path = config-work
-
-[includeIf "gitdir:~/code/private/"]
-    path = config-private
-[credential "https://github.com"]
-	helper = 
-	helper = !/usr/bin/gh auth git-credential
-[credential "https://gist.github.com"]
-	helper = 
-	helper = !/usr/bin/gh auth git-credential
+	email = 27794858+Perkelatorz@users.noreply.github.com
+	name = Perklatorz
