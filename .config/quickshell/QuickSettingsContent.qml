@@ -18,6 +18,8 @@ ColumnLayout {
     property string lockCommand: "swaylock"
     property string audioSettingsCommand: "pavucontrol"
     property string displaySettingsCommand: "nwg-displays"
+    property string batterySettingsCommand: ""
+    property string diskSettingsCommand: "sh -c \"thunar \\$HOME\""
 
     spacing: 12
     Layout.fillWidth: true
@@ -449,6 +451,7 @@ ColumnLayout {
             icon: batteryHas ? (batteryStatus === "Charging" ? "\uF0E7" : "\uF240") : "\uF244"
             title: "Battery"
             status: batteryHas ? (batteryCapacity + "% " + batteryStatus) : "N/A"
+            onClick: batterySettingsCommand ? function() { quickSettingsRoot.runInSession(batterySettingsCommand) } : null
         }
         QuickSettingCard {
             colors: quickSettingsRoot.colors
@@ -462,6 +465,7 @@ ColumnLayout {
             icon: micMuted ? "\uF131" : "\uF130"
             title: "Microphone"
             status: micMuted ? "Muted" : "On"
+            onClick: function() { quickSettingsRoot.runInSession(quickSettingsRoot.audioSettingsCommand) }
         }
         QuickSettingCard {
             colors: quickSettingsRoot.colors
@@ -482,6 +486,7 @@ ColumnLayout {
             icon: "\uF0A0"
             title: "Disk"
             status: diskStatus
+            onClick: diskSettingsCommand ? function() { quickSettingsRoot.runInSession(quickSettingsRoot.diskSettingsCommand) } : null
         }
         QuickSettingCard {
             colors: quickSettingsRoot.colors
@@ -498,12 +503,58 @@ ColumnLayout {
             onClick: function() { quickSettingsRoot.runInSession("system-config-printer") }
         }
         QuickSettingCard {
+            Layout.columnSpan: 2
             colors: quickSettingsRoot.colors
             icon: "\uF185"
             title: "Theme"
-            status: "Dark"
+            status: quickSettingsRoot.themeStatus
+            paletteColors: [quickSettingsRoot.colors.primary, quickSettingsRoot.colors.secondary, quickSettingsRoot.colors.tertiary, quickSettingsRoot.colors.error, quickSettingsRoot.colors.primaryContainer, quickSettingsRoot.colors.surfaceBright]
             onClick: function() { quickSettingsRoot.runInSession("sh -c '\"$HOME/.config/quickshell/select-wallpaper.sh\" --material'") }
         }
+    }
+
+    property string themeStatus: "…"
+    Process {
+        id: themeProc
+        command: ["sh", "-c", "F=\"${XDG_CACHE_HOME:-$HOME/.cache}/hypr/current-theme.txt\"; if [ -r \"$F\" ]; then cat \"$F\"; else C=\"${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/Colors.qml\"; if [ -r \"$C\" ]; then grep -E 'Palette:|background:' \"$C\" | head -2 | tr '\\n' ' '; fi; fi"]
+        running: false
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var raw = (themeProc.stdout.text || "").trim()
+                var style = ""
+                var mode = ""
+                if (raw.indexOf("|") >= 0) {
+                    var parts = raw.split("|")
+                    style = parts[0] || ""
+                    mode = parts[1] || ""
+                } else {
+                    var paletteMatch = raw.match(/Palette:\s*(\w+)/)
+                    if (paletteMatch) style = paletteMatch[1]
+                    var bgMatch = raw.match(/background:\s*"#([0-9a-fA-F]{6})"/)
+                    if (bgMatch) {
+                        var hex = bgMatch[1]
+                        var r = parseInt(hex.slice(0, 2), 16) / 255
+                        var g = parseInt(hex.slice(2, 4), 16) / 255
+                        var b = parseInt(hex.slice(4, 6), 16) / 255
+                        var lum = 0.2126 * r + 0.7152 * g + 0.0722 * b
+                        mode = lum < 0.5 ? "dark" : "light"
+                    }
+                }
+                var styleLabel = style ? (style.charAt(0).toUpperCase() + style.slice(1)) : ""
+                var modeLabel = mode ? (mode.charAt(0).toUpperCase() + mode.slice(1)) : ""
+                if (styleLabel && modeLabel) quickSettingsRoot.themeStatus = styleLabel + " · " + modeLabel
+                else if (styleLabel) quickSettingsRoot.themeStatus = styleLabel
+                else if (modeLabel) quickSettingsRoot.themeStatus = modeLabel
+                else quickSettingsRoot.themeStatus = "—"
+                themeProc.running = false
+            }
+        }
+    }
+    Timer {
+        interval: 2000
+        repeat: true
+        running: quickSettingsRoot.visible
+        onTriggered: themeProc.running = true
     }
 
     property string audioSinkName: ""
@@ -558,6 +609,7 @@ ColumnLayout {
         diskProc.running = true
         vpnProc.running = true
         printersProc.running = true
+        themeProc.running = true
     }
     Process {
         id: sinkNameProc

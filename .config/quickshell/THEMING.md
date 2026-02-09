@@ -86,10 +86,33 @@ source = ~/.config/hypr/matugen-colors.conf
 
 ---
 
-## 6. Summary
+## 6. GTK apps (Thunar, Nautilus, and most GUI apps)
+
+Matugen already writes `~/.config/gtk-3.0/colors.css` and `~/.config/gtk-4.0/colors.css`. For GTK to **use** them:
+
+1. **Base theme** — Use a theme that supports custom colors. Recommended: **Dark** `adw-gtk3-dark`, **Light** `adw-gtk3`. Install: `adw-gtk3` (Arch).
+2. **Make GTK load matugen colors** — `select-wallpaper.sh` creates `~/.config/gtk-4.0/gtk.css` and `~/.config/gtk-3.0/gtk.css` (if missing) with `@import "colors.css";`. Run the wallpaper script once so it can add `gtk.css`.
+3. **Set the theme and icons in your session** — In `~/.config/hypr/env.conf` set `env = GTK_THEME,adw-gtk3-dark` and `env = GTK_ICON_THEME,Papirus-Dark` (or another icon theme like `Adw-icon-theme`). New GTK apps inherit these. **Restart already-open GTK apps** (e.g. Thunar, Firefox) so they pick up new matugen colors and the icon theme; the script cannot reload running apps.
+4. The script rewrites `gtk.css` every run (so its mtime updates), runs `gsettings set` for gtk-theme and icon-theme, and touches the CSS files so the next time you open a GTK app it sees the updated palette.
+
+---
+
+## 7. Qt apps (qt5ct, qt6ct, Kvantum)
+
+**Qt5 (qt5ct):** Matugen writes `~/.config/qt5ct/colors/matugen.conf`. Set `QT_QPA_PLATFORMTHEME=qt5ct` in `~/.config/hypr/env.conf`, then run `qt5ct` → Appearance → Color scheme → **matugen** → Apply. Qt5 apps use the matugen palette; restart apps after a theme change.
+
+**Qt6 (qt6ct):** Matugen now writes `~/.config/qt6ct/colors/matugen.conf` (same template as Qt5). Set `QT_QPA_PLATFORMTHEME=qt6ct` in `~/.config/hypr/env.conf` so Qt6 apps use qt6ct, then run `qt6ct` → Appearance → Color scheme → **matugen** → Apply. Install `qt6ct` if needed (e.g. Arch: `qt6ct`). Note: if you use both Qt5 and Qt6 apps, you can only set one platform theme globally; use qt5ct for Qt5 and qt6ct for Qt6 depending on which toolkit your apps use, or use Kvantum for both.
+
+**Kvantum:** For a unified Qt5+Qt6 look, matugen-themes has Kvantum templates. Add `[templates.kvantum_kvconfig]` and `[templates.kvantum_svg]` to your matugen config (see matugen-themes README), then in Kvantum Manager set the theme to the generated one and set `QT_QPA_PLATFORMTHEME=kvantum`.
+
+---
+
+## 8. Summary
 
 - **One config:** `~/.config/matugen/config.toml` — add a `[templates.<name>]` block for every app you want.
 - **One run:** `select-wallpaper.sh` runs matugen once; matugen fills all configured templates.
+- **GTK:** Use theme `adw-gtk3-dark` (or `adw-gtk3`); script creates `gtk.css` so GTK loads matugen `colors.css`.
+- **Qt5:** Set qt5ct color scheme to **matugen**; **Qt6:** qt6ct template added — set qt6ct color scheme to **matugen**; Kvantum optional for both.
 - **Per-app:** Include the generated file in the app’s config and, if possible, add a reload step in the script so the theme applies immediately.
 
 That way, the same theme flows from one wallpaper run into as many apps as you configure.

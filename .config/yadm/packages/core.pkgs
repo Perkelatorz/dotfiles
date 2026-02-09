@@ -1,4 +1,4 @@
-# Quickshell bar + Quick Settings + theming (see quickshell/DEPENDENCIES.md)
+# Quickshell bar + Quick Settings (see quickshell/DEPENDENCIES.md)
 quickshell
 hyprland
 pipewire
@@ -18,14 +18,21 @@ cups
 system-config-printer
 iproute2
 xorg-setxkbmap
-matugen
-rofi
 btop
 brightnessctl
 nwg-displays
-# Qt / desktop
+# Theming: matugen + wallpaper script (select-wallpaper.sh, THEMING.md)
+matugen
+rofi
+libnotify
+imagemagick
+papirus-icon-theme
+# Qt / desktop (qt5ct/qt6ct/Kvantum for matugen colors)
 qt5-wayland
 qt6-wayland
+qt5ct
+qt6ct
+kvantum
 nwg-look
 waybar
 wlogout
@@ -68,8 +75,6 @@ go
 dotnet-sdk
 sbctl
 obsidian
-qt5ct
-kvantum
 zeal
 cachyos-xfce-settings
 thunar

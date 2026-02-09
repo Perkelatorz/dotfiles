@@ -10,7 +10,6 @@ ClockWidget 1.0 ClockWidget.qml
 CpuUsage 1.0 CpuUsage.qml
 IpAddressWidget 1.0 IpAddressWidget.qml
 PowerMenuContent 1.0 PowerMenuContent.qml
-PowerMenuWidget 1.0 PowerMenuWidget.qml
 QuickSettingCard 1.0 QuickSettingCard.qml
 QuickSettingsContent 1.0 QuickSettingsContent.qml
 QuickSettingsWidget 1.0 QuickSettingsWidget.qml
@@ -23,7 +22,6 @@ ScreenshotMenuContent 1.0 ScreenshotMenuContent.qml
 ScreenshotMenuItem 1.0 ScreenshotMenuItem.qml
 ScreenshotWidget 1.0 ScreenshotWidget.qml
 SettingsMenuContent 1.0 SettingsMenuContent.qml
-SettingsWidget 1.0 SettingsWidget.qml
 StyledCalendarGrid 1.0 StyledCalendarGrid.qml
 WidgetToggleRow 1.0 WidgetToggleRow.qml
 Tray 1.0 Tray.qml
