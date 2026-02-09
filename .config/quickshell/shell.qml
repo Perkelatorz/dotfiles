@@ -97,10 +97,9 @@ ShellRoot {
                 }
             }
             property bool calendarVisible: false
-            property bool powerMenuVisible: false
             property bool nowPlayingPopupVisible: false
-            property bool settingsMenuVisible: false
             property bool quickSettingsMenuVisible: false
+            property string quickSettingsSubView: "main"
             property bool screenshotMenuVisible: false
             property var screenshotWidgetRef: null
             property int screenshotMenuMarginLeft: 0
@@ -116,6 +115,68 @@ ShellRoot {
             property bool ipAddressWidgetVisible: true
             property bool screenshotWidgetVisible: true
             property bool clockWidgetVisible: true
+
+            function loadBarWidgets() {
+                loadBarWidgetsProc.running = true
+            }
+            function saveWidgetVisibility() {
+                var dir = "$HOME/.config/quickshell"
+                var args = [
+                    "volume=" + (volumeWidgetVisible ? "true" : "false"),
+                    "nowPlaying=" + (nowPlayingWidgetVisible ? "true" : "false"),
+                    "cpu=" + (cpuWidgetVisible ? "true" : "false"),
+                    "ram=" + (ramWidgetVisible ? "true" : "false"),
+                    "battery=" + (batteryWidgetVisible ? "true" : "false"),
+                    "brightness=" + (brightnessWidgetVisible ? "true" : "false"),
+                    "microphone=" + (microphoneWidgetVisible ? "true" : "false"),
+                    "ipAddress=" + (ipAddressWidgetVisible ? "true" : "false"),
+                    "screenshot=" + (screenshotWidgetVisible ? "true" : "false"),
+                    "clock=" + (clockWidgetVisible ? "true" : "false")
+                ]
+                saveBarWidgetsProc.command = ["sh", "-c", "SCRIPT=\"${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/write-bar-widgets.sh\"; exec \"$SCRIPT\" " + args.join(" ")]
+                saveBarWidgetsProc.running = true
+            }
+            Process {
+                id: loadBarWidgetsProc
+                command: ["sh", "-c", "cat \"${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/bar-widgets.json\" 2>/dev/null || echo '{}'"]
+                running: false
+                stdout: StdioCollector {
+                    onStreamFinished: {
+                        try {
+                            var o = JSON.parse(loadBarWidgetsProc.stdout.text || "{}")
+                            if (typeof o.volume === "boolean") screenDelegate.volumeWidgetVisible = o.volume
+                            if (typeof o.nowPlaying === "boolean") screenDelegate.nowPlayingWidgetVisible = o.nowPlaying
+                            if (typeof o.cpu === "boolean") screenDelegate.cpuWidgetVisible = o.cpu
+                            if (typeof o.ram === "boolean") screenDelegate.ramWidgetVisible = o.ram
+                            if (typeof o.battery === "boolean") screenDelegate.batteryWidgetVisible = o.battery
+                            if (typeof o.brightness === "boolean") screenDelegate.brightnessWidgetVisible = o.brightness
+                            if (typeof o.microphone === "boolean") screenDelegate.microphoneWidgetVisible = o.microphone
+                            if (typeof o.ipAddress === "boolean") screenDelegate.ipAddressWidgetVisible = o.ipAddress
+                            if (typeof o.screenshot === "boolean") screenDelegate.screenshotWidgetVisible = o.screenshot
+                            if (typeof o.clock === "boolean") screenDelegate.clockWidgetVisible = o.clock
+                            if (screenDelegate.isVerticalScreen) {
+                                screenDelegate.volumeWidgetVisible = false
+                                screenDelegate.nowPlayingWidgetVisible = false
+                                screenDelegate.cpuWidgetVisible = false
+                                screenDelegate.ramWidgetVisible = false
+                                screenDelegate.batteryWidgetVisible = false
+                                screenDelegate.brightnessWidgetVisible = false
+                                screenDelegate.microphoneWidgetVisible = false
+                                screenDelegate.ipAddressWidgetVisible = false
+                                screenDelegate.screenshotWidgetVisible = false
+                            }
+                        } catch (_) { }
+                        loadBarWidgetsProc.running = false
+                    }
+                }
+            }
+            Process {
+                id: saveBarWidgetsProc
+                command: []
+                running: false
+            }
+            Component.onCompleted: loadBarWidgets()
+
             property string calendarTitle: ""
             property var calendarDays: []
             property int calendarTodayDay: 0
@@ -303,8 +364,6 @@ ShellRoot {
                             visible: screenDelegate.nowPlayingWidgetVisible
                             onOpenMiniPlayerRequested: {
                                         screenDelegate.calendarVisible = false
-                                        screenDelegate.powerMenuVisible = false
-                                        screenDelegate.settingsMenuVisible = false
                                         screenDelegate.quickSettingsMenuVisible = false
                                         screenDelegate.screenshotMenuVisible = false
                                         screenDelegate.nowPlayingPopupVisible = !screenDelegate.nowPlayingPopupVisible
@@ -399,8 +458,6 @@ ShellRoot {
                                     Component.onCompleted: screenDelegate.screenshotWidgetRef = screenshotWidget
                                     onMenuToggleRequested: {
                                         screenDelegate.calendarVisible = false
-                                        screenDelegate.powerMenuVisible = false
-                                        screenDelegate.settingsMenuVisible = false
                                         screenDelegate.quickSettingsMenuVisible = false
                                         if (!screenDelegate.screenshotMenuVisible) {
                                             var pt = screenshotWidget.mapToItem(root, 0, 0)
@@ -419,9 +476,7 @@ ShellRoot {
                                     onCalendarToggleRequested: function() {
                                         screenDelegate.calendarVisible = !screenDelegate.calendarVisible
                                         if (screenDelegate.calendarVisible) {
-                                            screenDelegate.powerMenuVisible = false
                                             screenDelegate.nowPlayingPopupVisible = false
-                                            screenDelegate.settingsMenuVisible = false
                                             screenDelegate.quickSettingsMenuVisible = false
                                             screenDelegate.screenshotMenuVisible = false
                                             var pt = clockWidget.mapToItem(root, 0, 0)
@@ -449,43 +504,9 @@ ShellRoot {
                                     onMenuToggleRequested: {
                                         screenDelegate.quickSettingsMenuVisible = !screenDelegate.quickSettingsMenuVisible
                                         if (screenDelegate.quickSettingsMenuVisible) {
-                                            screenDelegate.calendarVisible = false
-                                            screenDelegate.powerMenuVisible = false
-                                            screenDelegate.nowPlayingPopupVisible = false
-                                            screenDelegate.settingsMenuVisible = false
-                                            screenDelegate.screenshotMenuVisible = false
-                                        }
-                                    }
-                                }
-
-                                SettingsWidget {
-                                    colors: shellRoot.shellColors
-                                    Layout.alignment: Qt.AlignVCenter
-                                    Layout.rightMargin: 4
-                                    onMenuToggleRequested: {
-                                        screenDelegate.settingsMenuVisible = !screenDelegate.settingsMenuVisible
-                                        if (screenDelegate.settingsMenuVisible) {
-                                            screenDelegate.calendarVisible = false
-                                            screenDelegate.powerMenuVisible = false
-                                            screenDelegate.nowPlayingPopupVisible = false
-                                            screenDelegate.quickSettingsMenuVisible = false
-                                            screenDelegate.screenshotMenuVisible = false
-                                        }
-                                    }
-                                }
-
-                                PowerMenuWidget {
-                                    id: powerMenuWidget
-                                    colors: shellRoot.shellColors
-                                    Layout.alignment: Qt.AlignVCenter
-                                    Layout.leftMargin: 4
-                                    onMenuToggleRequested: function() {
-                                        screenDelegate.powerMenuVisible = !screenDelegate.powerMenuVisible
-                                        if (screenDelegate.powerMenuVisible) {
+                                            screenDelegate.quickSettingsSubView = "main"
                                             screenDelegate.calendarVisible = false
                                             screenDelegate.nowPlayingPopupVisible = false
-                                            screenDelegate.settingsMenuVisible = false
-                                            screenDelegate.quickSettingsMenuVisible = false
                                             screenDelegate.screenshotMenuVisible = false
                                         }
                                     }
@@ -496,13 +517,13 @@ ShellRoot {
                 }
             }
 
-            // Quick Settings panel (right-aligned, below bar)
+            // Quick Settings panel (right-aligned, below bar) — includes Power and Settings as sub-views
             PanelWindow {
                 id: quickSettingsPanel
                 screen: screenDelegate.modelData
                 visible: screenDelegate.quickSettingsMenuVisible && (!bar.hyprMonitor || shellRoot.fullscreenMonitorNames.indexOf(bar.hyprMonitor.name) < 0)
                 implicitWidth: 360
-                implicitHeight: 560
+                implicitHeight: screenDelegate.quickSettingsSubView === "settings" ? 320 : (screenDelegate.quickSettingsSubView === "power" ? 260 : 560)
                 color: "transparent"
                 exclusiveZone: 0
 
@@ -524,57 +545,92 @@ ShellRoot {
                     color: shellRoot.shellColors.surfaceContainer
                     border.width: 1
                     border.color: shellRoot.shellColors.border
-                    QuickSettingsContent {
+                    Column {
                         anchors.fill: parent
-                        anchors.margins: 16
-                        colors: shellRoot.shellColors
-                        screenIndex: (function() {
-                            var s = Quickshell.screens
-                            if (!s || !screenDelegate.modelData) return 0
-                            for (var i = 0; i < s.length; i++)
-                                if (s[i] === screenDelegate.modelData) return i
-                            return 0
-                        })()
-                        onClose: function() { screenDelegate.quickSettingsMenuVisible = false }
-                        onOpenPowerRequested: {
-                            screenDelegate.quickSettingsMenuVisible = false
-                            screenDelegate.powerMenuVisible = true
+                        spacing: 0
+                        Row {
+                            visible: screenDelegate.quickSettingsSubView !== "main"
+                            width: parent.width - 32
+                            height: 40
+                            leftPadding: 12
+                            rightPadding: 12
+                            spacing: 8
+                            MouseArea {
+                                id: backButtonMa
+                                width: 32
+                                height: 32
+                                anchors.verticalCenter: parent.verticalCenter
+                                hoverEnabled: true
+                                onClicked: screenDelegate.quickSettingsSubView = "main"
+                                Rectangle {
+                                    anchors.fill: parent
+                                    radius: 6
+                                    color: backButtonMa.containsMouse ? shellRoot.shellColors.surfaceBright : "transparent"
+                                }
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "\uF060"
+                                    color: shellRoot.shellColors.textMain
+                                    font.pixelSize: 14
+                                    font.family: shellRoot.shellColors.widgetIconFont
+                                }
+                            }
+                            Item { width: 1; height: 1 }
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: screenDelegate.quickSettingsSubView === "power" ? "Power" : "Widgets & settings"
+                                color: shellRoot.shellColors.primary
+                                font.pixelSize: 14
+                                font.bold: true
+                            }
                         }
-                        onOpenSettingsRequested: {
-                            screenDelegate.quickSettingsMenuVisible = false
-                            screenDelegate.settingsMenuVisible = true
+                        Item {
+                            width: parent.width - 32
+                            height: parent.height - (screenDelegate.quickSettingsSubView !== "main" ? 40 : 0)
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            QuickSettingsContent {
+                                visible: screenDelegate.quickSettingsSubView === "main"
+                                anchors.fill: parent
+                                anchors.margins: 16
+                                colors: shellRoot.shellColors
+                                screenIndex: (function() {
+                                    var s = Quickshell.screens
+                                    if (!s || !screenDelegate.modelData) return 0
+                                    for (var i = 0; i < s.length; i++)
+                                        if (s[i] === screenDelegate.modelData) return i
+                                    return 0
+                                })()
+                                onClose: function() { screenDelegate.quickSettingsMenuVisible = false }
+                                onOpenPowerRequested: screenDelegate.quickSettingsSubView = "power"
+                                onOpenSettingsRequested: screenDelegate.quickSettingsSubView = "settings"
+                            }
+                            Item {
+                                visible: screenDelegate.quickSettingsSubView === "power"
+                                anchors.fill: parent
+                                PowerMenuContent {
+                                    anchors.centerIn: parent
+                                    width: Math.min(180, parent.width - 24)
+                                    colors: shellRoot.shellColors
+                                    onClose: function() {
+                                        screenDelegate.quickSettingsMenuVisible = false
+                                    }
+                                }
+                            }
+                            Item {
+                                visible: screenDelegate.quickSettingsSubView === "settings"
+                                anchors.fill: parent
+                                SettingsMenuContent {
+                                    anchors.fill: parent
+                                    anchors.margins: 8
+                                    colors: shellRoot.shellColors
+                                    settingsState: screenDelegate
+                                    onClose: function() {
+                                        screenDelegate.quickSettingsSubView = "main"
+                                    }
+                                }
+                            }
                         }
                     }
-                }
-            }
-
-            // Settings / widgets menu panel (right-aligned, below bar)
-            PanelWindow {
-                id: settingsPanel
-                screen: screenDelegate.modelData
-                visible: screenDelegate.settingsMenuVisible && (!bar.hyprMonitor || shellRoot.fullscreenMonitorNames.indexOf(bar.hyprMonitor.name) < 0)
-                implicitWidth: 320
-                implicitHeight: 420
-                color: "transparent"
-                exclusiveZone: 0
-
-                anchors.top: true
-                anchors.right: true
-                margins.top: 5
-                margins.right: 8
-
-                Component.onCompleted: {
-                    if (this.WlrLayershell != null) {
-                        this.WlrLayershell.layer = WlrLayer.Top
-                        this.WlrLayershell.namespace = "quickshell-settings"
-                    }
-                }
-
-                SettingsMenuContent {
-                    anchors.fill: parent
-                    colors: shellRoot.shellColors
-                    settingsState: screenDelegate
-                    onClose: function() { screenDelegate.settingsMenuVisible = false }
                 }
             }
 
@@ -687,42 +743,6 @@ ShellRoot {
                 }
             }
 
-            // Power menu panel (right-aligned, below bar)
-            PanelWindow {
-                id: powerMenuPanel
-                screen: screenDelegate.modelData
-                visible: screenDelegate.powerMenuVisible && (!bar.hyprMonitor || shellRoot.fullscreenMonitorNames.indexOf(bar.hyprMonitor.name) < 0)
-                implicitWidth: 180
-                implicitHeight: 216
-                color: "transparent"
-                exclusiveZone: 0
-
-                anchors.top: true
-                anchors.right: true
-                margins.top: 5
-                margins.right: 8
-
-                Component.onCompleted: {
-                    if (this.WlrLayershell != null) {
-                        this.WlrLayershell.layer = WlrLayer.Top
-                        this.WlrLayershell.namespace = "quickshell-power-menu"
-                    }
-                }
-
-                Rectangle {
-                    anchors.fill: parent
-                    color: shellRoot.shellColors.background
-                    border.width: 1
-                    border.color: shellRoot.shellColors.border
-                    radius: 8
-                    PowerMenuContent {
-                        anchors.fill: parent
-                        anchors.margins: 1
-                        colors: shellRoot.shellColors
-                        onClose: function() { screenDelegate.powerMenuVisible = false }
-                    }
-                }
-            }
         }
     }
 }

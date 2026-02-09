@@ -37,32 +37,32 @@ PICK_RANDOM_ALL="false"
 if [[ "$THEME_FROM_CLI" != "true" ]]; then
   STYLE_MENU=$(echo -e "🎲 Random\nMaterial\nRainbow" | rofi -dmenu -i -p "Style")
   case "$STYLE_MENU" in
-  *[Rr]andom*)
-    if [[ $((RANDOM % 2)) -eq 0 ]]; then
+    *[Rr]andom*)
+      if [[ $((RANDOM % 2)) -eq 0 ]]; then
+        THEME_STYLE=material
+        PALETTE_STYLE=material
+      else
+        THEME_STYLE=rainbow
+        PALETTE_STYLE=rainbow
+      fi
+      PICK_RANDOM_ALL="true"
+      ;;
+    *[Mm]aterial*)
       THEME_STYLE=material
       PALETTE_STYLE=material
-    else
+      ;;
+    *[Rr]ainbow*)
       THEME_STYLE=rainbow
       PALETTE_STYLE=rainbow
-    fi
-    PICK_RANDOM_ALL="true"
-    ;;
-  *[Mm]aterial*)
-    THEME_STYLE=material
-    PALETTE_STYLE=material
-    ;;
-  *[Rr]ainbow*)
-    THEME_STYLE=rainbow
-    PALETTE_STYLE=rainbow
-    ;;
-  "")
-    THEME_STYLE=material
-    PALETTE_STYLE=material
-    ;;
-  *)
-    THEME_STYLE=material
-    PALETTE_STYLE=material
-    ;;
+      ;;
+    "")
+      THEME_STYLE=material
+      PALETTE_STYLE=material
+      ;;
+    *)
+      THEME_STYLE=material
+      PALETTE_STYLE=material
+      ;;
   esac
 fi
 
@@ -72,30 +72,30 @@ PALETTE_STYLE="${PALETTE_STYLE:-material}"
 THEME_STYLE="${THEME_STYLE:-material}"
 
 case "$THEME_STYLE" in
-material)
-  # Material: subtle, harmonious, close to wallpaper
-  DEFAULT_SCHEME="tonal-spot"
-  DEFAULT_CONTRAST="0.0"
-  DEFAULT_PREPROCESS="false"
-  DEFAULT_PREPROCESS_SIZE="512"
-  DEFAULT_PREPROCESS_SAT="100"
-  ;;
-rainbow)
-  # Rainbow: vivid, full color variety
-  DEFAULT_SCHEME="expressive"
-  DEFAULT_CONTRAST="0.35"
-  DEFAULT_PREPROCESS="true"
-  DEFAULT_PREPROCESS_SIZE="256"
-  DEFAULT_PREPROCESS_SAT="120"
-  ;;
-*)
-  THEME_STYLE=material
-  DEFAULT_SCHEME="tonal-spot"
-  DEFAULT_CONTRAST="0.0"
-  DEFAULT_PREPROCESS="false"
-  DEFAULT_PREPROCESS_SIZE="512"
-  DEFAULT_PREPROCESS_SAT="100"
-  ;;
+  material)
+    # Material: subtle, harmonious, close to wallpaper
+    DEFAULT_SCHEME="tonal-spot"
+    DEFAULT_CONTRAST="0.0"
+    DEFAULT_PREPROCESS="false"
+    DEFAULT_PREPROCESS_SIZE="512"
+    DEFAULT_PREPROCESS_SAT="100"
+    ;;
+  rainbow)
+    # Rainbow: vivid, full color variety
+    DEFAULT_SCHEME="expressive"
+    DEFAULT_CONTRAST="0.35"
+    DEFAULT_PREPROCESS="true"
+    DEFAULT_PREPROCESS_SIZE="256"
+    DEFAULT_PREPROCESS_SAT="120"
+    ;;
+  *)
+    THEME_STYLE=material
+    DEFAULT_SCHEME="tonal-spot"
+    DEFAULT_CONTRAST="0.0"
+    DEFAULT_PREPROCESS="false"
+    DEFAULT_PREPROCESS_SIZE="512"
+    DEFAULT_PREPROCESS_SAT="100"
+    ;;
 esac
 
 # --- CONFIGURATION ---
@@ -105,6 +105,7 @@ QUICKSHELL_DIR="${QUICKSHELL_DIR:-$HOME/.config/quickshell}"
 MATUGEN_CONFIG="$HOME/.config/matugen/config.toml"
 LOG_FILE="$HOME/.cache/hypr/wallpaper.log"
 CURRENT_WALLPAPER_FILE="$HOME/.cache/hypr/current-wallpaper.txt"
+CURRENT_THEME_FILE="$HOME/.cache/hypr/current-theme.txt"
 VERBOSE="${VERBOSE:-false}"
 
 # Matugen Settings (can be overridden by env vars)
@@ -140,7 +141,7 @@ error() {
 
 save_current() {
   mkdir -p "$(dirname "$CURRENT_WALLPAPER_FILE")"
-  echo "$1" >"$CURRENT_WALLPAPER_FILE"
+  echo "$1" > "$CURRENT_WALLPAPER_FILE"
 }
 
 check_dependencies() {
@@ -148,11 +149,11 @@ check_dependencies() {
   for cmd in rofi awww matugen; do
     if ! command -v "$cmd" &>/dev/null; then missing+=("$cmd"); fi
   done
-
+  
   if [ ${#missing[@]} -gt 0 ]; then
     error "Missing required commands: ${missing[*]}. Please install them."
   fi
-
+  
   # Warn if preprocessing is enabled but ImageMagick is missing
   if [ "$PREPROCESS_FOR_PYWAL" = "true" ] && ! command -v magick &>/dev/null && ! command -v convert &>/dev/null; then
     log "WARNING" "PREPROCESS_FOR_PYWAL=true but ImageMagick not found. Install 'imagemagick' for pywal-style preprocessing."
@@ -165,17 +166,17 @@ get_luminance() {
   local hex="$1"
   # Remove # if present
   hex="${hex#\#}"
-
+  
   # Extract RGB
   local r=$((16#${hex:0:2}))
   local g=$((16#${hex:2:2}))
   local b=$((16#${hex:4:2}))
-
+  
   # Convert to 0-1 range and apply sRGB gamma correction
   local r_norm=$(awk "BEGIN {printf \"%.6f\", $r/255.0}")
   local g_norm=$(awk "BEGIN {printf \"%.6f\", $g/255.0}")
   local b_norm=$(awk "BEGIN {printf \"%.6f\", $b/255.0}")
-
+  
   # Calculate relative luminance (simplified)
   local lum=$(awk "BEGIN {printf \"%.6f\", 0.2126*$r_norm + 0.7152*$g_norm + 0.0722*$b_norm}")
   echo "$lum"
@@ -185,13 +186,13 @@ get_luminance() {
 generate_contrast_text() {
   local bg_color="$1"
   local lum=$(get_luminance "$bg_color")
-
+  
   # If background is dark (lum < 0.5), return white/light
   # If background is light (lum >= 0.5), return black/dark
   if awk "BEGIN {exit !($lum < 0.5)}"; then
-    echo "#ffffff" # White for dark backgrounds
+    echo "#ffffff"  # White for dark backgrounds
   else
-    echo "#000000" # Black for light backgrounds
+    echo "#000000"  # Black for light backgrounds
   fi
 }
 
@@ -199,11 +200,11 @@ generate_contrast_text() {
 generate_accent_text() {
   local bg_color="$1"
   local lum=$(get_luminance "$bg_color")
-
+  
   if awk "BEGIN {exit !($lum < 0.5)}"; then
-    echo "#e0e0e0" # Light gray for dark backgrounds
+    echo "#e0e0e0"  # Light gray for dark backgrounds
   else
-    echo "#1a1a1a" # Dark gray for light backgrounds
+    echo "#1a1a1a"  # Dark gray for light backgrounds
   fi
 }
 
@@ -247,7 +248,7 @@ pick_random_wallpaper() {
   local -a arr
   while IFS= read -r line; do
     [[ -n "$line" ]] && arr+=("$line")
-  done <<<"$WALLPAPER_LIST"
+  done <<< "$WALLPAPER_LIST"
   local n=${#arr[@]}
   [[ $n -eq 0 ]] && return 1
   echo "${arr[$((RANDOM % n))]}"
@@ -294,7 +295,7 @@ if [ "$PREPROCESS_FOR_PYWAL" = "true" ]; then
   log "INFO" "🎨 [Preprocessing] Creating pywal-style color extraction image..."
   TMP_WP="$HOME/.cache/hypr/matugen-input.png"
   mkdir -p "$(dirname "$TMP_WP")"
-
+  
   # Try magick first, fall back to convert
   MAGICK_CMD=""
   if command -v magick >/dev/null 2>&1; then
@@ -302,10 +303,10 @@ if [ "$PREPROCESS_FOR_PYWAL" = "true" ]; then
   elif command -v convert >/dev/null 2>&1; then
     MAGICK_CMD="convert"
   fi
-
+  
   if [ -n "$MAGICK_CMD" ]; then
     log "VERBOSE" "Using $MAGICK_CMD to preprocess (resize=${PREPROCESS_SIZE}x${PREPROCESS_SIZE}, saturation=${PREPROCESS_SAT}%)"
-
+    
     if $MAGICK_CMD "$FINAL_WALLPAPER" \
       -resize "${PREPROCESS_SIZE}x${PREPROCESS_SIZE}^" \
       -gravity center \
@@ -364,10 +365,20 @@ MATUGEN_CONFIG_FINAL=""
 if [ -f "$MATUGEN_CONFIG" ]; then
   MATUGEN_CONFIG_EXPANDED="${MATUGEN_CONFIG_EXPANDED:-$HOME/.cache/hypr/matugen-config-expanded.toml}"
   mkdir -p "$(dirname "$MATUGEN_CONFIG_EXPANDED")"
-  sed '/input_path\s*=\|output_path\s*=/ s|"~|"'$HOME'|g' "$MATUGEN_CONFIG" >"$MATUGEN_CONFIG_EXPANDED"
+  sed '/input_path\s*=\|output_path\s*=/ s|"~|"'$HOME'|g' "$MATUGEN_CONFIG" > "$MATUGEN_CONFIG_EXPANDED"
   MATUGEN_CONFIG_FINAL="$MATUGEN_CONFIG_EXPANDED"
   MATUGEN_CMD+=(--config "$MATUGEN_CONFIG_FINAL")
   log "VERBOSE" "Using matugen config: $MATUGEN_CONFIG (expanded to $MATUGEN_CONFIG_FINAL)"
+  # Create output directories so matugen can write configs (e.g. ~/.config/kitty/themes, ~/.config/rofi, ...)
+  while IFS= read -r outpath; do
+    [ -z "$outpath" ] && continue
+    outpath="${outpath/#\~/$HOME}"
+    outdir="$(dirname "$outpath")"
+    if [ -n "$outdir" ] && [ "$outdir" != "." ]; then
+      mkdir -p "$outdir"
+      log "VERBOSE" "Ensured output dir: $outdir"
+    fi
+  done < <(sed -n 's/^[[:space:]]*output_path[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' "$MATUGEN_CONFIG_EXPANDED")
 else
   log "WARNING" "No matugen config found at $MATUGEN_CONFIG - templates will not be generated"
 fi
@@ -418,7 +429,7 @@ if [ "$MATUGEN_EXIT" -ne 0 ]; then
         echo '[templates.quickshell_theme]'
         printf 'input_path = "%s/Colors.qml.tmpl"\n' "$QUICKSHELL_DIR"
         printf 'output_path = "%s/Colors.qml"\n' "$QUICKSHELL_DIR"
-      } >"$MATUGEN_MINIMAL_CONF"
+      } > "$MATUGEN_MINIMAL_CONF"
       MATUGEN_CMD_RETRY=()
       skip_next=false
       for tok in "${MATUGEN_CMD[@]}"; do
@@ -465,18 +476,18 @@ fi
 # --- GENERATE HIGH CONTRAST TEXT COLORS ---
 if [ "$GENERATE_HIGH_CONTRAST_TEXT" = "true" ]; then
   log "INFO" "🎨 [Text Colors] Generating high-contrast text colors..."
-
+  
   # Extract background color from generated theme
   BG_COLOR=""
   if [ -f "$HOME/.config/hypr/matugen-colors.conf" ]; then
     BG_COLOR=$(grep "md3_background" "$HOME/.config/hypr/matugen-colors.conf" | head -1 | grep -oP 'rgba\(\K[0-9a-fA-F]{6}' || echo "")
   fi
-
+  
   # Fallback: try to extract from matugen JSON output
   if [ -z "$BG_COLOR" ]; then
     BG_COLOR=$(matugen image "$WALLPAPER_FOR_MATUGEN" --mode "$MATUGEN_MODE" --type "$MATUGEN_TYPE" --json hex 2>/dev/null | grep -oP '"background".*?"hex":\s*"\K#[0-9a-fA-F]{6}' | head -1 || echo "")
   fi
-
+  
   # Final fallback based on mode
   if [ -z "$BG_COLOR" ]; then
     if [ "$MATUGEN_MODE" = "dark" ]; then
@@ -488,13 +499,13 @@ if [ "$GENERATE_HIGH_CONTRAST_TEXT" = "true" ]; then
   else
     log "INFO" "Detected background color: $BG_COLOR"
   fi
-
+  
   # Generate contrast colors
   TEXT_PRIMARY=$(generate_contrast_text "$BG_COLOR")
   TEXT_SECONDARY=$(generate_accent_text "$BG_COLOR")
-
+  
   log "INFO" "Generated text colors: primary=$TEXT_PRIMARY, secondary=$TEXT_SECONDARY"
-
+  
   # Append to Hyprland colors
   if [ -f "$HOME/.config/hypr/matugen-colors.conf" ]; then
     {
@@ -503,10 +514,10 @@ if [ "$GENERATE_HIGH_CONTRAST_TEXT" = "true" ]; then
       echo "\$md3_text_primary = rgba(${TEXT_PRIMARY#\#}ff)"
       echo "\$md3_text_secondary = rgba(${TEXT_SECONDARY#\#}ee)"
       echo "\$md3_text_high_contrast = rgba(${TEXT_PRIMARY#\#}ff)"
-    } >>"$HOME/.config/hypr/matugen-colors.conf"
+    } >> "$HOME/.config/hypr/matugen-colors.conf"
     log "INFO" "✓ Added high-contrast text colors to Hyprland config"
   fi
-
+  
   # Append to Quickshell theme
   COLORS_QML="$QUICKSHELL_DIR/Colors.qml"
   if [ -f "$COLORS_QML" ]; then
@@ -521,7 +532,7 @@ if [ "$GENERATE_HIGH_CONTRAST_TEXT" = "true" ]; then
         echo "    property color textSecondary: \"$TEXT_SECONDARY\""
         echo "    property color textHighContrast: \"$TEXT_PRIMARY\""
         echo "}"
-      } >>"$COLORS_QML"
+      } >> "$COLORS_QML"
       log "INFO" "✓ Added high-contrast text colors to Quickshell theme"
     else
       # Update existing values
@@ -652,6 +663,10 @@ if [ "$MATUGEN_DRY_RUN" != "true" ]; then
 fi
 
 log "INFO" "✅ Theme updated successfully!"
+# Save current palette for Quick Settings Theme card (style|mode, e.g. material|dark)
+mkdir -p "$(dirname "$CURRENT_THEME_FILE")"
+printf '%s|%s\n' "$THEME_STYLE" "$MATUGEN_MODE" > "$CURRENT_THEME_FILE"
+
 WALLPAPER_NAME=$(basename "$FINAL_WALLPAPER")
 if [ "$MATUGEN_DRY_RUN" = "true" ]; then
   notify-send -u low "Wallpaper Script" "Dry run completed: $WALLPAPER_NAME" 2>/dev/null || true

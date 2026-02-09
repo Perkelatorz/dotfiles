@@ -1,5 +1,7 @@
 # Quickshell / Quick Settings (see quickshell/DEPENDENCIES.md)
+# Theming: wallpaper daemon + GTK theme (no official Arch pkgs)
 awww-git
+adw-gtk3-git
 # Lock fallback when swaylock not desired
 hyprlock
 # Font (bar default in Colors: JetBrainsMono Nerd Font)

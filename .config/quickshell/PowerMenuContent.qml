@@ -18,10 +18,15 @@ Column {
     spacing: 0
     width: 180
 
-    function runAndClose(cmd) {
-        runProc.command = ["sh", "-c", cmd]
-        runProc.running = true
+    function runAndClose(cmd, inSession) {
         powerMenuContent.onClose()
+        if (inSession) {
+            runInSessionProc.command = ["hyprctl", "dispatch", "exec", cmd]
+            runInSessionProc.running = true
+        } else {
+            runProc.command = ["sh", "-c", cmd]
+            runProc.running = true
+        }
     }
 
     Process {
@@ -29,15 +34,20 @@ Column {
         command: []
         running: false
     }
+    Process {
+        id: runInSessionProc
+        command: []
+        running: false
+    }
 
     Repeater {
         model: [
-            { label: "Lock", icon: "\uF023", cmd: powerMenuContent.lockCommand },
-            { label: "Suspend", icon: "\uF186", cmd: powerMenuContent.suspendCommand },
-            { label: "Hibernate", icon: "\uF2C1", cmd: powerMenuContent.hibernateCommand },
-            { label: "Logout", icon: "\uF2F5", cmd: powerMenuContent.logoutCommand },
-            { label: "Reboot", icon: "\uF021", cmd: powerMenuContent.rebootCommand },
-            { label: "Shutdown", icon: "\uF011", cmd: powerMenuContent.shutdownCommand }
+            { label: "Lock", icon: "\uF023", cmd: powerMenuContent.lockCommand, inSession: true },
+            { label: "Suspend", icon: "\uF186", cmd: powerMenuContent.suspendCommand, inSession: false },
+            { label: "Hibernate", icon: "\uF2C1", cmd: powerMenuContent.hibernateCommand, inSession: false },
+            { label: "Logout", icon: "\uF2F5", cmd: powerMenuContent.logoutCommand, inSession: false },
+            { label: "Reboot", icon: "\uF021", cmd: powerMenuContent.rebootCommand, inSession: false },
+            { label: "Shutdown", icon: "\uF011", cmd: powerMenuContent.shutdownCommand, inSession: false }
         ]
         delegate: Rectangle {
             width: powerMenuContent.width
@@ -48,7 +58,7 @@ Column {
                 id: itemMouse
                 anchors.fill: parent
                 hoverEnabled: true
-                onClicked: powerMenuContent.runAndClose(modelData.cmd)
+                onClicked: powerMenuContent.runAndClose(modelData.cmd, modelData.inSession)
 
                 Row {
                     anchors.left: parent.left

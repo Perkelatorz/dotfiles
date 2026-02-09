@@ -93,13 +93,21 @@ Quick Settings also uses: **wpctl** (sink name for Audio card), **Pipewire** (vo
 
 ---
 
-## Theming (select-wallpaper.sh)
+## Theming (select-wallpaper.sh + GTK/Qt)
+
+All of these are in **yadm** `packages/core.pkgs` or `packages/core.aur` (see `~/.config/yadm/packages/`). Clone matugen-themes separately: `git clone https://github.com/InioX/matugen-themes.git ~/.config/matugen-themes`.
 
 | Dependency | Purpose |
 |------------|--------|
-| **matugen** | Generate `Colors.qml` and palette from wallpaper. |
-| **rofi** | Style picker UI in the wallpaper script. |
-| **awww** | Image viewer in the wallpaper script. |
+| **matugen** | Generate `Colors.qml`, Hyprland/GTK/Qt/Rofi/Kitty/etc. from wallpaper. |
+| **rofi** | Style and wallpaper picker UI in the script. |
+| **awww** (AUR: **awww-git**) | Wayland wallpaper daemon; script uses it to set the image. |
+| **libnotify** | `notify-send` for “Wallpaper Changed” and errors. |
+| **adw-gtk3** (AUR: **adw-gtk3-git**) | GTK base theme so matugen `colors.css` is used (set `GTK_THEME=adw-gtk3-dark` in env). |
+| **imagemagick** | Optional: pywal-style preprocessing when `PREPROCESS_FOR_PYWAL=true`. |
+| **qt5ct** / **qt6ct** | Qt theme config; pick “matugen” color scheme so Qt apps use the palette. |
+| **kvantum** | Optional: unified Qt5+Qt6 theming with matugen Kvantum templates. |
+| **gsettings** | From **glib2** (usually present); script uses it to nudge GTK theme after a run. |
 
 Only needed if you run `select-wallpaper.sh` for theme/wallpaper changes. Quick Settings “Theme” card runs this script with `--material`.
 
