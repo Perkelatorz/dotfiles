@@ -2,14 +2,25 @@
 set -euo pipefail
 
 # YADM Bootstrap Script
-# Automates Arch Linux package installation and system setup
-# Run on a new machine after: yadm clone <repo> && yadm bootstrap
+# Automates Arch Linux package installation and system setup (Arch Linux only).
+# Requires: bash 4+, GNU find. Run after: yadm clone <repo> && yadm bootstrap
+# Options: --core-only  skip interactive extra-package selection and Hyprland plugin prompt
 
 # Configuration
 PKG_DIR="$HOME/.config/yadm/packages"
 SECRETS_FILE="$HOME/.config/nvim/secrets.lua"
 MATUGEN_THEMES_DIR="$HOME/.config/matugen-themes"
 SCRIPTS_DIR="$HOME/.config/scripts"
+CORE_ONLY=false
+tmp_pkg_file=""
+tmp_aur_file=""
+
+# Clean up temp files on exit (used in Phase 3)
+cleanup_temp_files() {
+    [[ -n "$tmp_pkg_file" && -f "$tmp_pkg_file" ]] && rm -f "$tmp_pkg_file"
+    [[ -n "$tmp_aur_file" && -f "$tmp_aur_file" ]] && rm -f "$tmp_aur_file"
+}
+trap cleanup_temp_files EXIT
 
 # Track installation stats
 core_pacman_installed=0
@@ -40,6 +51,7 @@ ensure_paru() {
         (cd "$tmpdir/paru" && makepkg -si --noconfirm)
         rm -rf "$tmpdir"
         trap - EXIT
+        trap cleanup_temp_files EXIT
     fi
 }
 
@@ -237,6 +249,11 @@ setup_matugen_themes() {
         echo "   ✓ matugen-themes already cloned"
         return 0
     fi
+    if [[ -d "$MATUGEN_THEMES_DIR" ]]; then
+        echo "   ⚠️  $MATUGEN_THEMES_DIR exists but is not a git repo; skipping clone."
+        echo "      Remove it or run: git clone https://github.com/InioX/matugen-themes.git $MATUGEN_THEMES_DIR"
+        return 0
+    fi
     echo "🎨 Cloning matugen-themes (for Quickshell/Hyprland theming)..."
     mkdir -p "$(dirname "$MATUGEN_THEMES_DIR")"
     if git clone --depth 1 https://github.com/InioX/matugen-themes.git "$MATUGEN_THEMES_DIR"; then
@@ -247,11 +264,21 @@ setup_matugen_themes() {
 }
 
 setup_scripts_executable() {
+    local count=0
     if [[ -d "$SCRIPTS_DIR" ]]; then
         for f in "$SCRIPTS_DIR"/*.sh; do
-            [[ -f "$f" ]] && chmod +x "$f"
+            if [[ -f "$f" ]]; then
+                chmod +x "$f"
+                count=$((count + 1))
+            fi
         done
-        echo "   ✓ Scripts in $SCRIPTS_DIR made executable"
+        if [[ $count -gt 0 ]]; then
+            echo "   ✓ $count script(s) in $SCRIPTS_DIR made executable"
+        else
+            echo "   (no .sh scripts in $SCRIPTS_DIR)"
+        fi
+    else
+        echo "   (scripts dir not found: $SCRIPTS_DIR)"
     fi
 }
 
@@ -330,6 +357,13 @@ setup_hyprland_plugins() {
     echo "✅ Hyprland plugin setup complete!"
 }
 
+# --- Parse options ---
+for arg in "${@:-}"; do
+    case "$arg" in
+        --core-only) CORE_ONLY=true ;;
+    esac
+done
+
 # --- PHASE 1: Install Core Dependencies (Non-Interactive) ---
 
 echo "🚀 Starting Arch Linux Setup..."
@@ -348,6 +382,7 @@ if [[ ! -f "$PKG_DIR/core.pkgs" ]]; then
     echo "❌ Core package list not found: $PKG_DIR/core.pkgs"
     exit 1
 fi
+# core.aur is optional; if missing, AUR step is skipped
 
 # Setup Neovim secrets (creates template; safe if nvim not installed yet)
 setup_neovim_secrets
@@ -374,7 +409,7 @@ echo "✅ Core tools done."
 echo
 
 # --- Hyprland plugin setup (optional, runs after core so hyprpm may be available) ---
-if command -v hyprpm &>/dev/null || command -v hyprland &>/dev/null; then
+if [[ "$CORE_ONLY" != "true" ]] && [[ -t 0 ]] && (command -v hyprpm &>/dev/null || command -v hyprland &>/dev/null); then
     read -p "Do you want to set up Hyprland plugins? (y/N): " choice
     choice=${choice,,}
     if [[ "$choice" == "y" || "$choice" == "yes" ]]; then
@@ -382,6 +417,8 @@ if command -v hyprpm &>/dev/null || command -v hyprland &>/dev/null; then
     else
         echo "⏭️  Skipping Hyprland plugin setup."
     fi
+elif [[ "$CORE_ONLY" == "true" ]]; then
+    echo "⏭️  (--core-only: skipping Hyprland plugin prompt)"
 fi
 echo
 
@@ -390,17 +427,25 @@ echo
 final_packages=()
 final_aur=()
 
-# Find all .pkgs and .aur files EXCEPT core.*, then let user pick
-if command -v fzf >/dev/null 2>&1; then
+# Find all .pkgs and .aur files EXCEPT core.*, then let user pick (or skip if --core-only / non-interactive)
+if [[ "$CORE_ONLY" == "true" ]]; then
+    selections=""
+    echo "⏭️  (--core-only: skipping extra package selection)"
+elif [[ -t 0 ]] && command -v fzf >/dev/null 2>&1; then
     selections=$(find "$PKG_DIR" \( -name "*.pkgs" -o -name "*.aur" \) \
         ! -name 'core.pkgs' ! -name 'core.aur' \
         -printf "%f\n" | \
         fzf -m --prompt="Select package lists (TAB to mark, ENTER to confirm) > " \
             --header="Core packages already installed. Choose the rest." \
-            --preview="echo 'Contents of {}:'; echo '---'; cat $PKG_DIR/{}" || true)
+            --preview="echo 'Contents of {}:'; echo '---'; cat \"$PKG_DIR/{}\"" || true)
 else
-    echo "⚠️ fzf not found. Selecting all non-core lists."
-    selections=$(find "$PKG_DIR" \( -name "*.pkgs" -o -name "*.aur" \) ! -name 'core.pkgs' ! -name 'core.aur' -printf "%f\n")
+    if [[ ! -t 0 ]]; then
+        echo "⚠️  Not a TTY; skipping extra package selection (use --core-only to suppress, or run interactively)."
+        selections=""
+    else
+        echo "⚠️  fzf not found. Selecting all non-core lists."
+        selections=$(find "$PKG_DIR" \( -name "*.pkgs" -o -name "*.aur" \) ! -name 'core.pkgs' ! -name 'core.aur' -printf "%f\n" 2>/dev/null || true)
+    fi
 fi
 
 if [[ -z "${selections:-}" ]]; then
@@ -440,20 +485,20 @@ mapfile -t final_aur < <(printf "%s\n" "${final_aur[@]}" | dedupe_array)
 
 # Process extra pacman packages
 if [ ${#final_packages[@]} -gt 0 ]; then
-    # Create temporary file for processing
     tmp_pkg_file=$(mktemp)
     printf "%s\n" "${final_packages[@]}" > "$tmp_pkg_file"
     process_packages "pacman" "$tmp_pkg_file" "extra_pacman_installed" "extra_pacman_skipped"
     rm -f "$tmp_pkg_file"
+    tmp_pkg_file=""
 fi
 
 # Process extra AUR packages
 if [ ${#final_aur[@]} -gt 0 ]; then
-    # Create temporary file for processing
     tmp_aur_file=$(mktemp)
     printf "%s\n" "${final_aur[@]}" > "$tmp_aur_file"
     process_packages "aur" "$tmp_aur_file" "extra_aur_installed" "extra_aur_skipped"
     rm -f "$tmp_aur_file"
+    tmp_aur_file=""
 fi
 
 # --- SUMMARY ---
