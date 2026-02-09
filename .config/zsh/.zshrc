@@ -48,7 +48,7 @@ export SAVEHIST=50000
 setopt HIST_IGNORE_DUPS HIST_IGNORE_SPACE appendhistory sharehistory incappendhistory histfindnodups
 
 # Wal colors
-(cat ~/.cache/wal/sequences &)
+#(cat ~/.cache/wal/sequences &)
 
 # Key Bindings for history-substring-search
 bindkey '^[[A' history-substring-search-up
