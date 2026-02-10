@@ -10,6 +10,7 @@ ColumnLayout {
     id: quickSettingsRoot
     required property var colors
     required property var onClose
+    property string compositorName: "hyprland"
     property int screenIndex: 0
 
     signal openPowerRequested()
@@ -20,11 +21,11 @@ ColumnLayout {
     property string displaySettingsCommand: "nwg-displays"
     property string batterySettingsCommand: ""
     property string diskSettingsCommand: "sh -c \"thunar \\$HOME\""
+    property string systemMonitorCommand: "kitty -e btop"
 
     spacing: 12
     Layout.fillWidth: true
 
-    // --- User + uptime + actions ---
     RowLayout {
         Layout.fillWidth: true
         spacing: 12
@@ -37,12 +38,24 @@ ColumnLayout {
             color: colors.surfaceBright
             border.width: 1
             border.color: colors.border
+            clip: true
+            Image {
+                id: avatarImage
+                anchors.fill: parent
+                fillMode: Image.PreserveAspectCrop
+                source: (colors.avatarPath && colors.avatarPath.length > 0)
+                    ? ("file://" + colors.avatarPath)
+                    : (quickSettingsRoot.homePath ? ("file://" + quickSettingsRoot.homePath + "/.face") : "")
+                visible: status === Image.Ready
+                onStatusChanged: if (status === Image.Error && source !== "") source = ""
+            }
             Text {
                 anchors.centerIn: parent
                 text: userInitial
                 color: colors.primary
                 font.pixelSize: 20
                 font.bold: true
+                visible: !avatarImage.visible
             }
         }
         Column {
@@ -102,14 +115,18 @@ ColumnLayout {
         command: []
         running: false
     }
-    /// Run a command in the Hyprland session so GUI apps get WAYLAND_DISPLAY and open on the right display
     function runInSession(cmd) {
-        runProc.command = ["hyprctl", "dispatch", "exec", cmd]
+        if (compositorName === "hyprland") {
+            runProc.command = ["hyprctl", "dispatch", "exec", cmd]
+        } else {
+            runProc.command = ["sh", "-c", cmd]
+        }
         runProc.running = true
     }
 
     property string userName: "user"
     property string userInitial: "?"
+    property string homePath: ""
     Process {
         id: userProc
         command: ["sh", "-c", "id -un 2>/dev/null"]
@@ -122,6 +139,18 @@ ColumnLayout {
                     quickSettingsRoot.userInitial = n.charAt(0).toUpperCase()
                 }
                 userProc.running = false
+            }
+        }
+    }
+    Process {
+        id: homeProc
+        command: ["sh", "-c", "echo ${HOME:-}"]
+        running: true
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var h = (homeProc.stdout.text || "").trim()
+                if (h) quickSettingsRoot.homePath = h
+                homeProc.running = false
             }
         }
     }
@@ -213,7 +242,7 @@ ColumnLayout {
             text: Math.round(quickSettingsRoot.volumeLevel * 100) + "%"
             color: colors.textDim
             font.pixelSize: 12
-            Layout.preferredWidth: 36
+            Layout.minimumWidth: 40
         }
     }
     RowLayout {
@@ -248,7 +277,6 @@ ColumnLayout {
         running: false
     }
 
-    // --- Brightness slider ---
     property bool hasBrightness: false
     property int brightnessLevel: 0
     property string backlightPath: ""
@@ -315,7 +343,7 @@ ColumnLayout {
             text: quickSettingsRoot.brightnessLevel + "%"
             color: colors.textDim
             font.pixelSize: 12
-            Layout.preferredWidth: 36
+            Layout.minimumWidth: 40
         }
     }
     RowLayout {
@@ -439,9 +467,9 @@ ColumnLayout {
         onTriggered: quickSettingsRoot.refreshBrightness()
     }
 
-    // --- Cards grid ---
     GridLayout {
         Layout.fillWidth: true
+        Layout.bottomMargin: 16
         columns: 2
         rowSpacing: 8
         columnSpacing: 8
@@ -503,7 +531,13 @@ ColumnLayout {
             onClick: function() { quickSettingsRoot.runInSession("system-config-printer") }
         }
         QuickSettingCard {
-            Layout.columnSpan: 2
+            colors: quickSettingsRoot.colors
+            icon: "\uF2DB"
+            title: "System"
+            status: quickSettingsRoot.systemStatus
+            onClick: quickSettingsRoot.systemMonitorCommand ? function() { quickSettingsRoot.runInSession(quickSettingsRoot.systemMonitorCommand) } : null
+        }
+        QuickSettingCard {
             colors: quickSettingsRoot.colors
             icon: "\uF185"
             title: "Theme"
@@ -648,7 +682,7 @@ ColumnLayout {
     }
     Process {
         id: btProc
-        command: ["sh", "-c", "p=$(bluetoothctl show 2>/dev/null | grep 'Powered: yes'); n=$(bluetoothctl devices 2>/dev/null | wc -l); if [ -z \"$p\" ]; then echo 'Off'; elif [ \"$n\" -eq 0 ]; then echo 'No devices'; elif [ \"$n\" -eq 1 ]; then echo '1 device'; else echo \"$n devices\"; fi"]
+        command: ["sh", "-c", "if ! bluetoothctl show 2>/dev/null | grep -q 'Powered: yes'; then echo 'Off'; exit 0; fi; name=$(bluetoothctl devices 2>/dev/null | awk '{print $2}' | while read m; do bluetoothctl info \"$m\" 2>/dev/null | grep -q 'Connected: yes' && bluetoothctl info \"$m\" 2>/dev/null | grep 'Name:' | sed 's/.*Name: //' | head -1 && break; done); if [ -z \"$name\" ]; then echo -e 'On\\nNo devices connected'; else echo -e \"On\\n${name}\"; fi"]
         running: false
         stdout: StdioCollector {
             onStreamFinished: {
@@ -660,7 +694,7 @@ ColumnLayout {
     }
     Process {
         id: diskProc
-        command: ["sh", "-c", "df -h / 2>/dev/null | tail -1 | awk '{print $5 \" used\"}'"]
+        command: ["sh", "-c", "home=${HOME:-$(getent passwd $(id -un 2>/dev/null) 2>/dev/null | cut -d: -f6)}; r_line=$(df -h / 2>/dev/null | tail -1); r_pct=$(echo \"$r_line\" | awk '{print $5}'); r_avail=$(echo \"$r_line\" | awk '{print $4}'); h_line=$(df -h \"$home\" 2>/dev/null | tail -1); h_avail=$(echo \"$h_line\" | awk '{print $4}'); out=\"\"; [ -n \"$r_pct\" ] && out=\"Root ${r_pct}, ${r_avail} free\"; [ -n \"$h_avail\" ] && { [ -n \"$out\" ] && out=\"$out\"; out=\"${out}\nHome ${h_avail} free\"; }; [ -z \"$out\" ] && out=\"No data\"; echo -e \"$out\""]
         running: false
         stdout: StdioCollector {
             onStreamFinished: {
@@ -672,7 +706,7 @@ ColumnLayout {
     }
     Process {
         id: vpnProc
-        command: ["sh", "-c", "nmcli -t -f name,type con show --active 2>/dev/null | grep -E ':vpn|:wireguard' | head -1 | cut -d: -f1 || echo 'Disconnected'"]
+        command: ["sh", "-c", "n=$(nmcli -t -f name,type con show --active 2>/dev/null | grep -E ':vpn|:wireguard' | head -1 | cut -d: -f1); if [ -n \"$n\" ]; then echo \"Connected: $n\"; else echo \"Disconnected\"; fi"]
         running: false
         stdout: StdioCollector {
             onStreamFinished: {
@@ -691,7 +725,7 @@ ColumnLayout {
                 var parts = (printersProc.stdout.text || "").trim().split(/\s+/)
                 var n = parseInt(parts[0], 10) || 0
                 var j = parseInt(parts[1], 10) || 0
-                quickSettingsRoot.printersStatus = "Printers: " + n + " - Jobs: " + j
+                quickSettingsRoot.printersStatus = "Printers: " + n + "\nJobs: " + j
                 printersProc.running = false
             }
         }
@@ -701,9 +735,65 @@ ColumnLayout {
         repeat: true
         running: quickSettingsRoot.visible
         onTriggered: {
+            wifiProc.running = true
+            btProc.running = true
             diskProc.running = true
             vpnProc.running = true
             printersProc.running = true
+        }
+    }
+
+    property string systemStatus: "CPU —\nRAM —"
+    property int _sysCpuPercent: 0
+    property int _sysRamPercent: 0
+    property int _lastCpuTotal: 0
+    property int _lastCpuIdle: 0
+    Process {
+        id: sysCpuProc
+        command: ["sh", "-c", "head -1 /proc/stat"]
+        running: false
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var data = (sysCpuProc.stdout.text || "").trim()
+                var p = data.split(/\s+/)
+                if (p.length >= 9) {
+                    var idle = parseInt(p[4], 10) + parseInt(p[5], 10)
+                    var total = 0
+                    for (var i = 1; i <= 8; i++) total += parseInt(p[i], 10)
+                    if (quickSettingsRoot._lastCpuTotal > 0 && total > quickSettingsRoot._lastCpuTotal) {
+                        var dt = total - quickSettingsRoot._lastCpuTotal
+                        var di = idle - quickSettingsRoot._lastCpuIdle
+                        quickSettingsRoot._sysCpuPercent = Math.max(0, Math.min(100, Math.round(100 * (1 - di / dt))))
+                    }
+                    quickSettingsRoot._lastCpuTotal = total
+                    quickSettingsRoot._lastCpuIdle = idle
+                }
+                quickSettingsRoot.systemStatus = "CPU " + quickSettingsRoot._sysCpuPercent + "%\nRAM " + quickSettingsRoot._sysRamPercent + "%"
+                sysCpuProc.running = false
+            }
+        }
+    }
+    Process {
+        id: sysRamProc
+        command: ["sh", "-c", "awk '/MemTotal/ {t=$2} /MemAvailable/ {a=$2} END {if(t>0) print int(100*(t-a)/t); else print 0}' /proc/meminfo"]
+        running: false
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var s = (sysRamProc.stdout.text || "").trim()
+                var p = parseInt(s, 10)
+                if (!isNaN(p)) quickSettingsRoot._sysRamPercent = Math.max(0, Math.min(100, p))
+                quickSettingsRoot.systemStatus = "CPU " + quickSettingsRoot._sysCpuPercent + "%\nRAM " + quickSettingsRoot._sysRamPercent + "%"
+                sysRamProc.running = false
+            }
+        }
+    }
+    Timer {
+        interval: 2000
+        repeat: true
+        running: quickSettingsRoot.visible
+        onTriggered: {
+            sysCpuProc.running = true
+            sysRamProc.running = true
         }
     }
 

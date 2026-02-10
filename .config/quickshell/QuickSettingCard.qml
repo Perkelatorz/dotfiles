@@ -9,15 +9,17 @@ Rectangle {
     required property string title
     required property string status
     property var onClick: null
-    /// Optional: array of color values to show as swatches (e.g. [colors.primary, colors.secondary, ...])
     property var paletteColors: null
 
-    implicitWidth: 140
-    implicitHeight: paletteColors && paletteColors.length > 0 ? 62 : 56
-    radius: 8
+    implicitWidth: 168
+    implicitHeight: paletteColors && paletteColors.length > 0 ? 66 : 62
+    radius: 10
     color: cardMa.containsMouse ? colors.surfaceBright : colors.surfaceContainer
     border.width: 1
-    border.color: colors.borderSubtle
+    border.color: cardMa.containsMouse ? colors.border : colors.borderSubtle
+
+    Behavior on color { ColorAnimation { duration: 120 } }
+    Behavior on border.color { ColorAnimation { duration: 120 } }
 
     MouseArea {
         id: cardMa
@@ -56,8 +58,11 @@ Rectangle {
                     text: card.status
                     color: colors.textDim
                     font.pixelSize: 11
-                    elide: Text.ElideRight
                     width: parent.width
+                    maximumLineCount: 2
+                    wrapMode: Text.NoWrap
+                    elide: Text.ElideNone
+                    height: Math.max(font.pixelSize * 1.2, Math.min(contentHeight, font.pixelSize * 1.35 * maximumLineCount))
                 }
             }
         }

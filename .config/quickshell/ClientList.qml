@@ -26,12 +26,13 @@ Row {
 
             Rectangle {
                 anchors.fill: parent
-                radius: 4
+                radius: 6
                 color: {
                     if (isFocusedWindow) return colors.primary
                     if (clientMouse.containsMouse) return colors.surfaceBright
                     return colors.surfaceContainer
                 }
+                Behavior on color { ColorAnimation { duration: 100 } }
 
                 Row {
                     id: clientContentRow

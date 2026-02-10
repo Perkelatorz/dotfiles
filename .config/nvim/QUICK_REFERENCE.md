@@ -6,12 +6,12 @@ Fast lookup for common keybindings and commands.
 
 ## Essential Keybindings
 
-### Terminal
+### Terminal (leader>z)
 ```
-<leader>tt    Toggle terminal (bottom)
-<leader>tv    Vertical terminal (right)
-<leader>tf    Floating terminal (centered)
-<leader>tS    Shutdown all terminals
+<leader>zt    Toggle terminal (bottom)
+<leader>zv    Vertical terminal (right)
+<leader>zf    Floating terminal (centered)
+<leader>zx    Shutdown all terminals
 ```
 
 ### AI Checkpoint System (For Agentic AI!)
@@ -34,13 +34,16 @@ Fast lookup for common keybindings and commands.
 <leader>sr    Search and replace word under cursor
 ```
 
-### File Navigation
+### File Navigation & Path
 ```
 <leader>ff    Fuzzy find files
 <leader>fr    Recent files
 <leader>fs    Find string in project
 <leader>fc    Find string under cursor
 <leader>ft    Find todos
+<leader>yp    Yank full path to clipboard
+<leader>yr    Yank relative path
+<leader>yn    Yank filename
 ```
 
 ### Buffer Management
@@ -182,10 +185,10 @@ x  󰔫 Trouble         - Diagnostics
 
 ### Run a Server Quickly
 ```
-<leader>tt              # Open terminal
+<leader>zt              # Open terminal
 uvicorn main:app --reload
-<leader>tt              # Hide (server keeps running)
-<leader>tt              # Check logs
+<leader>zt              # Hide (server keeps running)
+<leader>zt              # Check logs
 <C-c>                   # Stop server
 ```
 

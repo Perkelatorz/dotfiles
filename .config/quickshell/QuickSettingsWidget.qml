@@ -32,19 +32,15 @@ Item {
             Row {
                 id: row
                 anchors.centerIn: parent
-                spacing: 4
+                spacing: 0
                 leftPadding: colors.widgetPillPaddingH
                 rightPadding: colors.widgetPillPaddingH
+                // Vertical three dots (kebab) — universal "menu / more options" symbol, icon-only for a clean bar
                 Text {
-                    text: "\uF2B9"
+                    text: "\uF142"
                     color: quickSettingsWidget.pillTextColor
                     font.pixelSize: colors.cpuFontSize
                     font.family: colors.widgetIconFont
-                }
-                Text {
-                    text: "QS"
-                    color: quickSettingsWidget.pillTextColor
-                    font.pixelSize: colors.cpuFontSize
                 }
             }
         }
