@@ -39,11 +39,13 @@ Row {
                 radius: 6
                 color: {
                     if (hasUrgent) return colors.urgent
-                    if (!isActive) return "transparent"
+                    if (!isActive && !wsMouse.containsMouse) return "transparent"
+                    if (!isActive && wsMouse.containsMouse) return colors.borderSubtle
                     if (colors.workspaceSlotColors && colors.workspaceSlotColors.length > 0)
                         return colors.workspaceSlotColors[index % colors.workspaceSlotColors.length]
                     return isFocused ? colors.primary : colors.surfaceContainer
                 }
+                Behavior on color { ColorAnimation { duration: 100 } }
 
                 Rectangle {
                     anchors.centerIn: parent

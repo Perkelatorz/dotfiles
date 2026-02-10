@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Optional: set OUTPUT=outputname for single-output; unset = whole session
+# Capture current/focused monitor only. Set OUTPUT=name to override, or OUTPUT=all for full span.
 set -e
 if [ -z "${WAYLAND_DISPLAY}" ]; then
   for pid in $(pgrep -n kitty 2>/dev/null) $(pgrep -n foot 2>/dev/null) $(pgrep -n Hyprland 2>/dev/null | head -1); do
@@ -9,8 +9,19 @@ if [ -z "${WAYLAND_DISPLAY}" ]; then
     done < "/proc/$pid/environ" 2>/dev/null && [ -n "$WAYLAND_DISPLAY" ] && break
   done
 fi
-if [ -n "$OUTPUT" ]; then
+if [ "$OUTPUT" = "all" ]; then
+  grim - | wl-copy -t image/png
+elif [ -n "$OUTPUT" ]; then
   grim -o "$OUTPUT" - | wl-copy -t image/png
 else
-  grim - | wl-copy -t image/png
+  # Use focused monitor (Hyprland)
+  out=""
+  if command -v hyprctl &>/dev/null && command -v jq &>/dev/null; then
+    out=$(hyprctl -j monitors 2>/dev/null | jq -r '.[] | select(.focused == true) | .name' | head -1)
+  fi
+  if [ -n "$out" ]; then
+    grim -o "$out" - | wl-copy -t image/png
+  else
+    grim - | wl-copy -t image/png
+  fi
 fi

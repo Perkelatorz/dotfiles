@@ -8,6 +8,7 @@ Item {
     required property var colors
     property int pillIndex: 0
 
+    property string compositorName: "hyprland"
     signal menuToggleRequested()
 
     readonly property color pillColor: (colors.widgetPillColors && pillIndex >= 0 && pillIndex < colors.widgetPillColors.length) ? colors.widgetPillColors[pillIndex] : colors.primary
@@ -29,17 +30,24 @@ Item {
         running: false
     }
 
-    // Scripts copy WAYLAND_DISPLAY from an existing process (e.g. kitty) so wl-copy works without opening a terminal.
     readonly property string _scriptDir: "$HOME/.config/scripts"
     function runScript(scriptName, envPrefix) {
         var ex = (envPrefix && envPrefix.length) ? (envPrefix + " ") : ""
         var path = screenshotWidget._scriptDir + "/" + scriptName
-        screenshotProc.command = ["hyprctl", "dispatch", "exec", ex + "bash " + path]
+        if (screenshotWidget.compositorName === "hyprland") {
+            screenshotProc.command = ["hyprctl", "dispatch", "exec", ex + "bash " + path]
+        } else {
+            screenshotProc.command = ["sh", "-c", "bash " + path]
+        }
         screenshotProc.running = false
         startScreenshotTimer.start()
     }
     function runInSession(shellCommand) {
-        screenshotProc.command = ["hyprctl", "dispatch", "exec", "sh -c " + JSON.stringify(shellCommand)]
+        if (screenshotWidget.compositorName === "hyprland") {
+            screenshotProc.command = ["hyprctl", "dispatch", "exec", "sh -c " + JSON.stringify(shellCommand)]
+        } else {
+            screenshotProc.command = ["sh", "-c", shellCommand]
+        }
         screenshotProc.running = false
         startScreenshotTimer.start()
     }
@@ -53,7 +61,6 @@ Item {
         }
     }
 
-    // Longer delay for region so menu closes and compositor releases input before slurp
     Timer {
         id: selectDelayTimer
         interval: 280
@@ -94,7 +101,7 @@ Item {
             Row {
                 id: row
                 anchors.centerIn: parent
-                spacing: 4
+                spacing: 0
                 leftPadding: colors.widgetPillPaddingH
                 rightPadding: colors.widgetPillPaddingH
                 Text {
@@ -102,11 +109,6 @@ Item {
                     color: screenshotWidget.pillTextColor
                     font.pixelSize: colors.cpuFontSize
                     font.family: colors.widgetIconFont
-                }
-                Text {
-                    text: "Shot"
-                    color: screenshotWidget.pillTextColor
-                    font.pixelSize: colors.cpuFontSize
                 }
             }
         }

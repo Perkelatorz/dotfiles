@@ -29,8 +29,8 @@ return {
 				default_filetype_enabled = true,
 				map_keys = true, -- Enable default keybindings
 				key_bindings = {
-					-- Accept full completion with Tab
-					accept = "<Tab>",
+					-- Accept full completion with Ctrl-y (Tab reserved for indent/snippets)
+					accept = "<C-y>",
 					-- Accept word with Alt-w
 					accept_word = "<M-w>",
 					-- Accept line with Alt-l

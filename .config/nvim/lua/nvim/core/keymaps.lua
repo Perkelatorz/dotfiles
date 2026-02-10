@@ -16,14 +16,8 @@ keymap.set("n", "<leader>nh", ":nohl<CR>", { desc = "Clear search highlights" })
 keymap.set("n", "<leader>+", "<C-a>", { desc = "Increment number" }) -- increment
 keymap.set("n", "<leader>=", "<C-x>", { desc = "Decrement number" }) -- decrement
 
--- Spell checking
+-- Spell: toggle is our only custom bind; rest use Vim defaults ([s ]s z= zg zw zug)
 keymap.set("n", "<leader>ts", ":set spell!<CR>", { desc = "Toggle spell check" })
-keymap.set("n", "[s", "[s", { desc = "Previous misspelled word" })
-keymap.set("n", "]s", "]s", { desc = "Next misspelled word" })
-keymap.set("n", "z=", "z=", { desc = "Spelling suggestions" })
-keymap.set("n", "zg", "zg", { desc = "Add word to dictionary" })
-keymap.set("n", "zw", "zw", { desc = "Mark word as misspelled" })
-keymap.set("n", "zug", "zug", { desc = "Remove word from dictionary" })
 
 -- colorscheme toggle
 keymap.set("n", "<leader>ct", "<cmd>ColorschemeToggle<CR>", { desc = "Toggle colorscheme (custom/nightfox)" })
@@ -182,15 +176,15 @@ keymap.set("n", "<leader>tw", ":set wrap!<CR>", { desc = "Toggle line wrap" })
 -- Toggle list (show whitespace)
 keymap.set("n", "<leader>tl", ":set list!<CR>", { desc = "Toggle show whitespace" })
 
--- Copy full file path to clipboard
-keymap.set("n", "<leader>fp", ':let @+ = expand("%:p")<CR>:echo "Copied: " . expand("%:p")<CR>', { desc = "Copy full path" })
-keymap.set("n", "<leader>fr", ':let @+ = expand("%")<CR>:echo "Copied: " . expand("%")<CR>', { desc = "Copy relative path" })
-keymap.set("n", "<leader>fn", ':let @+ = expand("%:t")<CR>:echo "Copied: " . expand("%:t")<CR>', { desc = "Copy filename" })
+-- Yank path to clipboard (y = yank; f reserved for Find/Telescope)
+keymap.set("n", "<leader>yp", ':let @+ = expand("%:p")<CR>:echo "Copied: " . expand("%:p")<CR>', { desc = "Yank full path" })
+keymap.set("n", "<leader>yr", ':let @+ = expand("%")<CR>:echo "Copied: " . expand("%")<CR>', { desc = "Yank relative path" })
+keymap.set("n", "<leader>yn", ':let @+ = expand("%:t")<CR>:echo "Copied: " . expand("%:t")<CR>', { desc = "Yank filename" })
 
--- Terminal management (quick access)
-keymap.set("n", "<leader>tt", function() require("nvim.core.terminal").toggle_horizontal() end, { desc = "Toggle terminal" })
-keymap.set("t", "<leader>tt", "<C-\\><C-n>:lua require('nvim.core.terminal').toggle_horizontal()<CR>", { desc = "Toggle terminal" })
-keymap.set("n", "<leader>tf", function() require("nvim.core.terminal").toggle_float() end, { desc = "Toggle floating terminal" })
-keymap.set("n", "<leader>tv", function() require("nvim.core.terminal").toggle_vertical() end, { desc = "Toggle vertical terminal" })
-keymap.set("n", "<leader>tS", function() require("nvim.core.terminal").close_all() end, { desc = "Shutdown all terminals" })
+-- Terminal (z = shell/terminal; keeps t for tabs/toggles/spell only)
+keymap.set("n", "<leader>zt", function() require("nvim.core.terminal").toggle_horizontal() end, { desc = "Toggle terminal" })
+keymap.set("t", "<leader>zt", "<C-\\><C-n>:lua require('nvim.core.terminal').toggle_horizontal()<CR>", { desc = "Toggle terminal" })
+keymap.set("n", "<leader>zf", function() require("nvim.core.terminal").toggle_float() end, { desc = "Toggle floating terminal" })
+keymap.set("n", "<leader>zv", function() require("nvim.core.terminal").toggle_vertical() end, { desc = "Toggle vertical terminal" })
+keymap.set("n", "<leader>zx", function() require("nvim.core.terminal").close_all() end, { desc = "Shutdown all terminals" })
 

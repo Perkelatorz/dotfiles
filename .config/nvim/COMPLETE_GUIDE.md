@@ -57,7 +57,7 @@ Your Neovim configuration is a fully-featured development environment with:
 - Better command-line completion
 
 ### Final Polish (50+)
-- Smart terminal toggle (`<leader>tt`)
+- Smart terminal toggle (`<leader>zt`)
 - Spell checking enhancements
 - Tab management (11 keymaps)
 - File optimization (large files, binary, readonly)
@@ -118,10 +118,10 @@ Your Neovim configuration is a fully-featured development environment with:
 
 ### Quick Toggle
 ```
-<leader>tt    Toggle terminal at bottom (main one!)
-<leader>tv    Vertical terminal (right side)
-<leader>tf    Floating terminal (centered)
-<leader>tS    Shutdown all terminals
+<leader>zt    Toggle terminal at bottom (main one!)
+<leader>zv    Vertical terminal (right side)
+<leader>zf    Floating terminal (centered)
+<leader>zx    Shutdown all terminals
 ```
 
 ### Features
@@ -132,19 +132,19 @@ Your Neovim configuration is a fully-featured development environment with:
 
 ### Example Workflow
 ```
-<leader>tt
+<leader>zt
 uvicorn main:app --reload
-<leader>tt              # Hide (server keeps running!)
+<leader>zt              # Hide (server keeps running!)
 # Code while server runs...
-<leader>tt              # Check logs
-<leader>tt              # Hide again
+<leader>zt              # Check logs
+<leader>zt              # Hide again
 ```
 
 ### Inside Terminal
 ```
 <Esc><Esc>    Exit to normal mode
 <C-h/j/k/l>   Navigate to other windows
-<leader>tt    Hide terminal
+<leader>zt    Hide terminal
 ```
 
 ---
@@ -315,9 +315,10 @@ Location: `~/.config/nvim/spell/en.utf-8.add`
 
 ### Copy File Paths
 ```
-<leader>fp    Copy full path
-<leader>fr    Copy relative path
-<leader>fn    Copy filename only
+<leader>yp    Yank full path
+<leader>yr    Yank relative path
+<leader>yn    Yank filename
+<leader>fr    Recent files (Telescope)
 ```
 
 ### Case Conversion
@@ -708,7 +709,7 @@ Add to `ensure_installed`:
 
 1. **Discover keybindings** - Press `<leader>` and wait
 2. **Navigate errors fast** - Use `]D` / `[D` for errors only
-3. **Quick terminal** - `<leader>tt` is your best friend
+3. **Quick terminal** - `<leader>zt` is your best friend
 4. **Search project** - `:grep pattern` with ripgrep is super fast
 5. **Persistent terminal** - Terminal survives when hidden
 6. **Visual mode** - Use `<` / `>` multiple times while selected

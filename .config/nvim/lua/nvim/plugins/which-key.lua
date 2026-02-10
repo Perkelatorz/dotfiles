@@ -56,23 +56,26 @@ return {
 			{ "<leader>a", group = "󰚩 AI" },
 			{ "<leader>b", group = "󰓩 Buffer" },
 			{ "<leader>c", group = "󰨞 Code" },
-			{ "<leader>d", group = "󰒕 Diff" },
+			{ "<leader>d", group = "󰔫 Diagnostics/Diff" },
 			{ "<leader>e", group = "󰉋 Explorer" },
-			{ "<leader>f", group = "󰱼 Find" },
+			{ "<leader>f", group = "󰱼 Find (Telescope)" },
 			{ "<leader>g", group = "󰬴 Case" },
 			{ "<leader>h", group = "󰊢 Git Hunk" },
 			{ "<leader>H", group = "󰖟 HTTP" },
-			{ "<leader>l", group = "󰒲 Lazy" },
-			{ "<leader>m", group = "󰍍 Markdown" },
+			{ "<leader>l", group = "󰀂 Live server / LazyGit" },
+			{ "<leader>m", group = "󰍍 Markdown/Format" },
 			{ "<leader>n", group = "󰐊 Clear/Number" },
-			{ "<leader>o", group = "󰏖 Oil" },
+			{ "<leader>o", group = "󰋩 Obsidian" },
+			{ "<leader>-", group = "󰏖 Oil" },
 			{ "<leader>r", group = "󰑄 Rename/Restart" },
 			{ "<leader>s", group = "󰜁 Svelte" },
-			{ "<leader>t", group = "󰔃 Toggle/Tab" },
+			{ "<leader>t", group = "󰔃 Tab/Toggle/Spell" },
+			{ "<leader>z", group = "󰆍 Terminal" },
 			{ "<leader>u", group = "󰔡 UI Toggle" },
 			{ "<leader>v", group = "󰄳 Version/Checkpoint" },
-			{ "<leader>w", group = "󰁯 Window/Session" },
+			{ "<leader>w", group = "󰆓 Save/Window/Session" },
 			{ "<leader>x", group = "󰔫 Trouble" },
+			{ "<leader>y", group = "󰆒 Yank path" },
 
 			-- Core keymaps
 			{ "<leader>nh", desc = "󰐊 Clear search highlights" },
@@ -116,6 +119,9 @@ return {
 		{ "<leader>aC", desc = "󰭹 Windsurf chat" },
 		{ "<leader>aA", desc = "󰷖 Windsurf auth" },
 		{ "<leader>aS", desc = "󰋼 Windsurf status" },
+		{ "<leader>aJ", desc = "󰚩 Cursor Agent (cwd)" },
+		{ "<leader>aj", desc = "󰚩 Cursor Agent (root)" },
+		{ "<leader>aT", desc = "󰚩 Cursor Agent sessions" },
 
 			-- Explorer (nvim-tree)
 			{ "<leader>ee", desc = "󰉋 Toggle tree" },
@@ -123,7 +129,19 @@ return {
 			{ "<leader>ec", desc = "󰝥 Collapse tree" },
 			{ "<leader>er", desc = "󰑓 Refresh tree" },
 
-			-- Oil (uses `-` by default for parent dir)
+			-- Obsidian
+			{ "<leader>on", desc = "󰋩 New note" },
+			{ "<leader>oq", desc = "󰋩 Quick switch" },
+			{ "<leader>of", desc = "󰋩 Follow link" },
+			{ "<leader>ob", desc = "󰋩 Backlinks" },
+			{ "<leader>ot", desc = "󰋩 Today" },
+			{ "<leader>od", desc = "󰋩 Dailies" },
+			{ "<leader>os", desc = "󰋩 Search vault" },
+			{ "<leader>otl", desc = "󰋩 Insert template" },
+			{ "<leader>oo", desc = "󰋩 Open in Obsidian app" },
+			{ "<leader>oc", desc = "󰋩 Toggle checkbox", mode = { "n", "v" } },
+
+			-- Oil (parent dir / edit dir)
 			{ "<leader>-", desc = "󰏖 Oil (floating)" },
 
 			-- Find (telescope) with icons
@@ -145,6 +163,12 @@ return {
 			-- Session (auto-session) with icons
 			{ "<leader>wr", desc = "󰁯 Restore session for cwd" },
 			{ "<leader>ws", desc = "󰄳 Save session for cwd" },
+
+			-- Terminal (z = shell)
+			{ "<leader>zt", desc = "󰆍 Toggle terminal" },
+			{ "<leader>zf", desc = "󰆍 Floating terminal" },
+			{ "<leader>zv", desc = "󰆍 Vertical terminal" },
+			{ "<leader>zx", desc = "󰔌 Shutdown all terminals" },
 
 			-- Trouble with icons
 			{ "<leader>xw", desc = "󰔫 Open trouble workspace diagnostics" },
@@ -247,14 +271,11 @@ return {
 			{ "<leader>t4", desc = "󰎭 Tab 4" },
 			{ "<leader>t5", desc = "󰎱 Tab 5" },
 			
-			-- Toggles  
+			-- Toggles
 			{ "<leader>tr", desc = "󰔡 Toggle relative numbers" },
 			{ "<leader>tw", desc = "󰖶 Toggle wrap" },
 			{ "<leader>tl", desc = "󰌑 Toggle whitespace" },
-			{ "<leader>tt", desc = "󰆍 Toggle terminal" },
-			{ "<leader>tf", desc = "󰆍 Floating terminal" },
-			{ "<leader>tv", desc = "󰆍 Vertical terminal" },
-			{ "<leader>tS", desc = "󰔌 Shutdown all terminals" },
+			{ "<leader>ts", desc = "󰓆 Toggle spell" },
 			
 			-- Spell checking
 			{ "[s", desc = "󰅝 Previous misspelled" },
@@ -286,16 +307,11 @@ return {
 			{ "<leader>R", desc = "󰑓 Reload buffers from disk" },
 			{ "<leader>U", desc = "󰕌 Undo to previous save" },
 			
-			-- File paths
-			{ "<leader>fp", desc = "󰈔 Copy full path" },
-			{ "<leader>fr", desc = "󰈔 Copy relative path" },
-			{ "<leader>fn", desc = "󰈔 Copy filename" },
+			-- Yank path to clipboard
+			{ "<leader>yp", desc = "󰆒 Yank full path" },
+			{ "<leader>yr", desc = "󰆒 Yank relative path" },
+			{ "<leader>yn", desc = "󰆒 Yank filename" },
 			
-			-- Terminal management
-			{ "<leader>tt", desc = "󰆍 Toggle terminal" },
-			{ "<leader>tf", desc = "󰆍 Floating terminal" },
-			{ "<leader>tv", desc = "󰆍 Vertical terminal" },
-			{ "<leader>tS", desc = "󰔌 Shutdown all terminals" },
 
 
 			-- LazyGit
@@ -303,10 +319,6 @@ return {
 
 			-- CSV
 			{ "<leader>cs", desc = "󰌟 Toggle CSV view" },
-
-			-- Arrow (file bookmarks)
-			{ ";", desc = "󰃀 Arrow bookmarks" },
-			{ "m", desc = "󰃀 Arrow buffer bookmarks" },
 
 			-- Color highlighter (nvim-highlight-colors)
 			{ "<leader>ch", desc = "󰌁 Toggle color highlighter" },

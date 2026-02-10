@@ -74,9 +74,9 @@ sactions<Tab>    form actions
 
 ### 1. Start Dev Server
 ```
-<leader>tt              # Open terminal
+<leader>zt              # Open terminal
 pnpm dev                # Or npm run dev
-<leader>tt              # Hide terminal (server runs in background)
+<leader>zt              # Hide terminal (server runs in background)
 ```
 
 ### 2. Create Component

@@ -13,9 +13,27 @@ ShellRoot {
     id: shellRoot
     property var fullscreenMonitorNames: []
     property alias shellColors: colors
+    property string compositorName: "hyprland"
 
     function refreshFullscreenMonitors() {
-        fullscreenProcess.running = true
+        if (compositorName === "hyprland")
+            fullscreenProcess.running = true
+    }
+
+    Process {
+        id: compositorDetectProc
+        command: ["sh", "-c", "echo \"${XDG_CURRENT_DESKTOP:-}\""]
+        running: true
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var s = (compositorDetectProc.stdout.text || "").trim().toLowerCase()
+                shellRoot.compositorName = s.indexOf("hyprland") >= 0 ? "hyprland"
+                    : s.indexOf("niri") >= 0 ? "niri"
+                    : s.indexOf("mango") >= 0 ? "mangowc"
+                    : "other"
+                compositorDetectProc.running = false
+            }
+        }
     }
 
     Process {
@@ -47,6 +65,7 @@ ShellRoot {
 
     Connections {
         target: Hyprland
+        enabled: shellRoot.compositorName === "hyprland"
         function onRawEvent(event) {
             var n = event.name || ""
             if (n === "fullscreen") {
@@ -55,16 +74,9 @@ ShellRoot {
         }
     }
 
-    // Refresh fullscreen list on startup and periodically so bar hides after restart (e.g. wallpaper refresh)
     Component.onCompleted: Qt.callLater(shellRoot.refreshFullscreenMonitors)
     Timer {
-        interval: 400
-        repeat: false
-        running: true
-        onTriggered: shellRoot.refreshFullscreenMonitors()
-    }
-    Timer {
-        interval: 1500
+        interval: 500
         repeat: false
         running: true
         onTriggered: shellRoot.refreshFullscreenMonitors()
@@ -233,24 +245,47 @@ ShellRoot {
             PanelWindow {
                 id: bar
                 property var modelData: screenDelegate.modelData
-                property var hyprMonitor: Hyprland.monitorFor(modelData)
+                property string compositorName: shellRoot.compositorName
+                property var hyprMonitor: bar.compositorName === "hyprland" ? Hyprland.monitorFor(modelData) : null
+                readonly property bool panelsVisible: !bar.hyprMonitor || shellRoot.fullscreenMonitorNames.indexOf(bar.hyprMonitor.name) < 0
+                property int screenIndex: {
+                    var s = Quickshell.screens
+                    if (!s || !bar.modelData) return 0
+                    for (var i = 0; i < s.length; i++)
+                        if (s[i] === bar.modelData) return i
+                    return 0
+                }
 
                 screen: screenDelegate.modelData
-                visible: !bar.hyprMonitor || shellRoot.fullscreenMonitorNames.indexOf(bar.hyprMonitor.name) < 0
+                visible: bar.panelsVisible
 
                 anchors {
                     left: true
                     right: true
                     top: true
                 }
-                implicitHeight: 28
-                color: shellRoot.shellColors.background
+                implicitHeight: 30
+                color: "transparent"
 
                 Component.onCompleted: {
                     if (this.WlrLayershell != null) {
                         this.WlrLayershell.layer = WlrLayer.Top
                         this.WlrLayershell.namespace = "quickshell-workspace-bar"
                     }
+                }
+
+                Rectangle {
+                    anchors.fill: parent
+                    color: "transparent"
+                    radius: shellRoot.shellColors.radius
+                }
+                Rectangle {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.bottom: parent.bottom
+                    height: 1
+                    color: "transparent"
+                    z: 10
                 }
 
                 Item {
@@ -270,6 +305,7 @@ ShellRoot {
 
                     Connections {
                         target: Hyprland
+                        enabled: bar.compositorName === "hyprland"
                         function onRawEvent(event) {
                             var n = event.name || ""
                             if (n === "workspace" || n === "workspacev2") {
@@ -348,6 +384,7 @@ ShellRoot {
 
                         Workspaces {
                             id: workspaceRow
+                            visible: bar.compositorName === "hyprland"
                             colors: shellRoot.shellColors
                             hyprMonitor: root.hyprMonitor
                             occupiedWorkspaceIds: root.occupiedWorkspaceIds
@@ -375,6 +412,7 @@ ShellRoot {
                             Layout.fillHeight: true
                             Layout.leftMargin: 4
                             Layout.rightMargin: 4
+                            visible: bar.compositorName === "hyprland"
                             ClientList {
                                 anchors.centerIn: parent
                                 colors: shellRoot.shellColors
@@ -422,13 +460,7 @@ ShellRoot {
                                     Layout.alignment: Qt.AlignVCenter
                                     visible: screenDelegate.brightnessWidgetVisible
                                     outputName: bar.hyprMonitor ? bar.hyprMonitor.name : ""
-                                    screenIndex: (function() {
-                                        var s = Quickshell.screens
-                                        if (!s || !screenDelegate.modelData) return 0
-                                        for (var i = 0; i < s.length; i++)
-                                            if (s[i] === screenDelegate.modelData) return i
-                                        return 0
-                                    })()
+                                    screenIndex: bar.screenIndex
                                 }
 
                                 VolumeWidget {
@@ -452,6 +484,7 @@ ShellRoot {
                                 ScreenshotWidget {
                                     id: screenshotWidget
                                     colors: shellRoot.shellColors
+                                    compositorName: bar.compositorName
                                     Layout.alignment: Qt.AlignVCenter
                                     visible: screenDelegate.screenshotWidgetVisible
                                     fullscreenOutput: screenDelegate.modelData && screenDelegate.modelData.name ? String(screenDelegate.modelData.name) : ""
@@ -517,13 +550,12 @@ ShellRoot {
                 }
             }
 
-            // Quick Settings panel (right-aligned, below bar) — includes Power and Settings as sub-views
             PanelWindow {
                 id: quickSettingsPanel
                 screen: screenDelegate.modelData
-                visible: screenDelegate.quickSettingsMenuVisible && (!bar.hyprMonitor || shellRoot.fullscreenMonitorNames.indexOf(bar.hyprMonitor.name) < 0)
-                implicitWidth: 360
-                implicitHeight: screenDelegate.quickSettingsSubView === "settings" ? 320 : (screenDelegate.quickSettingsSubView === "power" ? 260 : 560)
+                visible: screenDelegate.quickSettingsMenuVisible && bar.panelsVisible
+                implicitWidth: 400
+                implicitHeight: screenDelegate.quickSettingsSubView === "settings" ? 320 : (screenDelegate.quickSettingsSubView === "power" ? 260 : 600)
                 color: "transparent"
                 exclusiveZone: 0
 
@@ -540,17 +572,27 @@ ShellRoot {
                 }
 
                 Rectangle {
+                    id: qsPanelShadow
                     anchors.fill: parent
-                    radius: 12
+                    anchors.leftMargin: 2
+                    anchors.topMargin: 4
+                    z: -1
+                    radius: 18
+                    color: "#1a000000"
+                }
+                Rectangle {
+                    id: qsPanelBg
+                    anchors.fill: parent
+                    radius: 16
                     color: shellRoot.shellColors.surfaceContainer
                     border.width: 1
-                    border.color: shellRoot.shellColors.border
+                    border.color: shellRoot.shellColors.borderSubtle
                     Column {
                         anchors.fill: parent
                         spacing: 0
                         Row {
                             visible: screenDelegate.quickSettingsSubView !== "main"
-                            width: parent.width - 32
+                            width: parent.width - 40
                             height: 40
                             leftPadding: 12
                             rightPadding: 12
@@ -584,22 +626,24 @@ ShellRoot {
                                 font.bold: true
                             }
                         }
+                        Rectangle {
+                            visible: screenDelegate.quickSettingsSubView !== "main"
+                            width: parent.width - 40
+                            height: 1
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            color: shellRoot.shellColors.borderSubtle
+                        }
                         Item {
-                            width: parent.width - 32
-                            height: parent.height - (screenDelegate.quickSettingsSubView !== "main" ? 40 : 0)
+                            width: parent.width - 40
+                            height: parent.height - (screenDelegate.quickSettingsSubView !== "main" ? 41 : 0)
                             anchors.horizontalCenter: parent.horizontalCenter
                             QuickSettingsContent {
                                 visible: screenDelegate.quickSettingsSubView === "main"
                                 anchors.fill: parent
-                                anchors.margins: 16
+                                anchors.margins: 20
                                 colors: shellRoot.shellColors
-                                screenIndex: (function() {
-                                    var s = Quickshell.screens
-                                    if (!s || !screenDelegate.modelData) return 0
-                                    for (var i = 0; i < s.length; i++)
-                                        if (s[i] === screenDelegate.modelData) return i
-                                    return 0
-                                })()
+                                compositorName: shellRoot.compositorName
+                                screenIndex: bar.screenIndex
                                 onClose: function() { screenDelegate.quickSettingsMenuVisible = false }
                                 onOpenPowerRequested: screenDelegate.quickSettingsSubView = "power"
                                 onOpenSettingsRequested: screenDelegate.quickSettingsSubView = "settings"
@@ -611,6 +655,7 @@ ShellRoot {
                                     anchors.centerIn: parent
                                     width: Math.min(180, parent.width - 24)
                                     colors: shellRoot.shellColors
+                                    compositorName: shellRoot.compositorName
                                     onClose: function() {
                                         screenDelegate.quickSettingsMenuVisible = false
                                     }
@@ -634,11 +679,10 @@ ShellRoot {
                 }
             }
 
-            // Screenshot menu panel (below Shot icon, left margin set when opening)
             PanelWindow {
                 id: screenshotMenuPanel
                 screen: screenDelegate.modelData
-                visible: screenDelegate.screenshotMenuVisible && (!bar.hyprMonitor || shellRoot.fullscreenMonitorNames.indexOf(bar.hyprMonitor.name) < 0)
+                visible: screenDelegate.screenshotMenuVisible && bar.panelsVisible
                 implicitWidth: 168
                 implicitHeight: 100
                 color: "transparent"
@@ -658,10 +702,18 @@ ShellRoot {
 
                 Rectangle {
                     anchors.fill: parent
-                    radius: 8
+                    anchors.leftMargin: 2
+                    anchors.topMargin: 3
+                    z: -1
+                    radius: 12
+                    color: "#15000000"
+                }
+                Rectangle {
+                    anchors.fill: parent
+                    radius: 12
                     color: shellRoot.shellColors.surfaceContainer
                     border.width: 1
-                    border.color: shellRoot.shellColors.border
+                    border.color: shellRoot.shellColors.borderSubtle
                     ScreenshotMenuContent {
                         anchors.fill: parent
                         anchors.margins: 4
@@ -672,13 +724,10 @@ ShellRoot {
                 }
             }
 
-            // Calendar as a separate panel (same screen as bar). Position via layer-shell margins:
-            // margins.top = bar height + gap; margins.left = clock x (centered under clock).
-            // calendarMarginLeft is set when opening from clockWidget.mapToItem(root, 0, 0).
             PanelWindow {
                 id: calendarPanel
                 screen: screenDelegate.modelData
-                visible: screenDelegate.calendarVisible && (!bar.hyprMonitor || shellRoot.fullscreenMonitorNames.indexOf(bar.hyprMonitor.name) < 0)
+                visible: screenDelegate.calendarVisible && bar.panelsVisible
                 implicitWidth: 200
                 implicitHeight: 200
                 color: shellRoot.shellColors.background
@@ -698,10 +747,18 @@ ShellRoot {
 
                 Rectangle {
                     anchors.fill: parent
+                    anchors.leftMargin: 2
+                    anchors.topMargin: 3
+                    z: -1
+                    radius: 12
+                    color: "#15000000"
+                }
+                Rectangle {
+                    anchors.fill: parent
+                    radius: 12
                     color: shellRoot.shellColors.background
                     border.width: 1
-                    border.color: shellRoot.shellColors.border
-                    radius: 8
+                    border.color: shellRoot.shellColors.borderSubtle
                     CalendarContent {
                         anchors.fill: parent
                         anchors.margins: 1
@@ -711,11 +768,10 @@ ShellRoot {
                 }
             }
 
-            // Mini player panel (left-aligned, below bar)
             PanelWindow {
                 id: nowPlayingPanel
                 screen: screenDelegate.modelData
-                visible: screenDelegate.nowPlayingPopupVisible && nowPlayingWidget.hasPlayer && (!bar.hyprMonitor || shellRoot.fullscreenMonitorNames.indexOf(bar.hyprMonitor.name) < 0)
+                visible: screenDelegate.nowPlayingPopupVisible && nowPlayingWidget.hasPlayer && bar.panelsVisible
                 implicitWidth: 280
                 implicitHeight: 140
                 color: "transparent"

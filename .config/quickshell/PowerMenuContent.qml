@@ -8,6 +8,7 @@ Column {
     required property var colors
     required property var onClose
 
+    property string compositorName: "hyprland"
     property string lockCommand: "swaylock"
     property string suspendCommand: "systemctl suspend"
     property string hibernateCommand: "systemctl hibernate"
@@ -21,7 +22,11 @@ Column {
     function runAndClose(cmd, inSession) {
         powerMenuContent.onClose()
         if (inSession) {
-            runInSessionProc.command = ["hyprctl", "dispatch", "exec", cmd]
+            if (compositorName === "hyprland") {
+                runInSessionProc.command = ["hyprctl", "dispatch", "exec", cmd]
+            } else {
+                runInSessionProc.command = ["sh", "-c", cmd]
+            }
             runInSessionProc.running = true
         } else {
             runProc.command = ["sh", "-c", cmd]

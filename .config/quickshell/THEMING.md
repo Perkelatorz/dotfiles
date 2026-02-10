@@ -14,6 +14,7 @@ This config uses **matugen** to generate a Material You palette from your wallpa
 - **Single place:** `~/.config/matugen/config.toml`. You can use `~` in paths; `select-wallpaper.sh` expands it to your home directory before calling matugen (matugen does not expand `~` itself).
 - **Templates repo:** [InioX/matugen-themes](https://github.com/InioX/matugen-themes) — clone it and use its `templates/` files as `input_path`.
 - **This repo:** We use a **custom** Quickshell template: `Colors.qml.tmpl` (and `.material` / `.rainbow`). Your matugen config must include a template whose **output** is `~/.config/quickshell/Colors.qml` and whose **input** is `~/.config/quickshell/Colors.qml.tmpl` (the script copies the style-specific tmpl there before running matugen). See `matugen-config-example.toml` in this folder.
+- **Hyprland:** The bar’s accent and colors use the same palette as `~/.config/hypr/matugen-colors.conf`. For a unified look, keep `hyprland.conf` sourcing that file so window borders, gaps, and the bar share one theme.
 
 ---
 
