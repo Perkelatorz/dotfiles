@@ -41,7 +41,7 @@ In Neovim, run:
 
 **OR use the keybinding:**
 ```vim
-<leader>aA
+<leader>aa
 ```
 
 ### Step 3: Follow the Authentication Flow
@@ -98,8 +98,8 @@ Press `<Tab>` to accept the suggestion!
 |-----|--------|
 | `<leader>aw` | Toggle Codeium on/off |
 | `<leader>aC` | Open Codeium Chat (browser) |
-| `<leader>aA` | Authenticate Codeium |
-| `<leader>aS` | Show Codeium status |
+| `<leader>aa` | Authenticate Codeium |
+| `<leader>as` | Show Codeium status |
 
 ---
 
@@ -229,7 +229,7 @@ Temporarily disable if:
 ### Check Status
 
 ```vim
-<leader>aS
+<leader>as
 ```
 
 Shows:
@@ -288,12 +288,12 @@ export const load: PageServerLoad = async () => {
 **Check 1: Is Codeium authenticated?**
 ```vim
 :Codeium Auth
-<leader>aA
+<leader>aa
 ```
 
 **Check 2: Is it enabled?**
 ```vim
-<leader>aS    " Check status
+<leader>as    " Check status
 <leader>aw    " Toggle on if off
 ```
 
@@ -396,7 +396,7 @@ Type → See suggestion → Press <Tab> → Accepted and becomes real code
 ## 🚀 Quick Start Checklist
 
 1. ✅ Plugin installed (already done)
-2. ⬜ Authenticate: `<leader>aA` or `:Codeium Auth`
+2. ⬜ Authenticate: `<leader>aa` or `:Codeium Auth`
 3. ⬜ Open browser and sign up (free)
 4. ⬜ Paste token and confirm
 5. ⬜ Test in a code file
@@ -451,7 +451,7 @@ Codeium gets better suggestions from:
 
 **You already have Codeium configured!** Just need to:
 
-1. Authenticate once: `<leader>aA`
+1. Authenticate once: `<leader>aa`
 2. Sign up (free, no credit card)
 3. Start coding and see ghost text!
 
@@ -460,7 +460,7 @@ Codeium gets better suggestions from:
 **Keybindings to remember:**
 - `<Tab>` - Accept suggestion (in insert mode)
 - `<leader>aw` - Toggle on/off
-- `<leader>aA` - Authenticate
+- `<leader>aa` - Authenticate
 
 **Combined with:**
 - Svelte snippets (`sprop<Tab>`)

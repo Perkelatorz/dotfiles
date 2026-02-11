@@ -29,8 +29,8 @@ return {
 				default_filetype_enabled = true,
 				map_keys = true, -- Enable default keybindings
 				key_bindings = {
-					-- Accept full completion with Ctrl-y (Tab reserved for indent/snippets)
-					accept = "<C-y>",
+					-- Accept full suggestion: Alt-y (C-y reserved for nvim-cmp confirm in completion menu)
+					accept = "<M-y>",
 					-- Accept word with Alt-w
 					accept_word = "<M-w>",
 					-- Accept line with Alt-l
@@ -64,11 +64,11 @@ return {
 		-- Using <leader>aw prefix for Windsurf (avoiding conflicts)
 		-- w = windsurf/codeium
 		keymap.set("n", "<leader>aw", "<cmd>Codeium Toggle<cr>", { desc = "Toggle Windsurf/Codeium" })
-		keymap.set("n", "<leader>aC", "<cmd>Codeium Chat<cr>", { desc = "Windsurf Chat (browser)" })
-		keymap.set("n", "<leader>aA", "<cmd>Codeium Auth<cr>", { desc = "Authenticate Windsurf" })
+		keymap.set("n", "<leader>ac", "<cmd>Codeium Chat<cr>", { desc = "Codeium Chat (browser)" })
+		keymap.set("n", "<leader>aa", "<cmd>Codeium Auth<cr>", { desc = "Codeium Auth" })
 		
 		-- Status command (optional, for statusline integration)
-		keymap.set("n", "<leader>aS", function()
+		keymap.set("n", "<leader>as", function()
 			local status = require('codeium.virtual_text').status()
 			local msg = "Windsurf: "
 			if status.state == 'idle' then

@@ -157,7 +157,7 @@ See QUICK_REFERENCE.md for fast lookup.
 
 | Key | Group | Description |
 |-----|-------|-------------|
-| `a` | 󰚩 AI | OpenCode, Codeium, AI tools |
+| `a` | 󰚩 AI | Codeium, Cursor Agent |
 | `b` | 󰓩 Buffer | Buffer management |
 | `c` | 󰨞 Code | Code actions, CSV |
 | `d` | 󰒕 Diff | Diff operations |
@@ -186,7 +186,7 @@ All use `[` for previous, `]` for next:
 [q / ]q    Quickfix (also [Q / ]Q for first/last)
 [l / ]l    Location list (also [L / ]L)
 [d / ]d    Diagnostics (also [D / ]D for errors only)
-[h / ]h    Git hunks
+[c / ]c    Git hunks (gitsigns default)
 [t / ]t    Todo comments
 [s / ]s    Spell checking
 ```
@@ -442,7 +442,7 @@ Other: gitignore, query
 - **markdown-preview.nvim** - Markdown preview
 - **kulala.nvim** - HTTP client
 - **live-server.nvim** - Live server
-- **opencode.nvim** - AI assistant
+- **cursor-agent.nvim** - Cursor CLI integration
 - **codeium.nvim** - AI completion
 
 ### Svelte-Specific
@@ -780,7 +780,7 @@ Add to `ensure_installed`:
 
 ### Auto-Reload Files
 
-Files automatically reload when changed by external tools (Cursor, OpenCode, etc.):
+Files automatically reload when changed by external tools (e.g. Cursor IDE):
 - **Triggers:** Focus gained, buffer enter, cursor idle (250ms)
 - **No manual intervention** - Just switch back to Neovim
 - **Visual notification** - Shows which file reloaded
@@ -800,9 +800,10 @@ Files automatically reload when changed by external tools (Cursor, OpenCode, etc
 
 #### Session Checkpoints (Multi-File)
 ```
-<leader>vC    Checkpoint all open files
-<leader>vR    Restore all files at once
-<leader>vS    Show all changes across all files
+<leader>vh    Checkpoint all open files
+<leader>vj    Checkpoint entire project
+<leader>vk    Restore all files at once
+<leader>vl    Show all changes across all files
 ```
 
 #### Features
@@ -814,10 +815,10 @@ Files automatically reload when changed by external tools (Cursor, OpenCode, etc
 
 #### Workflow: Agentic AI
 ```
-<leader>vC              # Checkpoint all files FIRST
+<leader>vh              # Checkpoint all files FIRST
 # Let agentic AI edit 10+ files
-<leader>vS              # See all meaningful changes
-<leader>vR              # Restore all if needed (or keep with :wa)
+<leader>vl              # See all meaningful changes
+<leader>vk              # Restore all if needed (or keep with :wa)
 ```
 
 #### Git vs Checkpoint
@@ -835,9 +836,9 @@ Files automatically reload when changed by external tools (Cursor, OpenCode, etc
 **Best practice:** Use both
 ```
 git commit -m "Working state"
-<leader>vC
+<leader>vh
 # Try AI experiments
-<leader>vR / <leader>vR / <leader>vR
+<leader>vk
 # Find the right approach
 git commit -m "Final version"
 ```

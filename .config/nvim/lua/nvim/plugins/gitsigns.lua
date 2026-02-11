@@ -9,9 +9,9 @@ return {
 				vim.keymap.set(mode, l, r, { buffer = bufnr, desc = desc })
 			end
 
-			-- Navigation
-			map("n", "]h", gs.next_hunk, "Next Hunk")
-			map("n", "[h", gs.prev_hunk, "Prev Hunk")
+			-- Navigation (]c/[c is the common gitsigns convention)
+			map("n", "]c", gs.next_hunk, "Next Hunk")
+			map("n", "[c", gs.prev_hunk, "Prev Hunk")
 
 			-- Actions
 			map("n", "<leader>hs", gs.stage_hunk, "Stage hunk")
@@ -23,8 +23,8 @@ return {
 				gs.reset_hunk({ vim.fn.line("."), vim.fn.line("v") })
 			end, "Reset hunk")
 
-			map("n", "<leader>hS", gs.stage_buffer, "Stage buffer")
-			map("n", "<leader>hR", gs.reset_buffer, "Reset buffer")
+			map("n", "<leader>hx", gs.stage_buffer, "Stage buffer")
+			map("n", "<leader>he", gs.reset_buffer, "Reset buffer")
 
 			map("n", "<leader>hu", gs.undo_stage_hunk, "Undo stage hunk")
 
@@ -33,10 +33,10 @@ return {
 			map("n", "<leader>hb", function()
 				gs.blame_line({ full = true })
 			end, "Blame line")
-			map("n", "<leader>hB", gs.toggle_current_line_blame, "Toggle line blame")
+			map("n", "<leader>hl", gs.toggle_current_line_blame, "Toggle line blame")
 
 			map("n", "<leader>hd", gs.diffthis, "Diff this")
-			map("n", "<leader>hD", function()
+			map("n", "<leader>hy", function()
 				gs.diffthis("~")
 			end, "Diff this ~")
 

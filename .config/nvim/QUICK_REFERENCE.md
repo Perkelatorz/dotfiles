@@ -2,6 +2,8 @@
 
 Fast lookup for common keybindings and commands.
 
+**Plugin defaults:** Where possible, plugins use their own default keymaps: **Oil** (inside Oil buffer: Space, `-`, `g?`, etc.), **gitsigns** (`[c` / `]c` for hunks), **Flash** (`s`, `S`, `r`, `R` for jump/treesitter; note: `s`/`S` override Vim’s default in normal mode). Telescope, nvim-tree, LSP, and others have no built-in global keys, so we keep our leader-based bindings.
+
 ---
 
 ## Essential Keybindings
@@ -20,17 +22,18 @@ Fast lookup for common keybindings and commands.
 <leader>vr    Restore checkpoint (undo all AI changes!)
 <leader>vd    Diff with checkpoint (see what changed)
 
-<leader>vC    Checkpoint all files (before AI agent works)
-<leader>vR    Restore all files (undo everything!)
-<leader>vS    Show all changes (across all files)
+<leader>vh    Checkpoint all open files
+<leader>vj    Checkpoint entire project
+<leader>vk    Restore all files (undo everything!)
+<leader>vl    Show all changes (across all files)
 ```
 
 ### Quick Actions
 ```
 <leader>w     Save file
-<leader>W     Save all files
+<leader>ww    Save all files
 <leader>q     Quit window
-<leader>Q     Force quit (discard changes)
+<leader>qq    Force quit (discard changes)
 <leader>sr    Search and replace word under cursor
 ```
 
@@ -50,7 +53,7 @@ Fast lookup for common keybindings and commands.
 ```
 [b / ]b       Previous/Next buffer
 <leader>bd    Delete buffer
-<leader>bD    Force delete buffer
+<leader>bx    Force delete buffer
 ```
 
 ### Tab Management
@@ -66,7 +69,7 @@ gt / gT       Next/Previous tab (Vim default)
 [d / ]d       Previous/Next diagnostic
 [D / ]D       Previous/Next error only
 [q / ]q       Previous/Next quickfix
-[h / ]h       Previous/Next git hunk
+[c / ]c       Previous/Next git hunk (gitsigns default)
 gd            Go to definition (LSP)
 gD            Go to declaration (LSP)
 gr            Go to references (LSP)
@@ -77,8 +80,8 @@ K             Hover documentation (LSP)
 ```
 <leader>ca    Code action
 <leader>rn    Rename symbol
-<leader>d     Show line diagnostic
-<leader>D     Show all diagnostics
+<leader>df    Show line diagnostic (float)
+<leader>dl    Show all diagnostics (Telescope)
 <leader>rs    Restart LSP
 ```
 
@@ -162,7 +165,7 @@ zg            Add word to dictionary
 
 Press `<leader>` to see:
 ```
-a  󰚩 AI              - AI tools (OpenCode, Codeium)
+a  󰚩 AI              - Codeium, Cursor Agent
 b  󰓩 Buffer          - Buffer operations
 c  󰨞 Code            - Code actions, CSV
 d  󰒕 Diff            - Diff operations
@@ -203,7 +206,7 @@ new_word<Enter>         # Replace all occurrences
 ```
 ]d                      # Next diagnostic
 ]D                      # Next error only
-<leader>d               # Show diagnostic details
+<leader>df              # Show diagnostic details (float)
 <leader>ca              # See code actions
 ```
 

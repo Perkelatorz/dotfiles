@@ -10,29 +10,30 @@ Press `<leader>` and wait for which-key to see all prefixes.
 
 | Prefix | Group | Bindings |
 |--------|--------|----------|
-| **a** | AI | ao, ai, aO, aq, ac, as, af, ab, ad, al, ae, ag, aP, aG, aK, aD, aL, ap, a?, aw, aC, aA, aS, aj, aJ, aT |
-| **b** | Buffer | bd, bD, [b, ]b |
+| **a** | AI | aw, ac, aa, as (Codeium), aj, al, at (Cursor Agent) |
+| **b** | Buffer | bd, bx, [b, ]b |
 | **c** | Code | ca, ct, ch, cs |
-| **d** | Diagnostics/Diff | d, D, dt, do, du |
+| **d** | Diagnostics/Diff | df, dl, dt, do, du |
 | **e** | Explorer | ee, ef, ec, er |
 | **f** | Find | ff, fr, fs, fc, ft, fb |
 | **g** | Case | gu, gl, g~ |
-| **h** | Git hunk | hs, hr, hS, hR, hu, hp, hb, hB, hd, hD, [h, ]h |
+| **G** | Go (in .go buffers) | Gr, Gt, Ga, Gb |
+| **h** | Git hunk | hs, hr, hx, he, hu, hp, hb, hl, hd, hy, [c, ]c |
 | **H** | HTTP (Kulala) | Hr, Ht, H[, H], Hi, Hc, Hs, Hq |
 | **j** | Flash | j (Flash jump) |
-| **l** | Live / LazyGit | ls, lS, lc, lC, ll, lg |
+| **l** | Live / LazyGit | ls, lz, lc, lx, ll, lg |
 | **m** | Markdown/Format | mv, ms, mp |
 | **n** | Clear/Number | nh, +, =, nx, nr |
 | **o** | Obsidian | on, oq, of, ob, ot, od, os, otl, oo, oc |
 | **-** | Oil | - (Oil floating) |
-| **q** | Quit | q, Q |
-| **r** | Rename/Restart | rn, rs |
+| **q** | Quit | q, qq |
+| **r** | Rename/Restart | rn, rs, rr (reload) |
 | **s** | Svelte/Search | sc, sp, sl, sr |
 | **S** | Flash | S (Flash Treesitter) |
-| **t** | Tab/Toggle/Spell | tn, tc, to, tp, tN, tm, t1–5, tr, tw, tl, ts |
+| **t** | Tab/Toggle/Spell | tn, tc, to, tp, tj, tm, t1–5, tr, tw, tl, ts |
 | **u** | UI toggle | uh, uv |
-| **v** | Version/Checkpoint | vc, vr, vd, vx, vC, vP, vR, vS |
-| **w** | Save/Window/Session | w, W, w=, w\|, w_, wr, ws |
+| **v** | Version/Checkpoint | vc, vr, vd, vx, vh, vj, vk, vl |
+| **w** | Save/Window/Session | w, ww, w=, w\|, w_, wr, ws |
 | **x** | Trouble | xw, xd, xq, xl, xt |
 | **y** | Yank path | yp, yr, yn |
 | **z** | Terminal | zt, zf, zv, zx |
@@ -45,15 +46,20 @@ Press `<leader>` and wait for which-key to see all prefixes.
 - **Save/quit:** `w` save, `W` save all, `q` quit, `Q` force quit
 - **Find:** `ff` files, `fr` recent, `fs` grep, `fb` buffers
 - **Terminal:** `zt` toggle, `zf` float, `zv` vertical, `zx` close all
-- **LSP:** `d` line diag, `D` diag list, `ca` code action, `rn` rename
+- **LSP:** `df` line diag, `dl` diag list, `ca` code action, `rn` rename
 - **Checkpoint (AI undo):** `vc` create, `vr` restore, `vd` diff
+
+### AI (`<leader>a`) — Codeium + Cursor Agent
+- **Codeium:** `aw` toggle, `ac` chat, `aa` auth, `as` status
+- **Cursor Agent:** `aj` root, `al` cwd, `at` sessions
+- **Accept suggestion (insert):** `Alt+y` full, `Alt+w` word, `Alt+l` line
 
 ### Navigation (no leader)
 - **Buffers:** `[b` `]b`
 - **Quickfix:** `[q` `]q` `[Q` `]Q`
 - **Location list:** `[l` `]l` `[L` `]L`
 - **Diagnostics:** `[d` `]d` `[D` `]D` (errors only)
-- **Git hunks:** `[h` `]h`
+- **Git hunks:** `[c` `]c` (gitsigns convention)
 - **Todo:** `[t` `]t`
 - **Spell (Vim default):** `[s` `]s` `z=` `zg` `zw` `zug`
 
@@ -69,15 +75,14 @@ Press `<leader>` and wait for which-key to see all prefixes.
 
 Used only where a “stronger” or alternate action is useful:
 
-- **w / W** — save / save all  
-- **q / Q** — quit / force quit  
-- **b / bD** — delete buffer / force delete  
-- **t / tN** — previous tab / next tab  
-- **v / vC, vP, vR, vS** — checkpoint variants  
+- **w / ww** — save / save all  
+- **q / qq** — quit / force quit  
+- **b / bx** — delete buffer / force delete  
+- **t / tj** — previous tab (tp) / next tab (tj)  
+- **v / vh, vj, vk, vl** — checkpoint (session/project/restore/show)  
 - **R, U** — reload buffers, undo to previous save  
-- **d / D** — line diagnostic / diagnostics list  
-- **a** — many AI binds use second key as capital (aO, aP, aG, aK, aD, aL, aC, aA, aS, aT)  
-- **h / hS, hR, hB, hD** — git hunk variants  
+- **df / dl** — line diagnostic (float) / diagnostics list  
+- **h** — git: hx (stage buffer), he (reset buffer), hl (line blame), hy (diff ~)
 
 Everything else is lowercase.
 
@@ -85,7 +90,7 @@ Everything else is lowercase.
 
 ## Layout summary
 
-- **a** = AI (OpenCode, Codeium, Cursor Agent)
+- **a** = AI (Codeium, Cursor Agent)
 - **b** = Buffer
 - **c** = Code (actions, colorscheme, color highlighter, CSV)
 - **d** = Diagnostics + diff

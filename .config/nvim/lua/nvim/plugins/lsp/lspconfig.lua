@@ -40,11 +40,11 @@ return {
 
 			-- Diagnostics in Telescope (enhanced view)
 			opts.desc = "Buffer diagnostics"
-			keymap.set("n", "<leader>D", "<cmd>Telescope diagnostics bufnr=0<CR>", opts)
+			keymap.set("n", "<leader>dl", "<cmd>Telescope diagnostics bufnr=0<CR>", opts)
 
-			-- Diagnostic float (quick view)
+			-- Diagnostic float (quick view); <leader>df to avoid conflict with dd (delete line)
 			opts.desc = "Line diagnostics"
-			keymap.set("n", "<leader>d", vim.diagnostic.open_float, opts)
+			keymap.set("n", "<leader>df", vim.diagnostic.open_float, opts)
 
 			-- Restart LSP
 			opts.desc = "Restart LSP"
@@ -232,6 +232,7 @@ return {
 							gopls = {
 								analyses = {
 									unusedparams = true,
+									unusedvariable = true, -- report unused variables
 									shadow = true,
 								},
 								staticcheck = true,

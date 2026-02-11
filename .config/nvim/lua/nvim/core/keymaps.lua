@@ -43,7 +43,7 @@ keymap.set("n", "N", "Nzzzv", { desc = "Previous search result (centered)" })
 keymap.set("n", "[b", ":bprevious<CR>", { desc = "Previous buffer" })
 keymap.set("n", "]b", ":bnext<CR>", { desc = "Next buffer" })
 keymap.set("n", "<leader>bd", ":bdelete<CR>", { desc = "Delete current buffer" })
-keymap.set("n", "<leader>bD", ":bdelete!<CR>", { desc = "Force delete current buffer" })
+keymap.set("n", "<leader>bx", ":bdelete!<CR>", { desc = "Force delete current buffer" })
 
 -- Window resizing (using leader since default Vim doesn't have easy resize)
 keymap.set("n", "<leader>w=", "<C-w>=", { desc = "Make windows equal size" })
@@ -52,11 +52,11 @@ keymap.set("n", "<leader>w_", "<C-w>_", { desc = "Maximize window height" })
 
 -- Quick save (non-default but very useful)
 keymap.set("n", "<leader>w", ":w<CR>", { desc = "Save file" })
-keymap.set("n", "<leader>W", ":wa<CR>", { desc = "Save all files" })
+keymap.set("n", "<leader>ww", ":wa<CR>", { desc = "Save all files" })
 
 -- Quick quit
 keymap.set("n", "<leader>q", ":q<CR>", { desc = "Quit window" })
-keymap.set("n", "<leader>Q", ":q!<CR>", { desc = "Force quit window" })
+keymap.set("n", "<leader>qq", ":q!<CR>", { desc = "Force quit window" })
 
 -- Quickfix navigation (follows Vim [ ] convention)
 keymap.set("n", "[q", ":cprev<CR>", { desc = "Previous quickfix item" })
@@ -103,7 +103,7 @@ keymap.set("n", "<leader>tn", ":tabnew<CR>", { desc = "New tab" })
 keymap.set("n", "<leader>tc", ":tabclose<CR>", { desc = "Close tab" })
 keymap.set("n", "<leader>to", ":tabonly<CR>", { desc = "Close other tabs" })
 keymap.set("n", "<leader>tp", ":tabprevious<CR>", { desc = "Previous tab" })
-keymap.set("n", "<leader>tN", ":tabnext<CR>", { desc = "Next tab" })
+keymap.set("n", "<leader>tj", ":tabnext<CR>", { desc = "Next tab" })
 keymap.set("n", "<leader>tm", ":tabmove ", { desc = "Move tab to position" })
 keymap.set("n", "<leader>t1", "1gt", { desc = "Go to tab 1" })
 keymap.set("n", "<leader>t2", "2gt", { desc = "Go to tab 2" })
@@ -151,8 +151,8 @@ keymap.set("n", "<leader>ev", ":e $MYVIMRC<CR>", { desc = "Edit init.lua" })
 keymap.set("n", "<leader>sv", ":source $MYVIMRC<CR>", { desc = "Source init.lua" })
 
 -- File reload and version control (for AI tool changes)
-keymap.set("n", "<leader>R", ":checktime<CR>", { desc = "Reload all buffers from disk" })
-keymap.set("n", "<leader>U", ":earlier 1f<CR>", { desc = "Undo to previous file save" })
+keymap.set("n", "<leader>rr", ":checktime<CR>", { desc = "Reload all buffers from disk" })
+keymap.set("n", "<leader>uu", ":earlier 1f<CR>", { desc = "Undo to previous file save" })
 
 -- Checkpoint system (for AI tool multi-edit sessions)
 -- Using <leader>v prefix (v for "version control" / "versions")
@@ -162,10 +162,10 @@ keymap.set("n", "<leader>vd", function() require("nvim.core.checkpoint").show_di
 keymap.set("n", "<leader>vx", function() require("nvim.core.checkpoint").delete_checkpoint() end, { desc = "Delete checkpoint" })
 
 -- Session checkpoint (for multi-file AI edits)
-keymap.set("n", "<leader>vC", function() require("nvim.core.checkpoint").create_session_checkpoint() end, { desc = "Checkpoint open files" })
-keymap.set("n", "<leader>vP", function() require("nvim.core.checkpoint").create_project_checkpoint() end, { desc = "Checkpoint entire project" })
-keymap.set("n", "<leader>vR", function() require("nvim.core.checkpoint").restore_session_checkpoint() end, { desc = "Restore all files" })
-keymap.set("n", "<leader>vS", function() require("nvim.core.checkpoint").show_session_diff() end, { desc = "Show all changes" })
+keymap.set("n", "<leader>vh", function() require("nvim.core.checkpoint").create_session_checkpoint() end, { desc = "Checkpoint open files" })
+keymap.set("n", "<leader>vj", function() require("nvim.core.checkpoint").create_project_checkpoint() end, { desc = "Checkpoint entire project" })
+keymap.set("n", "<leader>vk", function() require("nvim.core.checkpoint").restore_session_checkpoint() end, { desc = "Restore all files" })
+keymap.set("n", "<leader>vl", function() require("nvim.core.checkpoint").show_session_diff() end, { desc = "Show all changes" })
 
 -- Toggle relative number
 keymap.set("n", "<leader>tr", ":set relativenumber!<CR>", { desc = "Toggle relative numbers" })
@@ -187,4 +187,26 @@ keymap.set("t", "<leader>zt", "<C-\\><C-n>:lua require('nvim.core.terminal').tog
 keymap.set("n", "<leader>zf", function() require("nvim.core.terminal").toggle_float() end, { desc = "Toggle floating terminal" })
 keymap.set("n", "<leader>zv", function() require("nvim.core.terminal").toggle_vertical() end, { desc = "Toggle vertical terminal" })
 keymap.set("n", "<leader>zx", function() require("nvim.core.terminal").close_all() end, { desc = "Shutdown all terminals" })
+
+-- Go: run/test/build (buffer-local, <leader>G = Go)
+vim.api.nvim_create_autocmd("FileType", {
+	group = vim.api.nvim_create_augroup("GoKeymaps", { clear = true }),
+	pattern = "go",
+	callback = function()
+		local dir = vim.fn.shellescape(vim.fn.expand("%:p:h"))
+		local file = vim.fn.shellescape(vim.fn.expand("%"))
+		keymap.set("n", "<leader>Gr", function()
+			vim.cmd("split | terminal cd " .. dir .. " && go run " .. file)
+		end, { buffer = true, desc = "Go: Run current file" })
+		keymap.set("n", "<leader>Gt", function()
+			vim.cmd("split | terminal cd " .. dir .. " && go test .")
+		end, { buffer = true, desc = "Go: Test current package" })
+		keymap.set("n", "<leader>Ga", function()
+			vim.cmd("split | terminal cd " .. dir .. " && go test ./...")
+		end, { buffer = true, desc = "Go: Test all packages" })
+		keymap.set("n", "<leader>Gb", function()
+			vim.cmd("split | terminal cd " .. dir .. " && go build .")
+		end, { buffer = true, desc = "Go: Build current package" })
+	end,
+})
 

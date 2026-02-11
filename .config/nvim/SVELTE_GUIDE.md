@@ -94,7 +94,7 @@ pnpm dev                # Or npm run dev
 ### 4. Check Errors
 ```
 ]d                      # Next diagnostic
-<leader>d               # Show diagnostic details
+<leader>df              # Show diagnostic details (float)
 <leader>ca              # Code actions
 ```
 

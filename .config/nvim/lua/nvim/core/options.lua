@@ -138,7 +138,7 @@ opt.fillchars = {
 -- session options (required for auto-session to work correctly)
 opt.sessionoptions = "blank,buffers,curdir,folds,help,tabpages,winsize,winpos,terminal,localoptions"
 
--- Auto-reload files when changed on disk (for AI tools like Cursor, OpenCode)
+-- Auto-reload files when changed on disk (e.g. Cursor IDE, external editors)
 opt.autoread = true
 
 -- Filetype detection (must be set up early, before plugins load)

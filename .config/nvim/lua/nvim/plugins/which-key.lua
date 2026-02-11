@@ -17,6 +17,8 @@ return {
 		local colors = _G.alabaster_colors or {}
 		
 		which_key.setup({
+			-- Don't pop up "issues reported" (overlaps/duplicates); use :checkhealth which-key to inspect
+			notify = false,
 			plugins = {
 				marks = true,
 				registers = true,
@@ -48,9 +50,11 @@ return {
 			},
 			show_help = true,
 			show_keys = true,
-			triggers = { "<leader>" },
+			-- Show which-key for <leader> and for ]/[ so plugin/default nav keys (]c, [c, ]b, etc.) are visible
+			triggers = { "<leader>", "]", "[" },
 		})
 
+		-- Keys are defined in keymaps.lua and plugin configs (with desc); we register them here so they show in which-key.
 		which_key.add({
 			-- Groups with consistent icons
 			{ "<leader>a", group = "󰚩 AI" },
@@ -60,20 +64,25 @@ return {
 			{ "<leader>e", group = "󰉋 Explorer" },
 			{ "<leader>f", group = "󰱼 Find (Telescope)" },
 			{ "<leader>g", group = "󰬴 Case" },
+			{ "<leader>G", group = "󰟓 Go" },
+			{ "<leader>Gr", desc = "󰟓 Run current file" },
+			{ "<leader>Gt", desc = "󰟓 Test package" },
+			{ "<leader>Ga", desc = "󰟓 Test all packages" },
+			{ "<leader>Gb", desc = "󰟓 Build" },
 			{ "<leader>h", group = "󰊢 Git Hunk" },
 			{ "<leader>H", group = "󰖟 HTTP" },
 			{ "<leader>l", group = "󰀂 Live server / LazyGit" },
 			{ "<leader>m", group = "󰍍 Markdown/Format" },
 			{ "<leader>n", group = "󰐊 Clear/Number" },
 			{ "<leader>o", group = "󰋩 Obsidian" },
-			{ "<leader>-", group = "󰏖 Oil" },
+			{ "<leader>-", group = "󰏖 Oil", desc = "󰏖 Oil (floating)" },
 			{ "<leader>r", group = "󰑄 Rename/Restart" },
 			{ "<leader>s", group = "󰜁 Svelte" },
 			{ "<leader>t", group = "󰔃 Tab/Toggle/Spell" },
 			{ "<leader>z", group = "󰆍 Terminal" },
 			{ "<leader>u", group = "󰔡 UI Toggle" },
 			{ "<leader>v", group = "󰄳 Version/Checkpoint" },
-			{ "<leader>w", group = "󰆓 Save/Window/Session" },
+			{ "<leader>w", group = "󰆓 Save/Window/Session", desc = "󰆓 Save file" },
 			{ "<leader>x", group = "󰔫 Trouble" },
 			{ "<leader>y", group = "󰆒 Yank path" },
 
@@ -84,44 +93,19 @@ return {
 			{ "<leader>ct", desc = "󰏘 Toggle colorscheme" },
 			
 			-- Quick actions
-			{ "<leader>w", desc = "󰆓 Save file" },
-			{ "<leader>W", desc = "󰆓 Save all files" },
+			{ "<leader>ww", desc = "󰆓 Save all files" },
 			{ "<leader>q", desc = "󰅙 Quit window" },
-			{ "<leader>Q", desc = "󰅚 Force quit window" },
+			{ "<leader>qq", desc = "󰅚 Force quit window" },
 			{ "<leader>sr", desc = "󰛔 Search and replace word", mode = { "n", "v" } },
 			
-			-- AI Tools (all under <leader>a)
-		-- OpenCode (lowercase = common, uppercase = project)
-		{ "<leader>ao", desc = "󰚩 OpenCode" },
-		{ "<leader>ai", desc = "󰆐 Input window" },
-		{ "<leader>aO", desc = "󰨞 Output window" },
-		{ "<leader>aq", desc = "󰅙 Close" },
-		{ "<leader>ac", desc = "󰭻 Chat" },
-		-- Send Context
-		{ "<leader>as", desc = "󰒅 Send selection", mode = "v" },
-		{ "<leader>af", desc = "󰈔 Send file" },
-		{ "<leader>ab", desc = "󰅩 Send block" },
-		{ "<leader>ad", desc = "󰔫 Send diagnostics" },
-		{ "<leader>al", desc = "󰉿 Send line" },
-		{ "<leader>ae", desc = "󰅚 Send error" },
-		{ "<leader>ag", desc = "󰊢 Send git diff" },
-		-- Project Context
-		{ "<leader>aP", desc = "󰙅 Project structure" },
-		{ "<leader>aG", desc = "󰱼 Files by pattern" },
-		{ "<leader>aK", desc = "󰈔 Key files" },
-		{ "<leader>aD", desc = "󰉋 Directory" },
-		{ "<leader>aL", desc = "󰜘 Git log" },
-		-- Utils
-		{ "<leader>ap", desc = "󰉋 Copy file path" },
-		{ "<leader>a?", desc = "󰋼 Help" },
-		-- Windsurf/Codeium
-		{ "<leader>aw", desc = "󱚟 Windsurf toggle" },
-		{ "<leader>aC", desc = "󰭹 Windsurf chat" },
-		{ "<leader>aA", desc = "󰷖 Windsurf auth" },
-		{ "<leader>aS", desc = "󰋼 Windsurf status" },
-		{ "<leader>aJ", desc = "󰚩 Cursor Agent (cwd)" },
-		{ "<leader>aj", desc = "󰚩 Cursor Agent (root)" },
-		{ "<leader>aT", desc = "󰚩 Cursor Agent sessions" },
+			-- AI (Codeium/Windsurf + Cursor Agent)
+			{ "<leader>aw", desc = "󱚟 Codeium toggle" },
+			{ "<leader>ac", desc = "󰭹 Codeium chat" },
+			{ "<leader>aa", desc = "󰷖 Codeium auth" },
+			{ "<leader>as", desc = "󰋼 Codeium status" },
+			{ "<leader>al", desc = "󰚩 Cursor Agent (cwd)" },
+			{ "<leader>aj", desc = "󰚩 Cursor Agent (root)" },
+			{ "<leader>at", desc = "󰚩 Cursor Agent sessions" },
 
 			-- Explorer (nvim-tree)
 			{ "<leader>ee", desc = "󰉋 Toggle tree" },
@@ -141,9 +125,6 @@ return {
 			{ "<leader>oo", desc = "󰋩 Open in Obsidian app" },
 			{ "<leader>oc", desc = "󰋩 Toggle checkbox", mode = { "n", "v" } },
 
-			-- Oil (parent dir / edit dir)
-			{ "<leader>-", desc = "󰏖 Oil (floating)" },
-
 			-- Find (telescope) with icons
 			{ "<leader>ff", desc = "󰱼 Fuzzy find files in cwd" },
 			{ "<leader>fr", desc = "󰄉 Fuzzy find recent files" },
@@ -151,11 +132,6 @@ return {
 			{ "<leader>fc", desc = "󰊢 Find string under cursor in cwd" },
 			{ "<leader>ft", desc = "󰔫 Find todos" },
 			{ "<leader>fb", desc = "󰈔 Open telescope buffers" },
-			
-			
-			-- Flash navigation with icons
-			{ "<leader>j", desc = "󰥔 Flash jump" },
-			{ "<leader>S", desc = "󰨞 Flash Treesitter" },
 
 			-- Format with icons
 			{ "<leader>mp", desc = "󰨞 Format file or range" },
@@ -181,8 +157,8 @@ return {
 			{ "gR", desc = "󰞔 References (Telescope)" },
 			{ "<leader>ca", desc = "󰨞 Code action" },
 			{ "<leader>rn", desc = "󰑓 Rename" },
-			{ "<leader>D", desc = "󰔫 Diagnostics (Telescope)" },
-			{ "<leader>d", desc = "󰔫 Line diagnostic" },
+			{ "<leader>dl", desc = "󰔫 Diagnostics (Telescope)" },
+			{ "<leader>df", desc = "󰔫 Line diagnostic (float)" },
 			{ "<leader>rs", desc = "󰑄 Restart LSP" },
 			
 			-- UI toggles
@@ -196,9 +172,9 @@ return {
 
 			-- Live Server
 			{ "<leader>ls", desc = "󰀂 Start live server" },
-			{ "<leader>lS", desc = "󰋼 Live server status" },
+			{ "<leader>lz", desc = "󰋼 Live server status" },
 			{ "<leader>lc", desc = "󰅙 Stop serving directory" },
-			{ "<leader>lC", desc = "󰅙 Stop all live servers" },
+			{ "<leader>lx", desc = "󰅙 Stop all live servers" },
 			{ "<leader>ll", desc = "󰌱 Live server log" },
 
 			-- HTTP Client
@@ -214,16 +190,16 @@ return {
 			-- Git Hunks (gitsigns) with icons
 			{ "<leader>hs", desc = "󰐖 Stage hunk" },
 			{ "<leader>hr", desc = "󰍴 Reset hunk" },
-			{ "<leader>hS", desc = "󰐖 Stage buffer" },
-			{ "<leader>hR", desc = "󰍴 Reset buffer" },
+			{ "<leader>hx", desc = "󰐖 Stage buffer" },
+			{ "<leader>he", desc = "󰍴 Reset buffer" },
 			{ "<leader>hu", desc = "󰑄 Undo stage hunk" },
 			{ "<leader>hp", desc = "󰨞 Preview hunk" },
 			{ "<leader>hb", desc = "󰊢 Blame line" },
-			{ "<leader>hB", desc = "󰊢 Toggle line blame" },
+			{ "<leader>hl", desc = "󰊢 Toggle line blame" },
 			{ "<leader>hd", desc = "󰐖 Diff this" },
-			{ "<leader>hD", desc = "󰐖 Diff this ~" },
-			{ "[h", desc = "󰅝 Previous git hunk" },
-			{ "]h", desc = "󰅞 Next git hunk" },
+			{ "<leader>hy", desc = "󰐖 Diff this ~" },
+			{ "[c", desc = "󰅝 Previous git hunk" },
+			{ "]c", desc = "󰅞 Next git hunk" },
 
 			-- Todo comments
 			{ "[t", desc = "󰅝 Previous todo comment" },
@@ -233,7 +209,7 @@ return {
 			{ "[b", desc = "󰅝 Previous buffer" },
 			{ "]b", desc = "󰅞 Next buffer" },
 			{ "<leader>bd", desc = "󰅙 Delete buffer" },
-			{ "<leader>bD", desc = "󰅙 Force delete buffer" },
+			{ "<leader>bx", desc = "󰅙 Force delete buffer" },
 			
 			-- Quickfix navigation
 			{ "[q", desc = "󰅝 Previous quickfix item" },
@@ -263,7 +239,7 @@ return {
 			{ "<leader>tc", desc = "󰅙 Close tab" },
 			{ "<leader>to", desc = "󰅙 Close other tabs" },
 			{ "<leader>tp", desc = "󰅝 Previous tab" },
-			{ "<leader>tN", desc = "󰅞 Next tab" },
+			{ "<leader>tj", desc = "󰅞 Next tab" },
 			{ "<leader>tm", desc = "󰅟 Move tab" },
 			{ "<leader>t1", desc = "󰎤 Tab 1" },
 			{ "<leader>t2", desc = "󰎧 Tab 2" },
@@ -304,8 +280,8 @@ return {
 			{ "<leader>sv", desc = "󰑓 Source init.lua" },
 			
 			-- File reload (for AI tool changes)
-			{ "<leader>R", desc = "󰑓 Reload buffers from disk" },
-			{ "<leader>U", desc = "󰕌 Undo to previous save" },
+			{ "<leader>rr", desc = "󰑓 Reload buffers from disk" },
+			{ "<leader>uu", desc = "󰕌 Undo to previous save" },
 			
 			-- Yank path to clipboard
 			{ "<leader>yp", desc = "󰆒 Yank full path" },
@@ -340,10 +316,10 @@ return {
 			{ "<leader>vr", desc = "󰕌 Restore checkpoint" },
 			{ "<leader>vd", desc = "󰒕 Diff with checkpoint" },
 			{ "<leader>vx", desc = "󰩺 Delete checkpoint" },
-			{ "<leader>vC", desc = "󰄳 Checkpoint open files" },
-			{ "<leader>vP", desc = "󰄳 Checkpoint entire project" },
-			{ "<leader>vR", desc = "󰕌 Restore all files" },
-			{ "<leader>vS", desc = "󰒕 Show all changes" },
+			{ "<leader>vh", desc = "󰄳 Checkpoint open files" },
+			{ "<leader>vj", desc = "󰄳 Checkpoint entire project" },
+			{ "<leader>vk", desc = "󰕌 Restore all files" },
+			{ "<leader>vl", desc = "󰒕 Show all changes" },
 
 		})
 	end,

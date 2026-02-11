@@ -377,7 +377,7 @@ function M.show_session_diff()
 	
 	-- Add keymaps
 	vim.keymap.set("n", "q", ":tabclose<CR>", { buffer = diff_buf, silent = true })
-	vim.keymap.set("n", "<leader>vR", function()
+	vim.keymap.set("n", "<leader>vk", function()
 		vim.cmd("tabclose")
 		M.restore_session_checkpoint()
 	end, { buffer = diff_buf, silent = true, desc = "Restore session from diff" })

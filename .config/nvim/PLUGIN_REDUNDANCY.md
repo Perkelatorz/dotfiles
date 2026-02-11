@@ -16,10 +16,10 @@ Quick overview of redundant or overlapping plugins in your Neovim config.
 ## Overlap (optional to trim)
 
 ### 2. **Diagnostics: Telescope vs Trouble**
-- **Telescope (LSP):** `<leader>D` = buffer diagnostics, `<leader>d` = line diagnostic float.
+- **Telescope (LSP):** `<leader>dl` = buffer diagnostics, `<leader>df` = line diagnostic float.
 - **Trouble:** `<leader>xw` = workspace diagnostics, `<leader>xd` = document diagnostics, `<leader>xq` = quickfix, `<leader>xl` = loclist, `<leader>xt` = todos.
 - **Overlap:** Both can show diagnostics. Telescope is a one-off picker; Trouble is a persistent list (quickfix/loclist/todos).
-- **Recommendation:** Keep both unless you never use Trouble. If you only use `<leader>D` and `<leader>d`, you could remove Trouble and its keybindings—but you’d lose the Trouble list UI for quickfix/loclist/todos.
+- **Recommendation:** Keep both unless you never use Trouble. If you only use `<leader>dl` and `<leader>df`, you could remove Trouble and its keybindings—but you’d lose the Trouble list UI for quickfix/loclist/todos.
 
 ### 3. **Plenary.nvim**
 - Declared in `init.lua` and as a dependency of Codeium, Telescope, todo-comments, lazygit.
@@ -36,7 +36,7 @@ Quick overview of redundant or overlapping plugins in your Neovim config.
 | **friendly-snippets** + **nvim-svelte-snippets** | General VS Code–style snippets vs Svelte-only snippets; both feed LuaSnip. |
 | **Comment.nvim** + **nvim-ts-context-commentstring** | Comment does the keymap/commenting; ts-context-commentstring provides the comment string (e.g. `//` vs `<!--`). |
 | **conform.nvim** | Only formatter (format-on-save, `<leader>mp`); no duplicate formatter. |
-| **Codeium** + **OpenCode** + **Kulala** | Codeium = inline completion; OpenCode = AI assistant; Kulala = HTTP/REST client. |
+| **Codeium** + **Kulala** | Codeium = inline AI completion; Kulala = HTTP/REST client. |
 | **markdown-preview** + **prelive** | Markdown preview in browser vs live static file server; different use cases. |
 | **lualine** + **tabline** (core) | Lualine = statusline (bottom); tabline = tab bar (top). |
 

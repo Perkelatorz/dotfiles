@@ -15,7 +15,7 @@ Summary of keybinding review and changes made.
 - **Result:** `<leader>f` is only for Find (Telescope); `<leader>y` is for yanking paths.
 
 ### 2. **Which-key group labels**
-- `<leader>d`: "Diff" → **"Diagnostics/Diff"** (covers `<leader>d`, `<leader>D`, `<leader>dt`, `do`, `du`).
+- `<leader>d`: "Diff" → **"Diagnostics/Diff"** (covers `<leader>df`, `<leader>dl`, `<leader>dt`, `do`, `du`).
 - `<leader>l`: "Lazy" → **"Live server / LazyGit"** (covers live server + LazyGit).
 - `<leader>m`: "Markdown" → **"Markdown/Format"** (covers preview and `<leader>mp` format).
 - `<leader>w`: **"Save/Window/Session"** (save, window resize, session).
@@ -27,26 +27,26 @@ Summary of keybinding review and changes made.
 
 | Prefix | Group | Examples |
 |--------|--------|----------|
-| `<leader>a` | AI | OpenCode, Codeium, Cursor Agent (ao, aw, aj, aJ, aT…) |
-| `<leader>b` | Buffer | bd, bD, [b, ]b |
+| `<leader>a` | AI | Codeium (aw, ac, aa, as), Cursor Agent (aj, al, at) |
+| `<leader>b` | Buffer | bd, bx, [b, ]b |
 | `<leader>c` | Code | ca (code action), ct (colorscheme), ch (color highlighter), cs (CSV) |
-| `<leader>d` | Diagnostics/Diff | d (line diag), D (Telescope diag), dt, do, du |
+| `<leader>d` | Diagnostics/Diff | df (line diag), dl (Telescope diag), dt, do, du |
 | `<leader>e` | Explorer | ee, ef, ec, er (nvim-tree) |
 | `<leader>f` | Find | ff, fr, fs, fc, ft, fb (Telescope) |
 | `<leader>g` | Case | gu, gl, g~ (uppercase, lowercase, toggle) |
-| `<leader>h` | Git hunk | hs, hr, hp, hb, hB, hd, hD, [h, ]h |
+| `<leader>h` | Git hunk | hs, hr, hx, he, hp, hb, hl, hd, hy, [c, ]c |
 | `<leader>H` | HTTP (Kulala) | Hr, Ht, H[, H], Hi, Hc, Hs, Hq |
-| `<leader>l` | Live/LazyGit | ls, lS, lc, lC, ll (live server), lg (LazyGit) |
+| `<leader>l` | Live/LazyGit | ls, lz, lc, lx, ll (live server), lg (LazyGit) |
 | `<leader>m` | Markdown/Format | mv, ms (preview), mp (format) |
 | `<leader>n` | Clear/Number | nh (nohl), +, =, nx, nr |
-| `<leader>q` | Quit | q, Q |
-| `<leader>r` | Rename/Restart | rn (rename), rs (LSP restart) |
+| `<leader>q` | Quit | q, qq |
+| `<leader>r` | Rename/Restart | rn (rename), rs (LSP restart), rr (reload) |
 | `<leader>s` | Svelte/Search | sc, sp, sl (Svelte), sr (search-replace) |
-| `<leader>t` | Tab/Toggle/Spell | tn, tc, to, tp, tN, tm, t1–5, tr, tw, tl, ts |
+| `<leader>t` | Tab/Toggle/Spell | tn, tc, to, tp, tj (next tab), tm, t1–5, tr, tw, tl, ts |
 | `<leader>z` | Terminal | zt, zf, zv, zx |
 | `<leader>u` | UI toggle | uh (inlay hints), uv (virtual text diag) |
-| `<leader>v` | Version/Checkpoint | vc, vr, vd, vx, vC, vP, vR, vS |
-| `<leader>w` | Save/Window/Session | w, W, w=, w\|, w_, wr, ws |
+| `<leader>v` | Version/Checkpoint | vc, vr, vd, vx, vh, vj, vk, vl |
+| `<leader>w` | Save/Window/Session | w, ww, w=, w\|, w_, wr, ws |
 | `<leader>x` | Trouble | xw, xd, xq, xl, xt |
 | `<leader>y` | Yank path | yp, yr, yn |
 | `<leader>-` | Oil | Oil (floating) |
@@ -63,7 +63,7 @@ Summary of keybinding review and changes made.
 | `[q` `]q` `[Q` `]Q` | Quickfix |
 | `[l` `]l` `[L` `]L` | Location list |
 | `[d` `]d` `[D` `]D` | Diagnostics / errors only |
-| `[h` `]h` | Git hunks |
+| `[c` `]c` | Git hunks (gitsigns default) |
 | `[s` `]s` | Spell |
 | `[t` `]t` | Todo comments |
 | `gR` | LSP references (Telescope) |
@@ -79,7 +79,7 @@ Summary of keybinding review and changes made.
    Single-key `<leader>w` is save; `<leader>wr`/`ws` are session. No conflict; optional: session under `<leader>S` (capital) if you want “S = Session”.
 
 3. **Consistency**  
-   Most prefixes are lowercase; `<leader>D` (diagnostics) and `<leader>Q` (force quit) use capital for “stronger” action, which is consistent.
+   Custom bindings use lowercase second key where possible; only G and H use a capital prefix to avoid conflict with g (case) and h (git).
 
 ---
 
