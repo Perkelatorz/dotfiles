@@ -1,6 +1,6 @@
 # AI Configuration Summary
 
-This Neovim configuration includes three AI tools for different use cases:
+This Neovim configuration includes AI tools: Codeium (completion) and Cursor Agent (CLI).
 
 ## 🤖 AI Tools Overview
 
@@ -30,9 +30,9 @@ This Neovim configuration includes three AI tools for different use cases:
 
 **Keybindings:**
 - `<leader>aw` - Toggle Windsurf on/off
-- `<leader>aC` - Open Windsurf Chat (browser)
-- `<leader>aA` - Authenticate Windsurf
-- `<leader>aS` - Show Windsurf status
+- `<leader>ac` - Open Codeium Chat (browser)
+- `<leader>aa` - Authenticate Codeium
+- `<leader>as` - Show Codeium status
 
 **Commands:**
 - `:Codeium Auth` - Authenticate (first time setup)
@@ -42,16 +42,15 @@ This Neovim configuration includes three AI tools for different use cases:
 
 ---
 
-### 2. **OpenCode** - AI Assistant
-**Best for:** Interactive AI coding assistance
+### 2. **Cursor Agent** (cursor-agent.nvim)
+**Best for:** Using Cursor CLI from Neovim (project root or cwd)
 
 **Keybindings:**
-- `<leader>ao` - Launch OpenCode
-- `<leader>aog` - Toggle OpenCode window
-- `<leader>aoi` - Open input window
-- `<leader>aoo` - Open output window
-- `<leader>aoq` - Close UI windows
-- `<leader>ao/` - Quick chat
+- `<leader>aj` - Cursor Agent at project root
+- `<leader>al` - Cursor Agent in current directory
+- `<leader>at` - Session list
+
+See `CURSOR_CLI_SETUP.md` for install and usage.
 
 ---
 
@@ -86,9 +85,9 @@ export ANTHROPIC_API_KEY="your-key-here"
 
 | Tool | Use Case | Cost |
 |------|----------|------|
-| **Windsurf** | Auto-complete code as you type | Free |
-| **OpenCode** | Interactive coding assistance | Free |
-| **CodeCompanion** | Chat about code, get explanations | Requires API key |
+| **Codeium (Windsurf)** | Auto-complete as you type | Free |
+| **Cursor Agent** | Cursor CLI from Neovim | Cursor subscription |
+| **CodeCompanion** | Chat about code (if configured) | Requires API key |
 
 ---
 
@@ -105,9 +104,9 @@ export ANTHROPIC_API_KEY="your-key-here"
 2. Press `<leader>ac` to open chat
 3. Ask questions or request code
 
-### For AI Assistant (OpenCode):
-1. Press `<leader>ao`
-2. Start interacting!
+### For Cursor Agent:
+1. Install Cursor CLI (see CURSOR_CLI_SETUP.md)
+2. Press `<leader>aj` or `<leader>al` to open Agent
 
 ---
 
@@ -157,9 +156,9 @@ def calculate_fibonacci(|
 
 ## ⚙️ Configuration Files
 
-- **Windsurf/Codeium:** `~/.config/nvim/lua/nvim/plugins/codeium.lua`
-- **OpenCode:** `~/.config/nvim/lua/nvim/plugins/opencode.lua`
-- **CodeCompanion:** `~/.config/nvim/lua/nvim/plugins/codecompanion.lua`
+- **Codeium:** `~/.config/nvim/lua/nvim/plugins/codeium.lua`
+- **Cursor Agent:** `~/.config/nvim/lua/nvim/plugins/cursor-agent.lua`
+- **CodeCompanion** (if used): `~/.config/nvim/lua/nvim/plugins/codecompanion.lua`
 - **nvim-cmp:** `~/.config/nvim/lua/nvim/plugins/nvim-cmp.lua`
 
 ---
@@ -290,25 +289,21 @@ Edit `codeium.lua` and change `accept = "<Tab>"` to another key like `<C-y>`
 
 ## 📝 Notes
 
-- **Windsurf/Codeium** runs locally but connects to cloud for AI
-- **OpenCode** is free and open source
-- **CodeCompanion** requires paid Anthropic API access
-- All three can be used together or independently
-- Disable any tool by removing/commenting its plugin file
+- **Codeium** runs locally but connects to cloud for AI (free tier)
+- **Cursor Agent** uses Cursor CLI (requires Cursor subscription for full use)
+- Disable any tool by removing or commenting out its plugin file
 
 ---
 
 ## 🎓 Tips & Best Practices
 
 1. **Use the right tool for the job:**
-   - Quick completions → Windsurf inline
-   - Complex refactoring → OpenCode or CodeCompanion chat
-   - Learning/explaining → CodeCompanion
+   - Quick completions → Codeium inline (Alt+y to accept)
+   - Cursor workflows → Cursor Agent from Neovim (`<leader>aj` / `al`)
 
 2. **Combine tools:**
-   - Get inline suggestion from Windsurf
-   - Ask CodeCompanion to explain it
-   - Use OpenCode to refactor it
+   - Get inline suggestion from Codeium
+   - Use Cursor Agent for larger edits or chat
 
 3. **Manage performance:**
    - Disable Windsurf in large files if needed

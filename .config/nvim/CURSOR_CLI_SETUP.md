@@ -34,8 +34,8 @@ You must be signed in to Cursor (e.g. in the Cursor app or at [cursor.com](https
 | Key            | Action                          |
 |----------------|----------------------------------|
 | `<leader>aj`   | Cursor Agent at **project root** |
-| `<leader>aJ`   | Cursor Agent in **current dir**  |
-| `<leader>aT`   | List / resume **sessions**       |
+| `<leader>al`   | Cursor Agent in **current dir**  |
+| `<leader>at`   | List / resume **sessions**       |
 
 ### Commands
 
@@ -71,4 +71,4 @@ agent -p "find and fix performance issues" --model "gpt-5.2"
 - **Cursor IDE:** full editor + AI (you’re not using this for editing).
 - **Cursor CLI + Neovim:** you edit in Neovim and run Cursor Agent in a terminal (inside or outside Neovim) for tasks, refactors, and reviews.
 
-After installing the CLI and restarting Neovim, `<leader>aj` or `<leader>aJ` should open the Cursor Agent terminal.
+After installing the CLI and restarting Neovim, `<leader>aj` or `<leader>al` should open the Cursor Agent terminal.

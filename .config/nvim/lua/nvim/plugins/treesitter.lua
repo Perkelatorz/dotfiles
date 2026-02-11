@@ -157,6 +157,72 @@
 			end,
 			desc = "Enable treesitter folding for supported filetypes",
 		})
-		
+
+		-- Highlight bracket pair in red when cursor is *inside* them (not only when on a bracket)
+		local bracket_ns = vim.api.nvim_create_namespace("bracket_inside")
+		local open_brackets = { ["("] = true, ["["] = true, ["{"] = true }
+		local close_brackets = { [")"] = true, ["]"] = true, ["}"] = true }
+
+		local function get_char(bufnr, row, col)
+			local line = vim.api.nvim_buf_get_lines(bufnr, row, row + 1, false)
+			if not line or not line[1] then return nil end
+			return line[1]:sub(col + 1, col + 1)
+		end
+
+		local function find_enclosing_pair(bufnr, cursor_row, cursor_col)
+			local ok, parser = pcall(vim.treesitter.get_parser, bufnr)
+			if not ok or not parser then return nil end
+			local parsed = parser:parse()
+			local root = parsed[1] and parsed[1]:root()
+			if not root then return nil end
+
+			local function spans_brackets(node)
+				local sr, sc, er, ec = node:range()
+				local open_ch = get_char(bufnr, sr, sc)
+				local close_ch = get_char(bufnr, er, math.max(0, ec - 1))
+				return open_ch and close_ch and open_brackets[open_ch] and close_brackets[close_ch]
+			end
+
+			local function cursor_inside(node)
+				local sr, sc, er, ec = node:range()
+				if cursor_row < sr or cursor_row > er then return false end
+				if cursor_row == sr and cursor_col <= sc then return false end
+				if cursor_row == er and cursor_col >= ec - 1 then return false end
+				return true
+			end
+
+			local best = nil
+			local function visit(node)
+				local ok = pcall(function()
+					if not spans_brackets(node) then
+						for child, _ in node:iter_children() do visit(child) end
+						return
+					end
+					if cursor_inside(node) then
+						best = node
+						for child, _ in node:iter_children() do visit(child) end
+					end
+				end)
+				if not ok then end -- ignore invalid nodes
+			end
+			visit(root)
+			return best
+		end
+
+		local function bracket_highlight()
+			local bufnr = vim.api.nvim_get_current_buf()
+			vim.api.nvim_buf_clear_namespace(bufnr, bracket_ns, 0, -1)
+			local row, col = vim.api.nvim_win_get_cursor(0)[1] - 1, vim.api.nvim_win_get_cursor(0)[2]
+			local node = find_enclosing_pair(bufnr, row, col)
+			if not node then return end
+			local sr, sc, er, ec = node:range()
+			vim.api.nvim_buf_add_highlight(bufnr, bracket_ns, "MatchParen", sr, sc, sc + 1)
+			vim.api.nvim_buf_add_highlight(bufnr, bracket_ns, "MatchParen", er, math.max(0, ec - 1), ec)
+		end
+
+		vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
+			callback = bracket_highlight,
+			desc = "Highlight bracket pair when cursor is inside",
+		})
 	end,
 }

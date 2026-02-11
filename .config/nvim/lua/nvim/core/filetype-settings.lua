@@ -14,9 +14,24 @@ local settings_by_ft = {
 	go = {
 		tabstop = 4,
 		shiftwidth = 4,
-		expandtab = false, -- Use hard tabs
+		expandtab = false, -- Use hard tabs (Go convention)
 		textwidth = 120,
 		colorcolumn = "120",
+	},
+	gomod = {
+		tabstop = 4,
+		shiftwidth = 4,
+		expandtab = false,
+	},
+	gowork = {
+		tabstop = 4,
+		shiftwidth = 4,
+		expandtab = false,
+	},
+	gosum = {
+		tabstop = 4,
+		shiftwidth = 4,
+		expandtab = false,
 	},
 	cs = {
 		tabstop = 4,

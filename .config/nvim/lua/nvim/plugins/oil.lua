@@ -40,28 +40,8 @@ return {
 			},
 			constrain_cursor = "editable",
 			watch_for_changes = false,
-			keymaps = {
-				-- keep helpful mappings but avoid common nvim-tree conflicts
-				["g?"] = { "actions.show_help", mode = "n" },
-				["<CR>"] = "actions.select",
-				["<C-s>"] = { "actions.select", opts = { vertical = true } },
-				["<C-h>"] = { "actions.select", opts = { horizontal = true } },
-				["<C-t>"] = { "actions.select", opts = { tab = true } },
-				["<C-p>"] = "actions.preview",
-				["<C-c>"] = { "actions.close", mode = "n" },
-				["q"] = { "actions.close", mode = "n" },
-				["<C-l>"] = "actions.refresh",
-				["-"] = { "actions.parent", mode = "n" },
-				["_"] = { "actions.open_cwd", mode = "n" },
-				["`"] = { "actions.cd", mode = "n" },
-				["~"] = { "actions.cd", opts = { scope = "tab" }, mode = "n" },
-				["gs"] = { "actions.change_sort", mode = "n" },
-				["gx"] = "actions.open_external",
-				["g."] = { "actions.toggle_hidden", mode = "n" },
-				["g\\"] = { "actions.toggle_trash", mode = "n" },
-			},
-			-- disable use_default_keymaps so we can set our own non-conflicting mappings
-			use_default_keymaps = false,
+			-- Use Oil's default keymaps (g? help, Space select, - parent, g. hidden, etc.)
+			use_default_keymaps = true,
 			view_options = {
 				show_hidden = false,
 				is_hidden_file = function(name, bufnr)
