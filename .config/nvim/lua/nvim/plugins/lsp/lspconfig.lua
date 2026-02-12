@@ -42,9 +42,9 @@ return {
 			opts.desc = "Buffer diagnostics"
 			keymap.set("n", "<leader>dl", "<cmd>Telescope diagnostics bufnr=0<CR>", opts)
 
-			-- Diagnostic float (quick view); <leader>df to avoid conflict with dd (delete line)
-			opts.desc = "Line diagnostics"
-			keymap.set("n", "<leader>df", vim.diagnostic.open_float, opts)
+			-- Diagnostic float (quick view); <leader>dd to avoid conflict with Flash on "f"
+			opts.desc = "Line diagnostics (float)"
+			keymap.set("n", "<leader>dd", vim.diagnostic.open_float, opts)
 
 			-- Restart LSP
 			opts.desc = "Restart LSP"

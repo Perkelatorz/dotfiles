@@ -12,6 +12,9 @@ keymap.set("i", "jk", "<ESC>", { desc = "Exit insert mode with jk" })
 -- clear search highlights
 keymap.set("n", "<leader>nh", ":nohl<CR>", { desc = "Clear search highlights" })
 
+-- LSP rename (global so <leader>rn always exists; in non-LSP buffers shows "No client")
+keymap.set("n", "<leader>rn", vim.lsp.buf.rename, { desc = "Rename symbol (LSP)" })
+
 -- increment/decrement numbers
 keymap.set("n", "<leader>+", "<C-a>", { desc = "Increment number" }) -- increment
 keymap.set("n", "<leader>=", "<C-x>", { desc = "Decrement number" }) -- decrement
@@ -70,11 +73,12 @@ keymap.set("n", "]l", ":lnext<CR>", { desc = "Next location list item" })
 keymap.set("n", "[L", ":lfirst<CR>", { desc = "First location list item" })
 keymap.set("n", "]L", ":llast<CR>", { desc = "Last location list item" })
 
--- Diagnostic navigation (already have <leader>d for float, add navigation)
+-- Diagnostic navigation and line diagnostic float
 keymap.set("n", "[d", vim.diagnostic.goto_prev, { desc = "Previous diagnostic" })
 keymap.set("n", "]d", vim.diagnostic.goto_next, { desc = "Next diagnostic" })
 keymap.set("n", "[D", function() vim.diagnostic.goto_prev({ severity = vim.diagnostic.severity.ERROR }) end, { desc = "Previous error" })
 keymap.set("n", "]D", function() vim.diagnostic.goto_next({ severity = vim.diagnostic.severity.ERROR }) end, { desc = "Next error" })
+keymap.set("n", "<leader>dd", vim.diagnostic.open_float, { desc = "Line diagnostics (float)" })
 
 -- Better command-line editing
 keymap.set("c", "<C-a>", "<Home>", { desc = "Move to beginning of line" })
@@ -94,9 +98,74 @@ keymap.set("i", "!", "!<C-g>u", { desc = "Add undo breakpoint at exclamation" })
 keymap.set("i", "?", "?<C-g>u", { desc = "Add undo breakpoint at question" })
 keymap.set("i", ";", ";<C-g>u", { desc = "Add undo breakpoint at semicolon" })
 
--- Better search and replace (populate command with word under cursor)
-keymap.set("n", "<leader>sr", [[:%s/\<<C-r><C-w>\>//g<Left><Left>]], { desc = "Search and replace word under cursor" })
-keymap.set("v", "<leader>sr", [[:s/\<<C-r><C-w>\>//g<Left><Left>]], { desc = "Search and replace in selection" })
+-- Find enclosing { } block (1-based line numbers). Returns start_line, end_line or nil.
+local function get_block_range()
+	local cursor_row = vim.api.nvim_win_get_cursor(0)[1]
+	local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+	local depth = 0
+	local start_line = nil
+	for i = cursor_row, 1, -1 do
+		local l = lines[i] or ""
+		for j = #l, 1, -1 do
+			local c = l:sub(j, j)
+			if c == "}" then
+				depth = depth + 1
+			elseif c == "{" then
+				if depth == 0 then
+					start_line = i
+					break
+				end
+				depth = depth - 1
+			end
+		end
+		if start_line then break end
+	end
+	if not start_line then return nil, nil end
+	depth = 0
+	local end_line = nil
+	for i = start_line, #lines do
+		local l = lines[i] or ""
+		for j = 1, #l do
+			local c = l:sub(j, j)
+			if c == "{" then
+				depth = depth + 1
+			elseif c == "}" then
+				depth = depth - 1
+				if depth == 0 then
+					end_line = i
+					break
+				end
+			end
+		end
+		if end_line then break end
+	end
+	return start_line, end_line
+end
+
+-- Search and replace word under cursor: in normal mode, only within current { } block
+keymap.set("n", "<leader>sr", function()
+	local word = vim.fn.expand("<cword>")
+	if word == "" then
+		vim.notify("No word under cursor", vim.log.levels.WARN)
+		return
+	end
+	local pat = vim.fn.escape(word, "\\/.*$^~[]")
+	local start_ln, end_ln = get_block_range()
+	local range = start_ln and end_ln and (start_ln .. "," .. end_ln) or "%"
+	local keys = ":" .. range .. "s/\\<" .. pat .. "\\>//g" .. vim.api.nvim_replace_termcodes("<Left><Left>", true, false, true)
+	vim.api.nvim_feedkeys(keys, "n", false)
+end, { desc = "Search and replace word in current block" })
+-- In visual mode: replace only in selection
+keymap.set("v", "<leader>sr", function()
+	local word = vim.fn.expand("<cword>")
+	if word == "" then
+		vim.notify("No word under cursor", vim.log.levels.WARN)
+		return
+	end
+	local pat = vim.fn.escape(word, "\\/.*$^~[]")
+	local keys = ":'<,'>s/\\<" .. pat .. "\\>//g" .. vim.api.nvim_replace_termcodes("<Left><Left>", true, false, true)
+	vim.api.nvim_feedkeys(keys, "n", false)
+end, { desc = "Search and replace in selection" })
 
 -- Tab management (gt/gT are default, adding leader shortcuts)
 keymap.set("n", "<leader>tn", ":tabnew<CR>", { desc = "New tab" })
@@ -183,10 +252,11 @@ keymap.set("n", "<leader>yn", ':let @+ = expand("%:t")<CR>:echo "Copied: " . exp
 
 -- Terminal (z = shell/terminal; keeps t for tabs/toggles/spell only)
 keymap.set("n", "<leader>zt", function() require("nvim.core.terminal").toggle_horizontal() end, { desc = "Toggle terminal" })
-keymap.set("t", "<leader>zt", "<C-\\><C-n>:lua require('nvim.core.terminal').toggle_horizontal()<CR>", { desc = "Toggle terminal" })
-keymap.set("n", "<leader>zf", function() require("nvim.core.terminal").toggle_float() end, { desc = "Toggle floating terminal" })
-keymap.set("n", "<leader>zv", function() require("nvim.core.terminal").toggle_vertical() end, { desc = "Toggle vertical terminal" })
-keymap.set("n", "<leader>zx", function() require("nvim.core.terminal").close_all() end, { desc = "Shutdown all terminals" })
+	keymap.set("t", "<leader>zt", "<C-\\><C-n>:lua require('nvim.core.terminal').toggle_horizontal()<CR>", { desc = "Toggle terminal" })
+	keymap.set("n", "<leader>zf", function() require("nvim.core.terminal").toggle_float() end, { desc = "Toggle floating terminal" })
+	keymap.set("n", "<leader>zv", function() require("nvim.core.terminal").toggle_vertical() end, { desc = "Toggle vertical terminal" })
+	keymap.set("n", "<leader>zx", function() require("nvim.core.terminal").close_all() end, { desc = "Shutdown all terminals" })
+	keymap.set("n", "<leader>zc", function() require("nvim.core.terminal").cd_to_file_dir() end, { desc = "Terminal: cd to current file dir" })
 
 -- Go: run/test/build (buffer-local, <leader>G = Go)
 vim.api.nvim_create_autocmd("FileType", {

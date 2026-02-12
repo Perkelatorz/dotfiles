@@ -14,88 +14,88 @@ return {
 			return
 		end
 
-		-- Get theme colors
-		local colors = _G.alabaster_colors or {}
-		
-		-- Clean, minimal statusline with subtle flair
+		-- Purpleator palette (from colorscheme: black bg, pastel purples)
+		local c = _G.alabaster_colors or {}
+		local colors = {
+			fg0 = c.fg0 or "#f2f0f4",
+			bg0 = c.bg0 or "#000000",
+			bg1 = c.bg1 or "#0d0c0f",
+			control = c.control or "#c4b5fd",
+			callable = c.callable or "#e9d5ff",
+			type = c.type or "#a5b4fc",
+			comment = c.comment or "#6b7280",
+			error = c.error or "#fca5a5",
+			warn = c.warn or "#fcd34d",
+			string_color = c.string_color or "#f9a8d4",
+		}
+
 		lualine.setup({
 			options = {
 				theme = "auto",
-				component_separators = { left = "", right = "" }, -- No separators for cleaner look
+				component_separators = { left = "", right = "▐" },
 				section_separators = { left = "", right = "" },
 				disabled_filetypes = {
 					statusline = { "alpha", "dashboard" },
 				},
-				globalstatus = true, -- Single statusline for all windows
+				globalstatus = true,
 			},
 			sections = {
 				lualine_a = {
 					{
 						"mode",
 						icons_enabled = true,
-						icon = nil,
 						fmt = function(str)
 							local mode_icons = {
-								n = "󰈔",
-								i = "󰌌",
-								v = "󰆍",
-								V = "󰆍",
-								["\22"] = "󰆍",
-								c = "󰘳",
-								s = "󰆐",
-								S = "󰆐",
-								["\19"] = "󰆐",
-								R = "󰒞",
-								r = "󰒞",
-								["!"] = "󰆍",
-								t = "󰆍",
+								n = "󰈔", i = "󰌌", v = "󰆍", V = "󰆍", ["\22"] = "󰆍",
+								c = "󰘳", s = "󰆐", S = "󰆐", ["\19"] = "󰆐",
+								R = "󰒞", r = "󰒞", ["!"] = "󰆍", t = "󰆍",
 							}
 							return (mode_icons[str] or "󰈔") .. " " .. str:sub(1, 1)
 						end,
-						separator = { left = "", right = "│" },
-						color = { fg = colors.fg0 or "#f0f0f0", bg = colors.bg1 or "#252030" },
+						separator = { left = "", right = "▐" },
+						color = { fg = colors.fg0, bg = colors.bg1 },
 					},
 				},
 				lualine_b = {
 					{
 						"branch",
 						icon = "󰘬",
-						separator = { left = "", right = "│" },
-						color = { fg = colors.green or "#5BF65B", gui = "bold" },
+						separator = { left = "", right = "▐" },
+						color = { fg = colors.control, gui = "bold" },
 					},
 					{
 						"diff",
 						symbols = { added = "󰐖 ", modified = "󰏬 ", removed = "󰍴 " },
-						separator = { left = "", right = "│" },
+						separator = { left = "", right = "▐" },
 						diff_color = {
-							added = { fg = colors.green or "#5BF65B" },
-							modified = { fg = colors.orange or "#f56600" },
-							removed = { fg = colors.red or "#d87070" },
+							added = { fg = colors.comment },
+							modified = { fg = colors.warn },
+							removed = { fg = colors.error },
 						},
 					},
 					{
 						"diagnostics",
 						symbols = { error = "󰅚 ", warn = "󰀪 ", info = "󰋽 ", hint = "󰌶 " },
-						separator = { left = "", right = "│" },
+						separator = { left = "", right = "▐" },
 						diagnostics_color = {
-							error = { fg = colors.red or "#d87070" },
-							warn = { fg = colors.orange or "#f56600" },
-							info = { fg = colors.cyan or "#8ab5b5" },
-							hint = { fg = colors.green or "#5BF65B" },
+							error = { fg = colors.error },
+							warn = { fg = colors.warn },
+							info = { fg = colors.type },
+							hint = { fg = colors.type },
 						},
 					},
 				},
 				lualine_c = {
 					{
 						"filename",
-						path = 1, -- Show full path
+						path = 1,
 						symbols = {
 							modified = " 󰏬",
 							readonly = " 󰌾",
 							unnamed = " 󰈔",
 							newfile = " 󰎔",
 						},
-						color = { fg = colors.fg0 or "#f0f0f0" },
+						color = { fg = colors.fg0 },
 					},
 				},
 				lualine_x = {
@@ -103,43 +103,39 @@ return {
 						"filetype",
 						icon_only = false,
 						icon = { align = "right" },
-						separator = { left = "│", right = "" },
-						color = { fg = colors.purple or "#9d8bc8" },
+						separator = { left = "▐", right = "" },
+						color = { fg = colors.control },
 					},
 					{
 						lazy_status.updates,
 						cond = lazy_status.has_updates,
-						color = { fg = colors.orange or "#f56600", gui = "bold" },
+						color = { fg = colors.warn, gui = "bold" },
 						icon = "󰑓",
-						separator = { left = "│", right = "" },
+						separator = { left = "▐", right = "" },
 					},
 					{
 						"encoding",
 						icon = "󰨞",
-						separator = { left = "│", right = "" },
-						color = { fg = colors.cyan or "#8ab5b5" },
+						separator = { left = "▐", right = "" },
+						color = { fg = colors.type },
 					},
 					{
 						"fileformat",
-						symbols = {
-							unix = "󰘧",
-							dos = "󰘧",
-							mac = "󰘧",
-						},
-						separator = { left = "│", right = "" },
-						color = { fg = colors.orange or "#f56600" },
+						symbols = { unix = "󰘧", dos = "󰘧", mac = "󰘧" },
+						separator = { left = "▐", right = "" },
+						color = { fg = colors.string_color },
 					},
 					{
 						"location",
 						icon = "󰦨",
-						separator = { left = "│", right = "" },
-						color = { fg = colors.cyan or "#8ab5b5" },
+						separator = { left = "▐", right = "" },
+						color = { fg = colors.type },
 					},
 					{
 						"progress",
 						icon = "󰦞",
-						separator = { left = "│", right = "" },
-						color = { fg = colors.green or "#5BF65B" },
+						separator = { left = "▐", right = "" },
+						color = { fg = colors.callable },
 					},
 				},
 				lualine_y = {},
