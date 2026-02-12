@@ -1,23 +1,24 @@
 return {
 	"folke/which-key.nvim",
-	event = "VeryLazy",
+	-- Load early so triggers are registered before user presses leader (VeryLazy was too late)
+	event = "VimEnter",
 	init = function()
 		vim.o.timeout = true
 		vim.o.timeoutlen = 500
 	end,
+	keys = {
+		{ "<leader>?", "<cmd>WhichKey<cr>", desc = "Which-key (show all keymaps)" },
+	},
 	config = function()
 		local utils = require("nvim.core.utils")
-		
+
 		local which_key, which_key_ok = utils.safe_require("which-key")
 		if not which_key_ok then
+			vim.notify("which-key.nvim failed to load", vim.log.levels.WARN)
 			return
 		end
 
-		-- Get theme colors
-		local colors = _G.alabaster_colors or {}
-		
 		which_key.setup({
-			-- Don't pop up "issues reported" (overlaps/duplicates); use :checkhealth which-key to inspect
 			notify = false,
 			plugins = {
 				marks = true,
@@ -38,20 +39,24 @@ return {
 			},
 			win = {
 				border = "rounded",
-				padding = { 1, 2 }, -- Extra padding for breathing room
+				padding = { 1, 2 },
 				title = true,
 				title_pos = "center",
 			},
 			layout = {
 				height = { min = 4, max = 25 },
 				width = { min = 20, max = 50 },
-				spacing = 4, -- More spacing between columns
+				spacing = 4,
 				align = "left",
 			},
 			show_help = true,
 			show_keys = true,
-			-- Show which-key for <leader> and for ]/[ so plugin/default nav keys (]c, [c, ]b, etc.) are visible
-			triggers = { "<leader>", "]", "[" },
+			-- v3 format: trigger key + mode. Omit "t" (terminal) so Space types a space in the terminal
+			triggers = {
+				{ " ", mode = "nixso" },
+				{ "]", mode = "n" },
+				{ "[", mode = "n" },
+			},
 		})
 
 		-- Keys are defined in keymaps.lua and plugin configs (with desc); we register them here so they show in which-key.
@@ -85,6 +90,7 @@ return {
 			{ "<leader>w", group = "󰆓 Save/Window/Session", desc = "󰆓 Save file" },
 			{ "<leader>x", group = "󰔫 Trouble" },
 			{ "<leader>y", group = "󰆒 Yank path" },
+			{ "<leader>?", desc = "󰌍 Show which-key (all keymaps)" },
 
 			-- Core keymaps
 			{ "<leader>nh", desc = "󰐊 Clear search highlights" },
@@ -145,6 +151,7 @@ return {
 			{ "<leader>zf", desc = "󰆍 Floating terminal" },
 			{ "<leader>zv", desc = "󰆍 Vertical terminal" },
 			{ "<leader>zx", desc = "󰔌 Shutdown all terminals" },
+			{ "<leader>zc", desc = "󰆍 Terminal: cd to current file dir" },
 
 			-- Trouble with icons
 			{ "<leader>xw", desc = "󰔫 Open trouble workspace diagnostics" },
@@ -158,7 +165,7 @@ return {
 			{ "<leader>ca", desc = "󰨞 Code action" },
 			{ "<leader>rn", desc = "󰑓 Rename" },
 			{ "<leader>dl", desc = "󰔫 Diagnostics (Telescope)" },
-			{ "<leader>df", desc = "󰔫 Line diagnostic (float)" },
+			{ "<leader>dd", desc = "󰔫 Line diagnostic (float)" },
 			{ "<leader>rs", desc = "󰑄 Restart LSP" },
 			
 			-- UI toggles

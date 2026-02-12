@@ -70,7 +70,8 @@ opt.inccommand = "split" -- show live preview of substitutions
 -- Better completion
 opt.completeopt = "menu,menuone,noselect"
 opt.pumheight = 10 -- maximum number of items in popup menu
-opt.pumblend = 10 -- popup menu transparency
+opt.pumblend = 12 -- popup menu transparency (completion, cmdline)
+opt.winblend = 8 -- floating windows blend with background (diagnostics, LSP, etc.)
 
 -- Faster completion and better experience
 opt.updatetime = 250 -- faster completion (default is 4000ms)

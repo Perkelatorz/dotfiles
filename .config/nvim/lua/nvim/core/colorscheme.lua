@@ -10,47 +10,54 @@ local current_theme = "custom" -- "custom" or "nightfox"
 function M.setup()
 	local utils = require("nvim.core.utils")
 
-	-- Color palette - Purpleator (poppy, semantic)
+	-- Color palette - Purpleator (purple background, varied purples, softer brightness)
 	--
-	-- Base: fg0/fg1 = main text; fg2/fg3 = dimmed. Data types: string / int / float each get a color.
-	-- Matching brackets turn red when cursor is between them (MatchParen).
+	-- Background: purple-tinted again (not pure black). Purples: violet / lavender / mauve so they're distinct.
+	-- Accent colors toned down so nothing is too bright. Comments faded gray.
 	--
 	local colors = {
-		-- Backgrounds (purple undertone)
+		-- Backgrounds: purple undertone (as before)
 		bg0 = "#1a1420",
 		bg1 = "#251d2e",
 		bg2 = "#30283c",
 		bg3 = "#3d344a",
-		-- Base font (variables, operators, most code)
+		-- Base font (warm light grays)
 		fg0 = "#e8e6e3",
 		fg1 = "#d4d0ca",
-		fg2 = "#a8a29e",
-		fg3 = "#78716c",
+		fg2 = "#a39fb0",
+		fg3 = "#6e6a78",
 
-		-- Semantic accents (poppy but readable)
-		control  = "#c4a8ff", -- keywords (violet)
-		callable = "#ffcb6b", -- functions (gold)
-		type     = "#80cbc4", -- types, classes (teal)
-		comment  = "#6a9a6a", -- comments (green-gray)
+		-- Purple family (distinct shades so not all the same)
+		control  = "#9d8bdd", -- keywords (violet, toned down)
+		purple_lavender = "#b8a5e8", -- package/namespace, secondary purple
+		purple_mauve   = "#7e6b9e", -- tags, tertiary purple
+		comment  = "#6b7280", -- comments (faded gray)
 
-		-- Data types (string vs int vs float)
-		string_color = "#f0a56b", -- strings (coral/peach)
-		int_color    = "#81d4fa", -- integers (light blue)
-		float_color  = "#a5d6a7", -- floats (mint green)
+		-- Semantic: complementary + enemy (softer so not harsh on purple bg)
+		callable = "#d4b84a", -- functions (muted gold)
+		type     = "#4ecdc4", -- types, classes (softer teal)
+		string_color = "#e89552", -- strings (softer coral)
+		int_color    = "#7eb8e8", -- integers (softer blue)
+		float_color  = "#6ed49a", -- floats (softer mint)
 
 		-- MatchParen: red when cursor between brackets
-		match_paren = "#ef5350",
+		match_paren = "#e05c5c",
 
-		-- Errors / warnings / attention
-		error = "#e57373",
-		warn  = "#ffb74d",
-		attention = "#ffb74d", -- TODO, FIXME, etc. (same as warn so they pop)
+		-- Errors / warnings / attention (softer)
+		error = "#e88a8a",
+		warn  = "#d4b84a",
+		attention = "#d4b84a",
 
-		-- UI
-		ui0 = "#b0b0b0",
-		ui1 = "#808080",
-		ui2 = "#505050",
-		ui3 = "#404040",
+		-- UI: varied purples + teal/gold accents (toned down)
+		ui0 = "#9d8bdd",   -- violet (matches keywords)
+		ui1 = "#b8a5e8",   -- lavender
+		ui2 = "#6b6378",   -- muted purple-gray
+		ui3 = "#554d60",   -- dim purple-gray
+		ui_teal = "#4ecdc4",
+		ui_gold = "#d4b84a",
+
+		-- Non-semantic: ghost/hint text
+		ghost = "#78716c",
 	}
 
 	-- Export colors globally for other tools to use
@@ -63,10 +70,13 @@ function M.setup()
 
 	-- Base highlights
 	vim.api.nvim_set_hl(0, "Normal", { fg = colors.fg0, bg = colors.bg0 })
-	vim.api.nvim_set_hl(0, "NormalFloat", { fg = colors.fg0, bg = colors.bg0 })
+	vim.api.nvim_set_hl(0, "NormalFloat", { fg = colors.fg0, bg = colors.bg1 })
 	vim.api.nvim_set_hl(0, "NormalNC", { fg = colors.fg2, bg = colors.bg0 })
+	-- Floating windows: border and title (pastel purple so they pop on black)
+	vim.api.nvim_set_hl(0, "FloatBorder", { fg = colors.ui1, bg = colors.bg1 })
+	vim.api.nvim_set_hl(0, "FloatTitle", { fg = colors.control, bg = colors.bg1, bold = true })
 
-	-- Cursor and line numbers
+	-- Cursor and line numbers (pastel purple for current line)
 	vim.api.nvim_set_hl(0, "CursorLine", { bg = colors.bg1, bold = false })
 	vim.api.nvim_set_hl(0, "CursorLineNr", { fg = colors.ui0, bg = colors.bg1, bold = true })
 	vim.api.nvim_set_hl(0, "LineNr", { fg = colors.ui2, bg = colors.bg0 })
@@ -76,18 +86,18 @@ function M.setup()
 	vim.api.nvim_set_hl(0, "SignColumn", { bg = colors.bg0 })
 	vim.api.nvim_set_hl(0, "ColorColumn", { bg = colors.bg1 })
 
-	-- Window separator
-	vim.api.nvim_set_hl(0, "WinSeparator", { fg = colors.ui3, bold = false })
+	-- Window separator (teal accent so UI has contrast)
+	vim.api.nvim_set_hl(0, "WinSeparator", { fg = colors.ui_teal, bold = false })
 
-	-- Indent guides (set early for indent-blankline)
-	vim.api.nvim_set_hl(0, "IndentBlanklineIndent1", { fg = colors.bg3, nocombine = true })
-	vim.api.nvim_set_hl(0, "IndentBlanklineIndent2", { fg = colors.bg2, nocombine = true })
+	-- Indent guides (subtle teal/slate so not all purple)
+	vim.api.nvim_set_hl(0, "IndentBlanklineIndent1", { fg = colors.ui3, nocombine = true })
+	vim.api.nvim_set_hl(0, "IndentBlanklineIndent2", { fg = colors.ui_teal, nocombine = true })
 
-	-- Selection
+	-- Selection (slight purple tint)
 	vim.api.nvim_set_hl(0, "Visual", { bg = colors.bg3, bold = false })
 	vim.api.nvim_set_hl(0, "VisualNOS", { bg = colors.bg2, bold = false })
 
-	-- Search
+	-- Search (visible and slightly purple)
 	vim.api.nvim_set_hl(0, "Search", { fg = colors.fg0, bg = colors.bg2 })
 	vim.api.nvim_set_hl(0, "IncSearch", { fg = colors.fg0, bg = colors.bg3 })
 	vim.api.nvim_set_hl(0, "CurSearch", { fg = colors.fg0, bg = colors.bg3 })
@@ -157,21 +167,20 @@ function M.setup()
 	vim.api.nvim_set_hl(0, "@property", { fg = colors.fg1, bold = false }) -- object.property
 	vim.api.nvim_set_hl(0, "@field", { fg = colors.fg1, bold = false }) -- struct fields
 	vim.api.nvim_set_hl(0, "@parameter", { fg = colors.fg2, bold = false }) -- function parameters
-	vim.api.nvim_set_hl(0, "@namespace", { fg = colors.fg1, bold = false }) -- namespaces, modules
+	vim.api.nvim_set_hl(0, "@namespace", { fg = colors.purple_lavender, bold = false }) -- e.g. fmt, package names
 	vim.api.nvim_set_hl(0, "@label", { fg = colors.fg2, bold = false }) -- labels
-	vim.api.nvim_set_hl(0, "@tag", { fg = colors.control, bold = false }) -- HTML/XML tags - keep colored
+	vim.api.nvim_set_hl(0, "@tag", { fg = colors.purple_mauve, bold = false }) -- HTML/XML tags (mauve)
 	vim.api.nvim_set_hl(0, "@tag.attribute", { fg = colors.fg1, bold = false }) -- HTML attributes
 	vim.api.nvim_set_hl(0, "@tag.delimiter", { fg = colors.fg3, bold = false }) -- <, >, /
 
-	-- Syntax highlighting - Operators (slightly brighter than base, but not neon)
-	-- Using a soft teal/cyan that's between base gray and bright cyan
-	local operator_color = "#8fa0b0" -- Soft blue-gray, slightly brighter than fg2
+	-- Syntax highlighting - Operators (muted sky so not harsh on purple bg)
+	local operator_color = "#6ba3c4" -- Muted sky — visible but soft
 	vim.api.nvim_set_hl(0, "Operator", { fg = operator_color, bold = false })
 	vim.api.nvim_set_hl(0, "@operator", { fg = operator_color, bold = false })
-	vim.api.nvim_set_hl(0, "@operator.assignment", { fg = operator_color, bold = false }) -- =, +=, etc.
-	vim.api.nvim_set_hl(0, "@operator.comparison", { fg = operator_color, bold = false }) -- ==, !=, etc.
-	vim.api.nvim_set_hl(0, "@operator.arithmetic", { fg = operator_color, bold = false }) -- +, -, *, /
-	vim.api.nvim_set_hl(0, "@operator.logical", { fg = operator_color, bold = false }) -- and, or
+	vim.api.nvim_set_hl(0, "@operator.assignment", { fg = operator_color, bold = false })
+	vim.api.nvim_set_hl(0, "@operator.comparison", { fg = operator_color, bold = false })
+	vim.api.nvim_set_hl(0, "@operator.arithmetic", { fg = operator_color, bold = false })
+	vim.api.nvim_set_hl(0, "@operator.logical", { fg = operator_color, bold = false })
 	vim.api.nvim_set_hl(0, "@operator.python", { fg = operator_color, bold = false })
 
 	-- Syntax highlighting - Variables (use dimmer base color for regular variables)
@@ -198,12 +207,11 @@ function M.setup()
 	vim.api.nvim_set_hl(0, "@constant.builtin", { fg = colors.type, bold = true })
 	vim.api.nvim_set_hl(0, "@constant.macro", { fg = colors.control, bold = true })
 
-	-- Syntax highlighting - Brackets (dimmed to reduce noise)
-	vim.api.nvim_set_hl(0, "@punctuation.bracket", { fg = colors.fg3, bold = false }) -- (), [], {}
-	-- Syntax highlighting - Punctuation (dimmed - commas, semicolons, dots)
-	vim.api.nvim_set_hl(0, "@punctuation.delimiter", { fg = colors.fg3, bold = false })
+	-- Syntax highlighting - Brackets & punctuation (soft sky so visible, not purple)
+	vim.api.nvim_set_hl(0, "@punctuation.bracket", { fg = operator_color, bold = false }) -- (), [], {}
+	vim.api.nvim_set_hl(0, "@punctuation.delimiter", { fg = operator_color, bold = false }) -- commas, dots
 	vim.api.nvim_set_hl(0, "@punctuation.special", { fg = colors.fg2, bold = false })
-	vim.api.nvim_set_hl(0, "@punctuation", { fg = colors.fg3, bold = false })
+	vim.api.nvim_set_hl(0, "@punctuation", { fg = operator_color, bold = false })
 
 	-- Preprocessor
 	vim.api.nvim_set_hl(0, "PreProc", { fg = colors.error, bold = true })
@@ -230,52 +238,65 @@ function M.setup()
 	vim.api.nvim_set_hl(0, "@special", { fg = colors.control, bold = false })
 	vim.api.nvim_set_hl(0, "@symbol", { fg = colors.control, bold = false })
 
-	-- Status line
+	-- Extra UI (more color, semantic)
+	vim.api.nvim_set_hl(0, "Title", { fg = colors.control, bold = true })
+	vim.api.nvim_set_hl(0, "Underlined", { fg = colors.type, underline = true })
+	vim.api.nvim_set_hl(0, "NonText", { fg = colors.ui3 }) -- ~ at end of buffer
+	vim.api.nvim_set_hl(0, "Question", { fg = colors.callable, bold = true })
+	vim.api.nvim_set_hl(0, "MoreMsg", { fg = colors.type, bold = false })
+	vim.api.nvim_set_hl(0, "Directory", { fg = colors.ui1, bold = false })
+	vim.api.nvim_set_hl(0, "WildMenu", { fg = colors.fg0, bg = colors.ui1, bold = false })
+
+	-- Status line (pastel purple accents)
 	vim.api.nvim_set_hl(0, "StatusLine", { fg = colors.ui0, bg = colors.bg1, bold = false })
-	vim.api.nvim_set_hl(0, "StatusLineNC", { fg = colors.ui1, bg = colors.bg0, bold = false })
+	vim.api.nvim_set_hl(0, "StatusLineNC", { fg = colors.ui2, bg = colors.bg0, bold = false })
 	vim.api.nvim_set_hl(0, "StatusLineTerm", { fg = colors.ui0, bg = colors.bg1, bold = false })
-	vim.api.nvim_set_hl(0, "StatusLineTermNC", { fg = colors.ui1, bg = colors.bg0, bold = false })
+	vim.api.nvim_set_hl(0, "StatusLineTermNC", { fg = colors.ui2, bg = colors.bg0, bold = false })
 
-	-- Tab line
-	vim.api.nvim_set_hl(0, "TabLine", { fg = colors.ui1, bg = colors.bg1, bold = false })
-	vim.api.nvim_set_hl(0, "TabLineFill", { fg = colors.ui1, bg = colors.bg0, bold = false })
-	vim.api.nvim_set_hl(0, "TabLineSel", { fg = colors.fg0, bg = colors.bg2, bold = true })
+	-- Tab line (selected tab = gold for complementary accent)
+	vim.api.nvim_set_hl(0, "TabLine", { fg = colors.ui2, bg = colors.bg1, bold = false })
+	vim.api.nvim_set_hl(0, "TabLineFill", { fg = colors.ui2, bg = colors.bg0, bold = false })
+	vim.api.nvim_set_hl(0, "TabLineSel", { fg = colors.ui_gold, bg = colors.bg2, bold = true })
 
-	-- Diagnostics
+	-- Diagnostics (hint = pastel indigo for consistency)
 	vim.api.nvim_set_hl(0, "DiagnosticError", { fg = colors.error, bold = false })
 	vim.api.nvim_set_hl(0, "DiagnosticWarn", { fg = colors.warn, bold = false })
 	vim.api.nvim_set_hl(0, "DiagnosticInfo", { fg = colors.type, bold = false })
-	vim.api.nvim_set_hl(0, "DiagnosticHint", { fg = colors.comment, bold = false })
+	vim.api.nvim_set_hl(0, "DiagnosticHint", { fg = colors.type, bold = false })
 	vim.api.nvim_set_hl(0, "DiagnosticUnderlineError", { sp = colors.error, underline = true })
 	vim.api.nvim_set_hl(0, "DiagnosticUnderlineWarn", { sp = colors.warn, underline = true })
 	vim.api.nvim_set_hl(0, "DiagnosticUnderlineInfo", { sp = colors.type, underline = true })
-	vim.api.nvim_set_hl(0, "DiagnosticUnderlineHint", { sp = colors.comment, underline = true })
+	vim.api.nvim_set_hl(0, "DiagnosticUnderlineHint", { sp = colors.type, underline = true })
 
-	-- Diagnostic signs
+	-- Diagnostic signs (hint uses pastel purple for more color)
 	vim.api.nvim_set_hl(0, "DiagnosticSignError", { fg = colors.error, bg = colors.bg0, bold = false })
 	vim.api.nvim_set_hl(0, "DiagnosticSignWarn", { fg = colors.warn, bg = colors.bg0, bold = false })
 	vim.api.nvim_set_hl(0, "DiagnosticSignInfo", { fg = colors.type, bg = colors.bg0, bold = false })
-	vim.api.nvim_set_hl(0, "DiagnosticSignHint", { fg = colors.comment, bg = colors.bg0, bold = false })
+	vim.api.nvim_set_hl(0, "DiagnosticSignHint", { fg = colors.type, bg = colors.bg0, bold = false })
 
-	-- Dashboard
-	vim.api.nvim_set_hl(0, "AlphaHeader", { fg = colors.ui0, bold = true })
-	vim.api.nvim_set_hl(0, "AlphaButton", { fg = colors.comment, bold = false })
-	vim.api.nvim_set_hl(0, "AlphaShortcut", { fg = colors.control, bold = false })
-	vim.api.nvim_set_hl(0, "AlphaFooter", { fg = colors.comment, italic = true })
+	-- Dashboard (Alpha)
+	vim.api.nvim_set_hl(0, "AlphaHeader", { fg = colors.control, bold = true })
+	vim.api.nvim_set_hl(0, "AlphaButton", { fg = colors.fg1, bold = false })
+	vim.api.nvim_set_hl(0, "AlphaShortcut", { fg = colors.callable, bold = false })
+	vim.api.nvim_set_hl(0, "AlphaFooter", { fg = colors.fg3, italic = true })
 
-	-- Telescope
+	-- Telescope (floats: use bg1 to match NormalFloat)
 	vim.api.nvim_set_hl(0, "TelescopePromptPrefix", { fg = colors.control, bold = false })
 	vim.api.nvim_set_hl(0, "TelescopeSelection", { fg = colors.fg0, bg = colors.bg3, bold = false })
-	vim.api.nvim_set_hl(0, "TelescopeMatching", { fg = colors.comment, bold = false })
-	vim.api.nvim_set_hl(0, "TelescopePrompt", { bg = colors.bg0 })
-	vim.api.nvim_set_hl(0, "TelescopeResults", { bg = colors.bg0 })
-	vim.api.nvim_set_hl(0, "TelescopePreview", { bg = colors.bg0 })
-	vim.api.nvim_set_hl(0, "TelescopeBorder", { fg = colors.ui3 })
+	vim.api.nvim_set_hl(0, "TelescopeMatching", { fg = colors.callable, bold = false })
+	vim.api.nvim_set_hl(0, "TelescopePrompt", { fg = colors.fg0, bg = colors.bg1 })
+	vim.api.nvim_set_hl(0, "TelescopeResults", { fg = colors.fg0, bg = colors.bg1 })
+	vim.api.nvim_set_hl(0, "TelescopePreview", { fg = colors.fg0, bg = colors.bg1 })
+	vim.api.nvim_set_hl(0, "TelescopeBorder", { fg = colors.ui1, bg = colors.bg1 })
+	vim.api.nvim_set_hl(0, "TelescopeTitle", { fg = colors.control, bg = colors.bg1, bold = true })
 
 	-- LSP
 	vim.api.nvim_set_hl(0, "LspReferenceText", { bg = colors.bg2, bold = false })
 	vim.api.nvim_set_hl(0, "LspReferenceRead", { bg = colors.bg2, bold = false })
 	vim.api.nvim_set_hl(0, "LspReferenceWrite", { bg = colors.bg2, bold = false })
+	-- LSP inlay hints + Codeium ghost text: faded color with no semantic meaning
+	vim.api.nvim_set_hl(0, "LspInlayHint", { fg = colors.ghost, italic = true })
+	vim.api.nvim_set_hl(0, "CodeiumSuggestion", { fg = colors.ghost, italic = true })
 
 	-- Diff
 	vim.api.nvim_set_hl(0, "DiffAdd", { fg = colors.comment, bg = "NONE", bold = false })
@@ -305,22 +326,23 @@ function M.setup()
 	vim.api.nvim_set_hl(0, "CmpItemMenu", { fg = colors.ui1, bold = false })
 
 	-- Which-key (purple-themed for Purpleator)
-	vim.api.nvim_set_hl(0, "WhichKey", { fg = colors.callable, bold = true }) -- Key bindings - bright yellow
-	vim.api.nvim_set_hl(0, "WhichKeyGroup", { fg = colors.control, bold = false }) -- Groups - muted purple
-	vim.api.nvim_set_hl(0, "WhichKeySeparator", { fg = colors.bg3, bold = false }) -- Separator - subtle
-	vim.api.nvim_set_hl(0, "WhichKeyDesc", { fg = colors.fg1, bold = false }) -- Description - base color
-	vim.api.nvim_set_hl(0, "WhichKeyValue", { fg = colors.type, bold = false }) -- Values - cyan
-	vim.api.nvim_set_hl(0, "WhichKeyFloat", { bg = colors.bg1 }) -- Background - lighter purple
-	vim.api.nvim_set_hl(0, "WhichKeyBorder", { fg = colors.control, bg = colors.bg1 }) -- Border - purple accent
-	vim.api.nvim_set_hl(0, "WhichKeyTitle", { fg = colors.control, bg = colors.bg1, bold = true }) -- Title - purple
+	vim.api.nvim_set_hl(0, "WhichKey", { fg = colors.callable, bold = true })
+	vim.api.nvim_set_hl(0, "WhichKeyGroup", { fg = colors.purple_lavender, bold = false })
+	vim.api.nvim_set_hl(0, "WhichKeySeparator", { fg = colors.bg3, bold = false })
+	vim.api.nvim_set_hl(0, "WhichKeyDesc", { fg = colors.fg1, bold = false })
+	vim.api.nvim_set_hl(0, "WhichKeyValue", { fg = colors.type, bold = false })
+	vim.api.nvim_set_hl(0, "WhichKeyFloat", { bg = colors.bg1 })
+	vim.api.nvim_set_hl(0, "WhichKeyNormal", { fg = colors.fg0, bg = colors.bg1 })
+	vim.api.nvim_set_hl(0, "WhichKeyBorder", { fg = colors.bg3, bg = colors.bg1 })
+	vim.api.nvim_set_hl(0, "WhichKeyTitle", { fg = colors.control, bg = colors.bg1, bold = true })
 
-	-- NvimTree
+	-- NvimTree (pastel purple for folders)
 	vim.api.nvim_set_hl(0, "NvimTreeNormal", { fg = colors.fg0, bg = colors.bg0, bold = false })
 	vim.api.nvim_set_hl(0, "NvimTreeNormalNC", { fg = colors.fg2, bg = colors.bg0, bold = false })
 	vim.api.nvim_set_hl(0, "NvimTreeRootFolder", { fg = colors.control, bold = true })
-	vim.api.nvim_set_hl(0, "NvimTreeFolderIcon", { fg = colors.comment, bold = false })
-	vim.api.nvim_set_hl(0, "NvimTreeOpenedFolderName", { fg = colors.comment, bold = true })
-	vim.api.nvim_set_hl(0, "NvimTreeClosedFolderName", { fg = colors.comment, bold = false })
+	vim.api.nvim_set_hl(0, "NvimTreeFolderIcon", { fg = colors.ui1, bold = false })
+	vim.api.nvim_set_hl(0, "NvimTreeOpenedFolderName", { fg = colors.ui0, bold = true })
+	vim.api.nvim_set_hl(0, "NvimTreeClosedFolderName", { fg = colors.ui1, bold = false })
 
 	-- Notify
 	vim.api.nvim_set_hl(0, "NotifyERRORBorder", { fg = colors.error, bold = false })
@@ -333,6 +355,15 @@ function M.setup()
 	vim.api.nvim_set_hl(0, "TroubleText", { fg = colors.fg0, bold = false })
 	vim.api.nvim_set_hl(0, "TroubleCount", { fg = colors.control, bold = false })
 	vim.api.nvim_set_hl(0, "TroubleNormal", { fg = colors.fg0, bg = colors.bg0, bold = false })
+
+	-- Flash.nvim: stand out and avoid green (so it doesn't look like comments)
+	vim.api.nvim_set_hl(0, "FlashLabel", { fg = colors.bg0, bg = colors.callable, bold = true })
+	vim.api.nvim_set_hl(0, "FlashCurrent", { fg = colors.bg0, bg = colors.type, bold = true })
+	vim.api.nvim_set_hl(0, "FlashMatch", { fg = colors.callable, bg = colors.bg2, bold = true })
+	vim.api.nvim_set_hl(0, "FlashBackdrop", { fg = colors.fg3, bg = "NONE" })
+	vim.api.nvim_set_hl(0, "FlashPromptIcon", { fg = colors.callable, bold = true })
+	vim.api.nvim_set_hl(0, "FlashPrompt", { fg = colors.fg0, bg = colors.bg1 })
+	vim.api.nvim_set_hl(0, "FlashPromptBorder", { fg = colors.bg3, bg = colors.bg1 })
 
 	-- Python builtins are now handled entirely through Treesitter highlight groups
 	-- @function.builtin.python and @variable.builtin are already set above

@@ -26,12 +26,24 @@ return {
 		end
 
 		flash.setup({
-			labels = "abcdefghijklmnopqrstuvwxyz",
-			search = {
-				mode = "fuzzy",
+			labels = "asdfghjklqwertyuiopzxcvbnm",
+			search = { mode = "fuzzy" },
+			jump = { autojump = true },
+			-- Make labels stand out: show before and after, overlay style
+			label = {
+				after = true,
+				before = true,
+				style = "overlay",
+				uppercase = true,
 			},
-			jump = {
-				autojump = true,
+			-- Enable char mode (f/F/t/T) with jump labels so "go to char" is visible
+			modes = {
+				char = {
+					enabled = true,
+					jump_labels = true,
+					multi_line = true,
+					label = { exclude = "hjkliardc", before = true, after = true },
+				},
 			},
 		})
 	end,

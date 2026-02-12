@@ -14,19 +14,20 @@ return {
       return
     end
 
-    -- Clean, minimal header
+    -- Header: Purpleator-style (compact, fits dark purple theme)
     dashboard.section.header.val = {
       "",
-      "  ███╗   ██╗███████╗ ██████╗ ██╗   ██╗██╗███╗   ███╗",
-      "  ████╗  ██║██╔════╝██╔═══██╗██║   ██║██║████╗ ████║",
-      "  ██╔██╗ ██║█████╗  ██║   ██║██║   ██║██║██╔████╔██║",
-      "  ██║╚██╗██║██╔══╝  ██║   ██║╚██╗ ██╔╝██║██║╚██╔╝██║",
-      "  ██║ ╚████║███████╗╚██████╔╝ ╚████╔╝ ██║██║ ╚═╝ ██║",
-      "  ╚═╝  ╚═══╝╚══════╝ ╚═════╝   ╚═══╝  ╚═╝╚═╝     ╚═╝",
+      "   ███╗   ██╗███████╗ ██████╗ ██╗   ██╗██╗███╗   ███╗",
+      "   ████╗  ██║██╔════╝██╔═══██╗██║   ██║██║████╗ ████║",
+      "   ██╔██╗ ██║█████╗  ██║   ██║██║   ██║██║██╔████╔██║",
+      "   ██║╚██╗██║██╔══╝  ██║   ██║╚██╗ ██╔╝██║██║╚██╔╝██║",
+      "   ██║ ╚████║███████╗╚██████╔╝ ╚████╔╝ ██║██║ ╚═╝ ██║",
+      "   ╚═╝  ╚═══╝╚══════╝ ╚═════╝   ╚═══╝  ╚═╝╚═╝     ╚═╝",
+      "",
+      "   Purpleator  ·  space = leader  ·  space ? = which-key",
       "",
     }
 
-    -- Colorful button layout with icons
     dashboard.section.buttons.val = {
       dashboard.button("e", "  󰈔  New File", "<cmd>ene<CR>"),
       dashboard.button("f", "  󰱼  Find File", "<cmd>Telescope find_files<CR>"),
@@ -35,12 +36,10 @@ return {
       dashboard.button("g", "  󰊢  Find Word", "<cmd>Telescope live_grep<CR>"),
       dashboard.button("q", "  󰗼  Quit", "<cmd>qa<CR>"),
     }
-    
-    -- Add colors to buttons
+
     dashboard.section.buttons.opts.hl = "AlphaButton"
     dashboard.section.buttons.opts.hl_shortcut = "AlphaShortcut"
 
-    -- Footer with stats
     local function get_plugin_count()
       local lazy_ok, lazy = pcall(require, "lazy")
       if lazy_ok then
@@ -49,15 +48,14 @@ return {
       end
       return 0
     end
-    
+
     dashboard.section.footer.val = {
       "",
-      "  󰨳  " .. get_plugin_count() .. " plugins loaded",
+      "  󰨳  " .. get_plugin_count() .. " plugins  ·  󰏘  :ColorschemeToggle",
+      "",
     }
-    
-    -- Set colors for better integration
+
     dashboard.section.header.opts.hl = "AlphaHeader"
-    dashboard.section.buttons.opts.hl = "AlphaButton"
     dashboard.section.footer.opts.hl = "AlphaFooter"
 
     -- Send config to alpha
