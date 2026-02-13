@@ -1,10 +1,17 @@
 -- Obsidian.nvim: note-taking and vault navigation (Obsidian-style in Neovim)
 -- Set your vault path(s) in workspaces below. Requires ripgrep for search.
+-- Only loads when the vault directory exists, so no error when you're not using a vault.
+local function vault_exists()
+	local path = vim.fn.expand("~/vault")
+	return vim.fn.isdirectory(path) == 1
+end
+
 return {
 	"epwalsh/obsidian.nvim",
 	version = "*",
 	lazy = true,
 	ft = "markdown",
+	cond = vault_exists, -- don't load when vault is missing
 	dependencies = {
 		"nvim-lua/plenary.nvim",
 		"nvim-telescope/telescope.nvim",
