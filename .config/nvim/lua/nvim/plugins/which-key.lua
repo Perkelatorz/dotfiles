@@ -160,7 +160,11 @@ return {
 			{ "<leader>xl", desc = "󰦨 Open trouble location list" },
 			{ "<leader>xt", desc = "󰔫 Open todos in trouble" },
 
-			-- LSP (uses Neovim defaults: K=hover, gd=definition, gD=declaration, gi=impl, gr=refs)
+			-- LSP (K=hover doc, gd/gD/gi=go to def/decl/impl, gR=refs)
+			{ "K", desc = "󰋖 Hover documentation" },
+			{ "gd", desc = "󰒕 Go to definition" },
+			{ "gD", desc = "󰒕 Go to declaration" },
+			{ "gi", desc = "󰒕 Go to implementation" },
 			{ "gR", desc = "󰞔 References (Telescope)" },
 			{ "<leader>ca", desc = "󰨞 Code action" },
 			{ "<leader>rn", desc = "󰑓 Rename" },

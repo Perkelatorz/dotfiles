@@ -26,6 +26,35 @@ return {
 
 			local opts = { buffer = bufnr, silent = true }
 
+			-- Hover documentation (like VS Code: put cursor on symbol, press K or rest briefly)
+			if client.supports_method("textDocument/hover") then
+				opts.desc = "Hover documentation"
+				keymap.set("n", "K", vim.lsp.buf.hover, opts)
+				-- Auto-hover: show doc after cursor rests for 500ms (like VS Code hover)
+				local hover_timer = nil
+				vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
+					buffer = bufnr,
+					callback = function()
+						if hover_timer then
+							hover_timer:close()
+						end
+						hover_timer = vim.defer_fn(function()
+							hover_timer = nil
+							vim.lsp.buf.hover()
+						end, 500)
+					end,
+					desc = "Auto-hover after 500ms on symbol",
+				})
+			end
+
+			-- Go to definition
+			opts.desc = "Go to definition"
+			keymap.set("n", "gd", vim.lsp.buf.definition, opts)
+			opts.desc = "Go to declaration"
+			keymap.set("n", "gD", vim.lsp.buf.declaration, opts)
+			opts.desc = "Go to implementation"
+			keymap.set("n", "gi", vim.lsp.buf.implementation, opts)
+
 			-- Enhanced references with Telescope (better than default gr)
 			opts.desc = "Show LSP references"
 			keymap.set("n", "gR", "<cmd>Telescope lsp_references<CR>", opts)

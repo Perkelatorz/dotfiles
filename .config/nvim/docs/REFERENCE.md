@@ -65,7 +65,7 @@ ff    Files    fr    Recent    fs    Grep    fc    Cursor word    ft    Todos   
 ```
 ca    Code action    rn    Rename    dd    Line diagnostic (float)    dl    Diagnostics (Telescope)
 rs    Restart LSP    gR    Refs (Telescope)
-gd    Definition    gD    Declaration    gr    Refs    K    Hover
+K     Hover doc    gd    Definition    gD    Declaration    gi    Implementation    gR    Refs (Telescope)
 ```
 
 ### Navigation (no leader)
@@ -113,6 +113,8 @@ ee    Toggle nvim-tree    -    Oil (floating)
 ## Common Workflows
 
 **Run server:** `<leader>zt` → run command → `<leader>zt` to hide (server keeps running)
+
+**Hover documentation (like VS Code):** Put cursor on a symbol and press **K**, or rest for ~500ms for auto-hover.
 
 **Navigate errors:** `]d` next diagnostic, `<leader>dd` show details, `<leader>ca` code action
 
