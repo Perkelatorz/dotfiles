@@ -59,6 +59,7 @@ keymap.set("n", "<leader>ww", ":wa<CR>", { desc = "Save all files" })
 
 -- Quick quit
 keymap.set("n", "<leader>q", ":q<CR>", { desc = "Quit window" })
+keymap.set("n", "<leader>Q", ":q!<CR>", { desc = "Force quit window" })
 keymap.set("n", "<leader>qq", ":q!<CR>", { desc = "Force quit window" })
 
 -- Quickfix navigation (follows Vim [ ] convention)

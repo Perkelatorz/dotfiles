@@ -1,5 +1,4 @@
 import QtQuick
-import Quickshell.Io
 
 import "."
 
@@ -16,49 +15,24 @@ Item {
 
     // When set, fullscreen captures this output only (e.g. from bar's screen). Empty = whole session.
     property string fullscreenOutput: ""
-    property string screenshotFullscreenCommand: "grim - | wl-copy -t image/png"
-    // Use temp file + wl-copy (grim -o and -g are mutually exclusive; use stdout redirect)
-    property string screenshotSelectCommand: "C=\"${XDG_CACHE_HOME:-$HOME/.cache}\"; T=\"$C/quickshell-shot-$$.png\"; g=$(slurp); [ -n \"$g\" ] && grim -g \"$g\" - > \"$T\" && wl-copy -t image/png < \"$T\" && echo \"$g\" > \"$C/quickshell-last-slurp\"; rm -f \"$T\""
-    property string screenshotLastCommand: "C=\"${XDG_CACHE_HOME:-$HOME/.cache}\"; f=\"$C/quickshell-last-slurp\"; T=\"$C/quickshell-shot-$$.png\"; [ -f \"$f\" ] && grim -g \"$(cat \"$f\")\" - > \"$T\" && wl-copy -t image/png < \"$T\"; rm -f \"$T\""
 
     implicitWidth: pill.width
     implicitHeight: 28
 
-    Process {
-        id: screenshotProc
-        command: []
-        running: false
+    SessionRunner {
+        id: sessionRunner
+        compositorName: screenshotWidget.compositorName
     }
 
     readonly property string _scriptDir: "$HOME/.config/scripts"
     function runScript(scriptName, envPrefix) {
         var ex = (envPrefix && envPrefix.length) ? (envPrefix + " ") : ""
         var path = screenshotWidget._scriptDir + "/" + scriptName
-        if (screenshotWidget.compositorName === "hyprland") {
-            screenshotProc.command = ["hyprctl", "dispatch", "exec", ex + "bash " + path]
-        } else {
-            screenshotProc.command = ["sh", "-c", "bash " + path]
-        }
-        screenshotProc.running = false
-        startScreenshotTimer.start()
+        var cmd = ex + "bash " + path
+        Qt.callLater(function() { sessionRunner.run(cmd) })
     }
     function runInSession(shellCommand) {
-        if (screenshotWidget.compositorName === "hyprland") {
-            screenshotProc.command = ["hyprctl", "dispatch", "exec", "sh -c " + JSON.stringify(shellCommand)]
-        } else {
-            screenshotProc.command = ["sh", "-c", shellCommand]
-        }
-        screenshotProc.running = false
-        startScreenshotTimer.start()
-    }
-
-    Timer {
-        id: startScreenshotTimer
-        interval: 50
-        repeat: false
-        onTriggered: {
-            screenshotProc.running = true
-        }
+        Qt.callLater(function() { sessionRunner.run("sh -c " + JSON.stringify(shellCommand)) })
     }
 
     Timer {
@@ -75,7 +49,6 @@ Item {
     }
 
     function takeSelect() {
-        screenshotProc.running = false
         selectDelayTimer.start()
     }
 

@@ -35,7 +35,7 @@ Item {
     Timer {
         interval: 2000
         repeat: true
-        running: true
+        running: ramUsageWidget.visible
         onTriggered: ramProc.running = true
     }
 

@@ -50,7 +50,7 @@ Item {
     Timer {
         interval: 2000
         repeat: true
-        running: true
+        running: cpuUsageWidget.visible
         onTriggered: cpuProc.running = true
     }
 

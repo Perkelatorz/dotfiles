@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 if [ -z "${WAYLAND_DISPLAY}" ]; then
-  for pid in $(pgrep -n kitty 2>/dev/null) $(pgrep -n foot 2>/dev/null) $(pgrep -n Hyprland 2>/dev/null | head -1); do
+  for pid in $(pgrep -n kitty 2>/dev/null) $(pgrep -n foot 2>/dev/null) $(pgrep -n Hyprland 2>/dev/null | head -1) $(pgrep -n mango 2>/dev/null | head -1); do
     [ -z "$pid" ] || [ ! -r "/proc/$pid/environ" ] && continue
     while IFS= read -r -d '' line; do
       case "$line" in WAYLAND_DISPLAY=*|XDG_RUNTIME_DIR=*) export "$line" ;; esac

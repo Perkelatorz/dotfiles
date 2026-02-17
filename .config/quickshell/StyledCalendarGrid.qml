@@ -72,7 +72,7 @@ Item {
                             return root.colors.textMain
                         }
                         font.pixelSize: root.colors.clockFontSize - 1
-                        font.family: "monospace"
+                        font.family: root.colors.fontMain || "monospace"
                     }
                 }
             }

@@ -619,6 +619,15 @@ if [ "$MATUGEN_DRY_RUN" != "true" ]; then
     fi
   fi
 
+  # MangoWC
+  if command -v mmsg &>/dev/null && pgrep -x mango >/dev/null 2>&1; then
+    MANGO_MATUGEN_CONF="$HOME/.config/mango/matugen-colors.conf"
+    if [ -f "$MANGO_MATUGEN_CONF" ]; then
+      log "INFO" "Reloading MangoWC configuration..."
+      mmsg -d reload_config >/dev/null 2>&1 && log "INFO" "✓ MangoWC reloaded" || log "VERBOSE" "MangoWC reload skipped"
+    fi
+  fi
+
   # Kitty (check both common matugen output paths)
   if command -v kitty &>/dev/null && pgrep -x kitty >/dev/null 2>&1; then
     KITTY_MATUGEN_CONF="$HOME/.config/kitty/matugen-colors.conf"

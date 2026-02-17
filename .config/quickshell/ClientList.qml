@@ -11,7 +11,7 @@ Row {
     required property string activeWindowAddress
 
     spacing: 4
-    anchors.verticalCenter: parent ? parent.verticalCenter : undefined
+    anchors.verticalCenter: parent.verticalCenter
     height: 20
 
     Repeater {
@@ -69,10 +69,17 @@ Row {
                     hoverEnabled: true
                     acceptedButtons: Qt.LeftButton | Qt.MiddleButton
                     onClicked: function(mouse) {
-                        if (mouse.button === Qt.MiddleButton)
-                            Hyprland.dispatch("closewindow address:" + modelData.address)
-                        else
-                            Hyprland.dispatch("focuswindow address:" + modelData.address)
+                        if (modelData.toplevel) {
+                            if (mouse.button === Qt.MiddleButton)
+                                modelData.toplevel.close()
+                            else
+                                modelData.toplevel.activate()
+                        } else {
+                            if (mouse.button === Qt.MiddleButton)
+                                Hyprland.dispatch("closewindow address:" + modelData.address)
+                            else
+                                Hyprland.dispatch("focuswindow address:" + modelData.address)
+                        }
                     }
                 }
             }

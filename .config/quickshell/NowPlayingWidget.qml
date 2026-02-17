@@ -129,7 +129,7 @@ Item {
     Timer {
         interval: 3000
         repeat: true
-        running: true
+        running: nowPlayingWidget.visible
         onTriggered: function() {
             if (!listProc.running) listProc.running = true
             else if (!metaProc.running) nowPlayingWidget.startMetaProc()

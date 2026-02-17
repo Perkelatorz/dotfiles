@@ -9,7 +9,7 @@ Everything you need for this config to work. Optional items only affect specific
 | Dependency | Purpose |
 |------------|--------|
 | **Quickshell** | Bar runtime (Qt 6, Wayland). Build/install from your distro or [quickshell](https://github.com/nicksrandall/quickshell). |
-| **Hyprland** | Workspaces, client list, fullscreen detection, window close/focus, power menu, launching apps via `hyprctl dispatch exec`. |
+| **Hyprland** or **MangoWC** | Workspace/tag bar and client list. The bar detects the current compositor via `XDG_CURRENT_DESKTOP` and only runs code for that tiler (Hyprland: `hyprctl`, `Quickshell.Hyprland`; MangoWC: `mmsg`, `Quickshell.Wayland` ToplevelManager). |
 | **Pipewire** | Audio (volume widget, Quick Settings sliders, microphone). Used with **WirePlumber** for `wpctl`. |
 | **wl-copy** | Clipboard for screenshots (from `wl-clipboard`). |
 
@@ -30,6 +30,7 @@ Everything you need for this config to work. Optional items only affect specific
 |------------|--------|
 | **grim** | Fullscreen and region screenshots. |
 | **slurp** | Region selection for “Select region” and “Same as last” (geometry stored in `~/.cache/.../quickshell-last-slurp`). |
+| **wayfreeze** (AUR: **wayfreeze-git**) | Freezes the screen during region selection so the slurp overlay is not captured. Falls back to plain grim+slurp if not installed. |
 
 ---
 
@@ -76,7 +77,9 @@ Quick Settings also uses: **wpctl** (sink name for Audio card), **Pipewire** (vo
 - **Brightness (sysfs)**: reads/writes `/sys/class/backlight/*` (kernel, no extra package).
 - **CPU/RAM**: read `/proc/stat` and `/proc/meminfo` (kernel).
 - **Clock/calendar**: in-QML only.
-- **Workspaces / Client list**: Hyprland only.
+- **Workspaces / Client list**: **Hyprland** – workspace row with per-workspace app icons, center client list, overview panel. **MangoWC** – tag row (dots, click to switch), center client list from ToplevelManager, layout label, fullscreen hides bar. Each compositor’s features only run when that compositor is current (periodic re-check of `XDG_CURRENT_DESKTOP`).
+- **Workspace overview** (Hyprland only, keyboard-only): Press a key that runs `~/.config/scripts/open-workspace-overview.sh` to see all workspaces and their windows (no bar button). Example: `bind = $mainMod, W, exec, ~/.config/scripts/open-workspace-overview.sh`
+- **MangoWC**: Requires `mmsg` in PATH. Bar shows tags, layout name (tile, scroller, etc.), and hides when a window is fullscreen (`mmsg -g -m`).
 
 ---
 
