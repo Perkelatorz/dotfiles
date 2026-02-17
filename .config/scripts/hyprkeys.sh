@@ -1,35 +1,106 @@
 #!/bin/bash
+# Shortcut cheat sheet — works with both Hyprland and MangoWC
 
-CONFIG_FILE="$HOME/.config/hypr/binds.conf"
-CATEGORY="General"
+CATEGORY=""
+PENDING_COMMENT=""
+SAW_SEPARATOR=false
 
-while IFS= read -r line; do
-  # 1. Update category if we hit a header
-  if [[ $line =~ ^#\ ---\ (.*)\ --- ]]; then
-    CATEGORY="${BASH_REMATCH[1]}"
-    continue
-  fi
+if pgrep -x mango &>/dev/null; then
+  CONFIG_FILE="$HOME/.config/mango/binds.conf"
 
-  # 2. Match any bind (bind, bindel, bindm, etc.)
-  if [[ $line =~ ^bind[elmnrs]*\ =\ (.*) ]]; then
-    content="${BASH_REMATCH[1]}"
+  while IFS= read -r line; do
+    [[ -z "${line// /}" ]] && continue
 
-    # Split the line by commas
-    IFS=',' read -r mod key action rest <<<"$content"
-
-    # Clean up the modifier and key
-    # Removes the 'SUPER' or '$mainMod' and formats nicely
-    pretty_keys=$(echo "$mod + $key" | sed 's/\$mainMod/󰘳/g' | xargs)
-
-    # Get description: either from the end of the line OR the action name
-    if [[ $line =~ \#\ (.*) ]]; then
-      description="${BASH_REMATCH[1]}"
-    else
-      description=$(echo "$action" | xargs) # Fallback: the command name
+    # Separator line (===... or ---...) — next comment is a category
+    if [[ $line =~ ^#\ ==+ ]] || [[ $line =~ ^#\ ---+ ]]; then
+      SAW_SEPARATOR=true
+      continue
     fi
 
-    # Output: [Category] Keybind | Description
-    printf "[%-12s] %-15s │ %s\n" "$CATEGORY" "$pretty_keys" "$description"
-  fi
-done <"$CONFIG_FILE" | rofi -dmenu -i -p "󰌌 Shortcuts" \
-  -theme-str 'window { width: 50%; } listview { lines: 15; } element { font: "JetBrainsMono Nerd Font 12"; }'
+    # Comment line
+    if [[ $line =~ ^#\ (.*) ]]; then
+      if $SAW_SEPARATOR; then
+        CATEGORY="${BASH_REMATCH[1]}"
+        SAW_SEPARATOR=false
+      else
+        PENDING_COMMENT="${BASH_REMATCH[1]}"
+      fi
+      continue
+    fi
+
+    SAW_SEPARATOR=false
+
+    # Bind lines
+    if [[ $line =~ ^(mouse|axis)?bind= ]]; then
+      inline_comment=""
+      if [[ $line =~ \#\ (.*) ]]; then
+        inline_comment="${BASH_REMATCH[1]}"
+        line="${line%%#*}"
+      fi
+
+      content="${line#*=}"
+      IFS=',' read -r mod key action rest <<<"$content"
+
+      pretty_keys=$(echo "$mod + $key" | sed 's/SUPER/Super/g; s/CTRL/Ctrl/g; s/ALT/Alt/g; s/SHIFT/Shift/g; s/none//g; s/+ *$//; s/^ *+ *//; s/  */ /g' | xargs)
+
+      if [[ -n "$inline_comment" ]]; then
+        description="$inline_comment"
+      elif [[ -n "$PENDING_COMMENT" ]]; then
+        description="$PENDING_COMMENT"
+      else
+        desc="$action"
+        [ -n "$rest" ] && desc="$action $rest"
+        description=$(echo "$desc" | xargs)
+      fi
+
+      printf "%-16s  %-24s  %s\n" "$CATEGORY" "$pretty_keys" "$description"
+      PENDING_COMMENT=""
+    else
+      PENDING_COMMENT=""
+    fi
+  done <"$CONFIG_FILE"
+else
+  CONFIG_FILE="$HOME/.config/hypr/binds.conf"
+
+  while IFS= read -r line; do
+    [[ -z "${line// /}" ]] && continue
+
+    if [[ $line =~ ^#\ ---\ (.*)\ --- ]]; then
+      CATEGORY="${BASH_REMATCH[1]}"
+      PENDING_COMMENT=""
+      continue
+    fi
+
+    if [[ $line =~ ^#\ (.*) ]] && [[ ! $line =~ ^#\ --- ]]; then
+      PENDING_COMMENT="${BASH_REMATCH[1]}"
+      continue
+    fi
+
+    if [[ $line =~ ^bind[elmnrs]*\ =\ (.*) ]]; then
+      content="${BASH_REMATCH[1]}"
+
+      inline_comment=""
+      if [[ $line =~ \#\ (.*) ]]; then
+        inline_comment="${BASH_REMATCH[1]}"
+      fi
+
+      IFS=',' read -r mod key action rest <<<"$content"
+
+      pretty_keys=$(echo "$mod + $key" | sed 's/\$mainMod/Super/g; s/SUPER/Super/g; s/CTRL/Ctrl/g; s/ALT/Alt/g; s/SHIFT/Shift/g; s/  */ /g' | xargs)
+
+      if [[ -n "$inline_comment" ]]; then
+        description="$inline_comment"
+      elif [[ -n "$PENDING_COMMENT" ]]; then
+        description="$PENDING_COMMENT"
+      else
+        description=$(echo "$action" | xargs)
+      fi
+
+      printf "%-12s  %-24s  %s\n" "$CATEGORY" "$pretty_keys" "$description"
+      PENDING_COMMENT=""
+    else
+      PENDING_COMMENT=""
+    fi
+  done <"$CONFIG_FILE"
+fi | rofi -dmenu -i -p "Shortcuts" \
+  -theme-str 'window { width: 55%; } listview { lines: 20; } element { font: "JetBrainsMono Nerd Font 12"; }'

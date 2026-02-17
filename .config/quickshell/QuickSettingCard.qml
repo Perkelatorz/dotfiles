@@ -10,22 +10,27 @@ Rectangle {
     required property string status
     property var onClick: null
     property var paletteColors: null
+    property bool enabled: true
 
     implicitWidth: 168
     implicitHeight: paletteColors && paletteColors.length > 0 ? 66 : 62
     radius: 10
-    color: cardMa.containsMouse ? colors.surfaceBright : colors.surfaceContainer
+    color: !enabled ? colors.surfaceContainer
+        : (cardMa.containsMouse ? colors.surfaceBright : colors.surfaceContainer)
     border.width: 1
-    border.color: cardMa.containsMouse ? colors.border : colors.borderSubtle
+    border.color: !enabled ? colors.borderSubtle
+        : (cardMa.containsMouse ? colors.border : colors.borderSubtle)
+    opacity: enabled ? 1 : 0.65
 
     Behavior on color { ColorAnimation { duration: 120 } }
     Behavior on border.color { ColorAnimation { duration: 120 } }
+    Behavior on opacity { NumberAnimation { duration: 120 } }
 
     MouseArea {
         id: cardMa
         anchors.fill: parent
-        hoverEnabled: true
-        onClicked: if (typeof card.onClick === "function") card.onClick()
+        hoverEnabled: enabled
+        onClicked: if (enabled && typeof card.onClick === "function") card.onClick()
     }
 
     Column {
@@ -37,7 +42,7 @@ Rectangle {
             spacing: 10
             Text {
                 text: card.icon
-                color: colors.primary
+                color: card.enabled ? colors.primary : colors.textDim
                 font.pixelSize: 20
                 font.family: colors.widgetIconFont
                 anchors.verticalCenter: parent.verticalCenter
@@ -48,7 +53,7 @@ Rectangle {
                 width: parent.width - 40
                 Text {
                     text: card.title
-                    color: colors.textMain
+                    color: card.enabled ? colors.textMain : colors.textDim
                     font.pixelSize: 12
                     font.bold: true
                     elide: Text.ElideRight
@@ -59,9 +64,9 @@ Rectangle {
                     color: colors.textDim
                     font.pixelSize: 11
                     width: parent.width
+                    wrapMode: Text.Wrap
                     maximumLineCount: 2
-                    wrapMode: Text.NoWrap
-                    elide: Text.ElideNone
+                    elide: Text.ElideRight
                     height: Math.max(font.pixelSize * 1.2, Math.min(contentHeight, font.pixelSize * 1.35 * maximumLineCount))
                 }
             }

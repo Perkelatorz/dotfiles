@@ -17,10 +17,10 @@ blueman
 cups
 system-config-printer
 iproute2
-xorg-setxkbmap
 btop
 brightnessctl
-nwg-displays
+wdisplays
+wlr-randr
 # Theming: matugen + wallpaper script (select-wallpaper.sh, THEMING.md)
 matugen
 rofi
@@ -34,11 +34,12 @@ qt5ct
 qt6ct
 kvantum
 nwg-look
-waybar
-wlogout
 hypridle
 hyprpolkitagent
 wl-clip-persist
+# XDG Portals: screen sharing, file picker, secrets
+xdg-desktop-portal-wlr
+xdg-desktop-portal-gtk
 # Fonts (bar uses Nerd Font for icons)
 ttf-sourcecodepro-nerd
 otf-opendyslexic-nerd
@@ -52,10 +53,7 @@ gvfs-smb
 trash-cli
 bitwarden
 github-cli
-xsettingsd
 neovim
-python-j2cli
-esh
 meson
 cpio
 cmake

@@ -10,7 +10,7 @@ Item {
     signal menuToggleRequested()
 
     readonly property color pillColor: (colors.widgetPillColors && pillIndex >= 0 && pillIndex < colors.widgetPillColors.length) ? colors.widgetPillColors[pillIndex] : colors.primary
-    readonly property color pillTextColor: (colors.widgetTextOnPillColors && pillIndex >= 0 && pillIndex < colors.widgetPillColors.length) ? colors.widgetTextOnPillColors[pillIndex] : colors.textMain
+    readonly property color pillTextColor: (colors.widgetTextOnPillColors && pillIndex >= 0 && pillIndex < colors.widgetTextOnPillColors.length) ? colors.widgetTextOnPillColors[pillIndex] : colors.textMain
 
     implicitWidth: pill.width
     implicitHeight: 28

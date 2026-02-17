@@ -8,10 +8,9 @@ Row {
     id: trayRow
     required property var colors
     required property var barWindow
-    required property var rootItem
 
     spacing: 2
-    height: parent ? parent.height : 28
+    height: parent.height
 
     Repeater {
         model: SystemTray.items

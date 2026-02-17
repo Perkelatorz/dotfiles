@@ -37,7 +37,7 @@ Item {
     Timer {
         interval: 60000
         repeat: true
-        running: true
+        running: ipWidget.visible
         onTriggered: ipProc.running = true
     }
 

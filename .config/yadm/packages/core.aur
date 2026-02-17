@@ -6,11 +6,14 @@ adw-gtk3-git
 hyprlock
 # Font (bar default in Colors: JetBrainsMono Nerd Font)
 ttf-jetbrains-mono-nerd
+# Compositors
+mangowc-git
+# Screenshot helper (freezes screen for clean region capture)
+wayfreeze-git
 # Other
 cliphist
 anki-bin
 bambustudio-nvidia-bin
 spotify
-wpgtk
 git-credential-manager-bin
 cursor-bin

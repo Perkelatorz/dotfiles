@@ -3,8 +3,7 @@ import QtQuick
 import "."
 
 /**
- * Calendar UI content only (grid + nav). Use inside the bar or any container.
- * Same look as BarCalendarPopup, no separate window.
+ * Calendar UI content (grid + nav). Use inside the bar or any container.
  */
 Column {
     id: content

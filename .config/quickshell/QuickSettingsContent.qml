@@ -18,7 +18,7 @@ ColumnLayout {
 
     property string lockCommand: "swaylock"
     property string audioSettingsCommand: "pavucontrol"
-    property string displaySettingsCommand: "nwg-displays"
+    property string displaySettingsCommand: "wdisplays"
     property string batterySettingsCommand: ""
     property string diskSettingsCommand: "sh -c \"thunar \\$HOME\""
     property string systemMonitorCommand: "kitty -e btop"
@@ -110,19 +110,11 @@ ColumnLayout {
         }
     }
 
-    Process {
-        id: runProc
-        command: []
-        running: false
+    SessionRunner {
+        id: sessionRunner
+        compositorName: quickSettingsRoot.compositorName
     }
-    function runInSession(cmd) {
-        if (compositorName === "hyprland") {
-            runProc.command = ["hyprctl", "dispatch", "exec", cmd]
-        } else {
-            runProc.command = ["sh", "-c", cmd]
-        }
-        runProc.running = true
-    }
+    function runInSession(cmd) { sessionRunner.run(cmd) }
 
     property string userName: "user"
     property string userInitial: "?"
@@ -476,6 +468,7 @@ ColumnLayout {
 
         QuickSettingCard {
             colors: quickSettingsRoot.colors
+            enabled: batteryHas || !!batterySettingsCommand
             icon: batteryHas ? (batteryStatus === "Charging" ? "\uF0E7" : "\uF240") : "\uF244"
             title: "Battery"
             status: batteryHas ? (batteryCapacity + "% " + batteryStatus) : "N/A"
@@ -511,6 +504,7 @@ ColumnLayout {
         }
         QuickSettingCard {
             colors: quickSettingsRoot.colors
+            enabled: !!diskSettingsCommand
             icon: "\uF0A0"
             title: "Disk"
             status: diskStatus
@@ -532,6 +526,7 @@ ColumnLayout {
         }
         QuickSettingCard {
             colors: quickSettingsRoot.colors
+            enabled: !!quickSettingsRoot.systemMonitorCommand
             icon: "\uF2DB"
             title: "System"
             status: quickSettingsRoot.systemStatus

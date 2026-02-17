@@ -19,30 +19,24 @@ Column {
     spacing: 0
     width: 180
 
-    function runAndClose(cmd, inSession) {
-        powerMenuContent.onClose()
-        if (inSession) {
-            if (compositorName === "hyprland") {
-                runInSessionProc.command = ["hyprctl", "dispatch", "exec", cmd]
-            } else {
-                runInSessionProc.command = ["sh", "-c", cmd]
-            }
-            runInSessionProc.running = true
-        } else {
-            runProc.command = ["sh", "-c", cmd]
-            runProc.running = true
-        }
+    SessionRunner {
+        id: sessionRunner
+        compositorName: powerMenuContent.compositorName
     }
-
     Process {
         id: runProc
         command: []
         running: false
     }
-    Process {
-        id: runInSessionProc
-        command: []
-        running: false
+
+    function runAndClose(cmd, inSession) {
+        powerMenuContent.onClose()
+        if (inSession) {
+            sessionRunner.run(cmd)
+        } else {
+            runProc.command = ["sh", "-c", cmd]
+            runProc.running = true
+        }
     }
 
     Repeater {
