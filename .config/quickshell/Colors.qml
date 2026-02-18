@@ -40,6 +40,9 @@ QtObject {
     property color border: "#a48b87"
     property color borderSubtle: "#55423e"
 
+    // --- PANELS ---
+    property color panelShadow: Qt.rgba(0, 0, 0, 0.3)
+
     // --- URGENT (always bright red + black "!", independent of theme) ---
     property color urgent: "#e53935"
     property color textOnUrgent: "#000000"
@@ -98,6 +101,12 @@ QtObject {
     property int widgetPillPaddingH: spacing
     property int widgetPillPaddingV: 4
     property string widgetIconFont: fontMain
+
+    // --- ANIMATIONS ---
+    property int animFast: 80
+    property int animNormal: 120
+    property int animPanel: 200
+    property real pressedScale: 0.94
 
     // High-contrast text colors (auto-generated)
     property color textPrimary: "#ffffff"

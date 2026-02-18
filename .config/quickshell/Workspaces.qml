@@ -63,8 +63,10 @@ Row {
                         if (!isActive && wsMouse.containsMouse) return colors.borderSubtle
                         return isFocused ? colors.primary : colors.surfaceContainer
                     }
+                    scale: wsMouse.pressed ? 0.90 : 1.0
                     Behavior on color { ColorAnimation { duration: 100 } }
                     Behavior on border.width { NumberAnimation { duration: 100 } }
+                    Behavior on scale { NumberAnimation { duration: 80; easing.type: Easing.OutCubic } }
 
                     Row {
                         anchors.centerIn: parent
@@ -155,6 +157,7 @@ Row {
                         id: wsMouse
                         anchors.fill: parent
                         hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
                         acceptedButtons: Qt.LeftButton
                         onClicked: {
                             if (workspaceRow.hyprMonitor) {

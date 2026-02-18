@@ -5,6 +5,7 @@ CalendarContent 1.0 CalendarContent.qml
 ClientList 1.0 ClientList.qml
 ClockWidget 1.0 ClockWidget.qml
 CpuUsage 1.0 CpuUsage.qml
+PerformanceWidget 1.0 PerformanceWidget.qml
 IpAddressWidget 1.0 IpAddressWidget.qml
 PowerMenuContent 1.0 PowerMenuContent.qml
 QuickSettingCard 1.0 QuickSettingCard.qml
@@ -25,3 +26,8 @@ WidgetToggleRow 1.0 WidgetToggleRow.qml
 WorkspaceOverviewContent 1.0 WorkspaceOverviewContent.qml
 Workspaces 1.0 Workspaces.qml
 WorkspacesMangowc 1.0 WorkspacesMangowc.qml
+PowerProfileWidget 1.0 PowerProfileWidget.qml
+NotificationWidget 1.0 NotificationWidget.qml
+NetSpeedWidget 1.0 NetSpeedWidget.qml
+UpdateWidget 1.0 UpdateWidget.qml
+WeatherWidget 1.0 WeatherWidget.qml

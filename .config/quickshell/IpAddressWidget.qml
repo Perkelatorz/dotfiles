@@ -6,7 +6,7 @@ import "."
 Item {
     id: ipWidget
     required property var colors
-    property int pillIndex: 7
+    property int pillIndex: 1
 
     readonly property color pillColor: (colors.widgetPillColors && pillIndex >= 0 && pillIndex < colors.widgetPillColors.length) ? colors.widgetPillColors[pillIndex] : colors.error
     readonly property color pillTextColor: (colors.widgetTextOnPillColors && pillIndex >= 0 && pillIndex < colors.widgetTextOnPillColors.length) ? colors.widgetTextOnPillColors[pillIndex] : colors.textMain
@@ -34,12 +34,21 @@ Item {
         running: false
     }
 
+    Process {
+        id: copyIpProc
+        command: ["sh", "-c", "echo -n '" + ipWidget.ipAddress + "' | wl-copy"]
+        running: false
+    }
+
     Timer {
         interval: 60000
         repeat: true
         running: ipWidget.visible
         onTriggered: ipProc.running = true
     }
+
+    property bool _copied: false
+    Timer { id: copiedTimer; interval: 1500; onTriggered: ipWidget._copied = false }
 
     Component.onCompleted: ipProc.running = true
 
@@ -49,13 +58,30 @@ Item {
         width: row.implicitWidth + colors.widgetPillPaddingH * 2
         anchors.verticalCenter: parent.verticalCenter
         radius: colors.widgetPillRadius
-        color: ipWidget.pillColor
+        color: mouseArea.pressed ? Qt.darker(ipWidget.pillColor, 1.15) : mouseArea.containsMouse ? Qt.lighter(ipWidget.pillColor, 1.2) : ipWidget.pillColor
         border.width: 1
-        border.color: ipWidget.pillColor
+        border.color: mouseArea.containsMouse ? Qt.lighter(ipWidget.pillColor, 1.4) : ipWidget.pillColor
+        scale: mouseArea.pressed ? 0.94 : 1.0
+        Behavior on color { ColorAnimation { duration: 100 } }
+        Behavior on border.color { ColorAnimation { duration: 100 } }
+        Behavior on scale { NumberAnimation { duration: 80; easing.type: Easing.OutCubic } }
 
         MouseArea {
+            id: mouseArea
             anchors.fill: parent
-            onClicked: runConnectionEditor.running = true
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
+            onClicked: function(mouse) {
+                if (mouse.button === Qt.MiddleButton) {
+                    copyIpProc.command = ["sh", "-c", "echo -n '" + ipWidget.ipAddress + "' | wl-copy"]
+                    copyIpProc.running = true
+                    ipWidget._copied = true
+                    copiedTimer.restart()
+                } else if (mouse.button === Qt.RightButton) {
+                    runConnectionEditor.running = true
+                }
+            }
             Row {
                 id: row
                 anchors.centerIn: parent
@@ -76,6 +102,28 @@ Item {
                     color: ipWidget.pillTextColor
                     font.pixelSize: colors.cpuFontSize
                 }
+            }
+        }
+        Rectangle {
+            opacity: mouseArea.containsMouse ? 1 : 0
+            visible: opacity > 0
+            Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+            anchors.bottom: parent.top
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.bottomMargin: 4
+            width: ipTip.implicitWidth + 12
+            height: ipTip.implicitHeight + 6
+            radius: 4
+            color: colors.surface
+            border.width: 1
+            border.color: colors.border
+            z: 1000
+            Text {
+                id: ipTip
+                anchors.centerIn: parent
+                text: ipWidget._copied ? "Copied!" : "Middle-click to copy"
+                color: colors.textMain
+                font.pixelSize: colors.fontSize - 1
             }
         }
     }

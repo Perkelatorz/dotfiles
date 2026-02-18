@@ -19,15 +19,22 @@ Row {
             width: colors.trayIconSize + 4
             height: colors.trayIconSize + 4
 
-            Image {
-                anchors.centerIn: parent
-                width: colors.trayIconSize
-                height: colors.trayIconSize
-                source: modelData.icon
-                sourceSize.width: colors.trayIconSize
-                sourceSize.height: colors.trayIconSize
-                smooth: true
-                mipmap: true
+            Rectangle {
+                anchors.fill: parent
+                radius: 4
+                color: trayMouse.pressed ? Qt.rgba(1, 1, 1, 0.15) : trayMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : "transparent"
+                Behavior on color { ColorAnimation { duration: 100 } }
+
+                Image {
+                    anchors.centerIn: parent
+                    width: colors.trayIconSize
+                    height: colors.trayIconSize
+                    source: modelData.icon
+                    sourceSize.width: colors.trayIconSize
+                    sourceSize.height: colors.trayIconSize
+                    smooth: true
+                    mipmap: true
+                }
             }
 
             QsMenuAnchor {
@@ -49,7 +56,10 @@ Row {
             }
 
             MouseArea {
+                id: trayMouse
                 anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
                 acceptedButtons: Qt.LeftButton | Qt.RightButton
                 onClicked: function(mouse) {
                     var showMenu = modelData.hasMenu && (mouse.button === Qt.RightButton || modelData.onlyMenu)

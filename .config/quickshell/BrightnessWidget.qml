@@ -6,7 +6,7 @@ import "."
 Item {
     id: brightnessWidget
     required property var colors
-    property int pillIndex: 4
+    property int pillIndex: 6
     /// Hyprland/output name for this bar's screen (e.g. "DP-1"); used to target that screen only when multiple brightness devices exist
     property string outputName: ""
     /// Index of this bar's screen in Quickshell.screens; used to pick which brightness device to use for multi-monitor
@@ -150,6 +150,12 @@ Item {
         onTriggered: brightnessWidget.refreshBrightness()
     }
 
+    Process {
+        id: openDisplaySettings
+        command: ["wdisplays"]
+        running: false
+    }
+
     Component.onCompleted: detectProc.running = true
 
     Rectangle {
@@ -158,13 +164,23 @@ Item {
         width: row.implicitWidth + (colors.widgetPillPaddingH) * 2
         anchors.verticalCenter: parent.verticalCenter
         radius: colors.widgetPillRadius
-        color: brightnessWidget.pillColor
+        color: mouseArea.pressed ? Qt.darker(brightnessWidget.pillColor, 1.15) : mouseArea.containsMouse ? Qt.lighter(brightnessWidget.pillColor, 1.2) : brightnessWidget.pillColor
         border.width: 1
-        border.color: brightnessWidget.pillColor
+        border.color: mouseArea.containsMouse ? Qt.lighter(brightnessWidget.pillColor, 1.4) : brightnessWidget.pillColor
+        scale: mouseArea.pressed ? 0.94 : 1.0
+        Behavior on color { ColorAnimation { duration: 100 } }
+        Behavior on border.color { ColorAnimation { duration: 100 } }
+        Behavior on scale { NumberAnimation { duration: 80; easing.type: Easing.OutCubic } }
 
         MouseArea {
+            id: mouseArea
             anchors.fill: parent
-            acceptedButtons: Qt.LeftButton
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            acceptedButtons: Qt.LeftButton | Qt.RightButton
+            onClicked: function(mouse) {
+                if (mouse.button === Qt.RightButton) openDisplaySettings.running = true
+            }
             onWheel: function(wheel) {
                 if (!brightnessWidget.hasBrightness) return
                 var delta = wheel.angleDelta.y > 0 ? 5 : -5
@@ -184,6 +200,45 @@ Item {
                     text: brightnessWidget.hasBrightness ? (brightnessWidget.brightness + "%") : "N/A"
                     color: brightnessWidget.pillTextColor
                     font.pixelSize: colors.cpuFontSize
+                }
+            }
+        }
+        Rectangle {
+            opacity: mouseArea.containsMouse ? 1 : 0
+            visible: opacity > 0
+            Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+            anchors.bottom: parent.top
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.bottomMargin: 4
+            width: brightTipCol.implicitWidth + 16
+            height: brightTipCol.implicitHeight + 8
+            radius: 4
+            color: colors.surface
+            border.width: 1
+            border.color: colors.border
+            z: 1000
+            Column {
+                id: brightTipCol
+                anchors.centerIn: parent
+                spacing: 3
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: "Brightness: " + brightnessWidget.brightness + "%"
+                    color: colors.textMain
+                    font.pixelSize: colors.fontSize - 1
+                }
+                Rectangle {
+                    width: 80
+                    height: 4
+                    radius: 2
+                    color: colors.borderSubtle
+                    Rectangle {
+                        width: parent.width * (brightnessWidget.brightness / 100)
+                        height: parent.height
+                        radius: 2
+                        color: colors.tertiary
+                        Behavior on width { NumberAnimation { duration: 80 } }
+                    }
                 }
             }
         }

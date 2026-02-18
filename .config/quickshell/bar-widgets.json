@@ -1,1 +1,1 @@
-{"volume":true,"nowPlaying":true,"cpu":true,"ram":true,"battery":true,"brightness":false,"microphone":false,"ipAddress":true,"screenshot":true,"clock":true}
+{"volume":true,"nowPlaying":true,"performance":true,"battery":true,"brightness":false,"microphone":false,"ipAddress":false,"screenshot":true,"clock":true,"weather":false,"updates":true,"netSpeed":false,"notifications":true,"powerProfile":false}

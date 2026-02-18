@@ -1,0 +1,3 @@
+[D-BUS Service]
+Name=org.xfce.xfce4-notifyd.Notifications
+Exec=/bin/false
