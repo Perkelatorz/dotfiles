@@ -468,39 +468,57 @@ ColumnLayout {
 
         QuickSettingCard {
             colors: quickSettingsRoot.colors
-            enabled: batteryHas || !!batterySettingsCommand
-            icon: batteryHas ? (batteryStatus === "Charging" ? "\uF0E7" : "\uF240") : "\uF244"
-            title: "Battery"
-            status: batteryHas ? (batteryCapacity + "% " + batteryStatus) : "N/A"
-            onClick: batterySettingsCommand ? function() { quickSettingsRoot.runInSession(batterySettingsCommand) } : null
-        }
-        QuickSettingCard {
-            colors: quickSettingsRoot.colors
-            icon: volumeMuted ? "\uF6A9" : "\uF028"
-            title: audioSinkName || "Audio"
-            status: Math.round(quickSettingsRoot.volumeLevel * 100) + "%"
-            onClick: function() { quickSettingsRoot.runInSession(quickSettingsRoot.audioSettingsCommand) }
-        }
-        QuickSettingCard {
-            colors: quickSettingsRoot.colors
-            icon: micMuted ? "\uF131" : "\uF130"
+            icon: quickSettingsRoot.micMuted ? "\uF131" : "\uF130"
             title: "Microphone"
-            status: micMuted ? "Muted" : "On"
-            onClick: function() { quickSettingsRoot.runInSession(quickSettingsRoot.audioSettingsCommand) }
+            status: quickSettingsRoot.micMuted ? "Muted" : "On"
+            active: !quickSettingsRoot.micMuted
+            onClick: function() { quickSettingsRoot.toggleMic() }
+            onRightClick: function() { quickSettingsRoot.runInSession(quickSettingsRoot.audioSettingsCommand) }
         }
         QuickSettingCard {
             colors: quickSettingsRoot.colors
-            icon: "\uF1EB"
-            title: "Wi‑Fi"
-            status: wifiStatus
-            onClick: function() { quickSettingsRoot.runInSession("nm-connection-editor") }
+            icon: quickSettingsRoot.wifiEnabled ? "\uF1EB" : "\uF05E"
+            title: "Wi-Fi"
+            status: quickSettingsRoot.wifiEnabled
+                ? (quickSettingsRoot.wifiStatus + (quickSettingsRoot.vpnStatus !== "Disconnected" ? ("\n\uF21B " + quickSettingsRoot.vpnStatus) : ""))
+                : "Off"
+            active: quickSettingsRoot.wifiEnabled
+            onClick: function() { quickSettingsRoot.toggleWifi() }
+            onRightClick: function() { quickSettingsRoot.runInSession("nm-connection-editor") }
         }
         QuickSettingCard {
             colors: quickSettingsRoot.colors
             icon: "\uF293"
             title: "Bluetooth"
-            status: btStatus
-            onClick: function() { quickSettingsRoot.runInSession("sh -c 'blueman-manager 2>/dev/null || bluetoothctl'") }
+            status: quickSettingsRoot.btStatus
+            active: quickSettingsRoot.btPowered
+            onClick: function() { quickSettingsRoot.toggleBluetooth() }
+            onRightClick: function() { quickSettingsRoot.runInSession("sh -c 'blueman-manager 2>/dev/null || bluetoothctl'") }
+        }
+        QuickSettingCard {
+            colors: quickSettingsRoot.colors
+            enabled: batteryHas || !!batterySettingsCommand
+            icon: batteryHas ? (batteryStatus === "Charging" ? "\uF0E7" : "\uF240") : "\uF244"
+            title: "Battery"
+            status: batteryHas ? (batteryCapacity + "% " + batteryStatus) : "N/A"
+            active: batteryHas && batteryStatus === "Charging"
+            progress: batteryHas ? batteryCapacity / 100 : -1
+            onClick: batterySettingsCommand ? function() { quickSettingsRoot.runInSession(batterySettingsCommand) } : null
+        }
+        QuickSettingCard {
+            colors: quickSettingsRoot.colors
+            icon: quickSettingsRoot.qsPowerIcon
+            title: "Power Profile"
+            status: quickSettingsRoot.qsPowerProfile
+            active: quickSettingsRoot.qsPowerProfile.toLowerCase() === "performance"
+            onClick: function() { quickSettingsRoot.cyclePowerProfile() }
+        }
+        QuickSettingCard {
+            colors: quickSettingsRoot.colors
+            icon: "\uF0AC"
+            title: "Network"
+            status: quickSettingsRoot.qsNetSpeed
+            onClick: function() { quickSettingsRoot.runInSession("nm-connection-editor") }
         }
         QuickSettingCard {
             colors: quickSettingsRoot.colors
@@ -508,29 +526,24 @@ ColumnLayout {
             icon: "\uF0A0"
             title: "Disk"
             status: diskStatus
+            progress: quickSettingsRoot.diskPercent / 100
             onClick: diskSettingsCommand ? function() { quickSettingsRoot.runInSession(quickSettingsRoot.diskSettingsCommand) } : null
         }
         QuickSettingCard {
             colors: quickSettingsRoot.colors
-            icon: "\uF21B"
-            title: "VPN"
-            status: vpnStatus
-            onClick: function() { quickSettingsRoot.runInSession("nm-connection-editor") }
+            icon: "\uF49E"
+            title: "Updates"
+            status: quickSettingsRoot.qsUpdateStatus
+            active: quickSettingsRoot.qsRepoUpdates + quickSettingsRoot.qsAurUpdates > 0
+            onClick: function() { quickSettingsRoot.runInSession("kitty -e paru") }
         }
         QuickSettingCard {
             colors: quickSettingsRoot.colors
-            icon: "\uF02F"
-            title: "Printers"
-            status: printersStatus
-            onClick: function() { quickSettingsRoot.runInSession("system-config-printer") }
-        }
-        QuickSettingCard {
-            colors: quickSettingsRoot.colors
-            enabled: !!quickSettingsRoot.systemMonitorCommand
-            icon: "\uF2DB"
-            title: "System"
-            status: quickSettingsRoot.systemStatus
-            onClick: quickSettingsRoot.systemMonitorCommand ? function() { quickSettingsRoot.runInSession(quickSettingsRoot.systemMonitorCommand) } : null
+            icon: quickSettingsRoot.qsWeatherIcon
+            title: "Weather"
+            status: quickSettingsRoot.qsWeatherStatus
+            onClick: function() { quickSettingsRoot.runInSession("xdg-open https://wttr.in/" + quickSettingsRoot.weatherLocation) }
+            onRightClick: function() { quickSettingsRoot.promptWeatherLocation() }
         }
         QuickSettingCard {
             colors: quickSettingsRoot.colors
@@ -539,6 +552,13 @@ ColumnLayout {
             status: quickSettingsRoot.themeStatus
             paletteColors: [quickSettingsRoot.colors.primary, quickSettingsRoot.colors.secondary, quickSettingsRoot.colors.tertiary, quickSettingsRoot.colors.error, quickSettingsRoot.colors.primaryContainer, quickSettingsRoot.colors.surfaceBright]
             onClick: function() { quickSettingsRoot.runInSession("sh -c '\"$HOME/.config/scripts/select-wallpaper.sh\" --material'") }
+        }
+        QuickSettingCard {
+            colors: quickSettingsRoot.colors
+            icon: "\uF02F"
+            title: "Printers"
+            status: printersStatus
+            onClick: function() { quickSettingsRoot.runInSession("system-config-printer") }
         }
     }
 
@@ -586,7 +606,7 @@ ColumnLayout {
         onTriggered: themeProc.running = true
     }
 
-    property string audioSinkName: ""
+    // audioSinkName removed — volume slider above is sufficient
     property string diskStatus: "No data"
     property string vpnStatus: "Disconnected"
     property string printersStatus: "No data"
@@ -628,35 +648,66 @@ ColumnLayout {
         when: quickSettingsRoot.defaultSource != null
     }
 
+    // --- Toggle functions ---
+    function toggleMic() {
+        toggleMicProc.running = true
+    }
+    Process {
+        id: toggleMicProc
+        command: ["wpctl", "set-mute", "@DEFAULT_AUDIO_SOURCE@", "toggle"]
+        running: false
+        stdout: StdioCollector { onStreamFinished: toggleMicProc.running = false }
+    }
+
+    function toggleWifi() {
+        toggleWifiProc.running = true
+    }
+    Process {
+        id: toggleWifiProc
+        command: ["sh", "-c", "s=$(nmcli radio wifi 2>/dev/null); if [ \"$s\" = \"enabled\" ]; then nmcli radio wifi off; else nmcli radio wifi on; fi"]
+        running: false
+        stdout: StdioCollector {
+            onStreamFinished: {
+                toggleWifiProc.running = false
+                wifiProc.running = true
+                wifiStateProc.running = true
+            }
+        }
+    }
+
+    function toggleBluetooth() {
+        toggleBtProc.running = true
+    }
+    Process {
+        id: toggleBtProc
+        command: ["sh", "-c", "if bluetoothctl show 2>/dev/null | grep -q 'Powered: yes'; then bluetoothctl power off; else bluetoothctl power on; fi"]
+        running: false
+        stdout: StdioCollector {
+            onStreamFinished: {
+                toggleBtProc.running = false
+                btProc.running = true
+            }
+        }
+    }
+
     property string wifiStatus: "N/A"
+    property bool wifiEnabled: true
     property string btStatus: "N/A"
+    property bool btPowered: false
     Component.onCompleted: {
         backlightDetectProc.running = true
         wifiProc.running = true
+        wifiStateProc.running = true
         btProc.running = true
-        sinkNameProc.running = true
         diskProc.running = true
         vpnProc.running = true
         printersProc.running = true
         themeProc.running = true
-    }
-    Process {
-        id: sinkNameProc
-        command: ["sh", "-c", "wpctl status 2>/dev/null | grep -A 200 'Sinks:' | grep '\\*' | head -1 | sed 's/^[^.]*\\. //; s/\\s*\\[.*//; s/^\\s*//'"]
-        running: false
-        stdout: StdioCollector {
-            onStreamFinished: {
-                var s = (sinkNameProc.stdout.text || "").trim()
-                if (s) quickSettingsRoot.audioSinkName = s.length > 22 ? s.slice(0, 19) + "…" : s
-                sinkNameProc.running = false
-            }
-        }
-    }
-    Timer {
-        interval: 5000
-        repeat: true
-        running: quickSettingsRoot.visible
-        onTriggered: sinkNameProc.running = true
+        qsWeatherProc.running = true
+        qsRepoProc.running = true
+        qsAurProc.running = true
+        qsPowerGetProc.running = true
+        qsIfaceProc.running = true
     }
     Process {
         id: wifiProc
@@ -676,25 +727,47 @@ ColumnLayout {
         }
     }
     Process {
-        id: btProc
-        command: ["sh", "-c", "if ! bluetoothctl show 2>/dev/null | grep -q 'Powered: yes'; then echo 'Off'; exit 0; fi; name=$(bluetoothctl devices 2>/dev/null | awk '{print $2}' | while read m; do bluetoothctl info \"$m\" 2>/dev/null | grep -q 'Connected: yes' && bluetoothctl info \"$m\" 2>/dev/null | grep 'Name:' | sed 's/.*Name: //' | head -1 && break; done); if [ -z \"$name\" ]; then echo -e 'On\\nNo devices connected'; else echo -e \"On\\n${name}\"; fi"]
+        id: wifiStateProc
+        command: ["sh", "-c", "nmcli radio wifi 2>/dev/null"]
         running: false
         stdout: StdioCollector {
             onStreamFinished: {
-                var s = (btProc.stdout.text || "").trim()
-                quickSettingsRoot.btStatus = s || "N/A"
-                btProc.running = false
+                quickSettingsRoot.wifiEnabled = (wifiStateProc.stdout.text || "").trim() === "enabled"
+                wifiStateProc.running = false
             }
         }
     }
     Process {
-        id: diskProc
-        command: ["sh", "-c", "home=${HOME:-$(getent passwd $(id -un 2>/dev/null) 2>/dev/null | cut -d: -f6)}; r_line=$(df -h / 2>/dev/null | tail -1); r_pct=$(echo \"$r_line\" | awk '{print $5}'); r_avail=$(echo \"$r_line\" | awk '{print $4}'); h_line=$(df -h \"$home\" 2>/dev/null | tail -1); h_avail=$(echo \"$h_line\" | awk '{print $4}'); out=\"\"; [ -n \"$r_pct\" ] && out=\"Root ${r_pct}, ${r_avail} free\"; [ -n \"$h_avail\" ] && { [ -n \"$out\" ] && out=\"$out\"; out=\"${out}\nHome ${h_avail} free\"; }; [ -z \"$out\" ] && out=\"No data\"; echo -e \"$out\""]
+        id: btProc
+        command: ["sh", "-c", "if ! bluetoothctl show 2>/dev/null | grep -q 'Powered: yes'; then echo 'PWROFF'; exit 0; fi; name=$(bluetoothctl devices 2>/dev/null | awk '{print $2}' | while read m; do bluetoothctl info \"$m\" 2>/dev/null | grep -q 'Connected: yes' && bluetoothctl info \"$m\" 2>/dev/null | grep 'Name:' | sed 's/.*Name: //' | head -1 && break; done); if [ -z \"$name\" ]; then echo -e 'On\\nNo devices'; else echo -e \"On\\n${name}\"; fi"]
         running: false
         stdout: StdioCollector {
             onStreamFinished: {
-                var s = (diskProc.stdout.text || "").trim()
-                quickSettingsRoot.diskStatus = s || "No data"
+                var s = (btProc.stdout.text || "").trim()
+                if (s === "PWROFF") {
+                    quickSettingsRoot.btPowered = false
+                    quickSettingsRoot.btStatus = "Off"
+                } else {
+                    quickSettingsRoot.btPowered = true
+                    quickSettingsRoot.btStatus = s || "On"
+                }
+                btProc.running = false
+            }
+        }
+    }
+    property int diskPercent: 0
+    Process {
+        id: diskProc
+        command: ["sh", "-c", "r_line=$(df -h / 2>/dev/null | tail -1); r_pct=$(echo \"$r_line\" | awk '{gsub(/%/,\"\"); print $5}'); r_avail=$(echo \"$r_line\" | awk '{print $4}'); echo \"${r_pct:-0}\"; echo \"Root ${r_pct:-0}%, ${r_avail:-?} free\""]
+        running: false
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var lines = (diskProc.stdout.text || "").trim().split("\n")
+                if (lines.length >= 1) {
+                    var p = parseInt(lines[0], 10)
+                    quickSettingsRoot.diskPercent = isNaN(p) ? 0 : Math.max(0, Math.min(100, p))
+                }
+                quickSettingsRoot.diskStatus = lines.length >= 2 ? lines[1] : "No data"
                 diskProc.running = false
             }
         }
@@ -731,6 +804,7 @@ ColumnLayout {
         running: quickSettingsRoot.visible
         onTriggered: {
             wifiProc.running = true
+            wifiStateProc.running = true
             btProc.running = true
             diskProc.running = true
             vpnProc.running = true
@@ -738,57 +812,233 @@ ColumnLayout {
         }
     }
 
-    property string systemStatus: "CPU —\nRAM —"
-    property int _sysCpuPercent: 0
-    property int _sysRamPercent: 0
-    property int _lastCpuTotal: 0
-    property int _lastCpuIdle: 0
+    // --- Weather data for QS card ---
+    property string qsWeatherStatus: "—"
+    property string qsWeatherIcon: "\uF0C2"
+    property string weatherLocation: ""
+    readonly property string _weatherUrl: weatherLocation ? ("wttr.in/" + weatherLocation) : "wttr.in"
+
     Process {
-        id: sysCpuProc
-        command: ["sh", "-c", "head -1 /proc/stat"]
-        running: false
+        id: loadWeatherLocProc
+        command: ["sh", "-c", "cat \"${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/weather-location.txt\" 2>/dev/null || echo ''"]
+        running: true
         stdout: StdioCollector {
             onStreamFinished: {
-                var data = (sysCpuProc.stdout.text || "").trim()
-                var p = data.split(/\s+/)
-                if (p.length >= 9) {
-                    var idle = parseInt(p[4], 10) + parseInt(p[5], 10)
-                    var total = 0
-                    for (var i = 1; i <= 8; i++) total += parseInt(p[i], 10)
-                    if (quickSettingsRoot._lastCpuTotal > 0 && total > quickSettingsRoot._lastCpuTotal) {
-                        var dt = total - quickSettingsRoot._lastCpuTotal
-                        var di = idle - quickSettingsRoot._lastCpuIdle
-                        quickSettingsRoot._sysCpuPercent = Math.max(0, Math.min(100, Math.round(100 * (1 - di / dt))))
-                    }
-                    quickSettingsRoot._lastCpuTotal = total
-                    quickSettingsRoot._lastCpuIdle = idle
-                }
-                quickSettingsRoot.systemStatus = "CPU " + quickSettingsRoot._sysCpuPercent + "%\nRAM " + quickSettingsRoot._sysRamPercent + "%"
-                sysCpuProc.running = false
+                quickSettingsRoot.weatherLocation = (loadWeatherLocProc.stdout.text || "").trim()
+                loadWeatherLocProc.running = false
             }
         }
     }
     Process {
-        id: sysRamProc
-        command: ["sh", "-c", "awk '/MemTotal/ {t=$2} /MemAvailable/ {a=$2} END {if(t>0) print int(100*(t-a)/t); else print 0}' /proc/meminfo"]
+        id: saveWeatherLocProc
+        command: []
+        running: false
+        stdout: StdioCollector { onStreamFinished: saveWeatherLocProc.running = false }
+    }
+
+    function promptWeatherLocation() {
+        promptWeatherLocProc.running = true
+    }
+    Process {
+        id: promptWeatherLocProc
+        command: ["sh", "-c", "LOC=$(rofi -dmenu -p 'Weather location (city or empty for auto)' -l 0 2>/dev/null || true); echo \"$LOC\""]
         running: false
         stdout: StdioCollector {
             onStreamFinished: {
-                var s = (sysRamProc.stdout.text || "").trim()
-                var p = parseInt(s, 10)
-                if (!isNaN(p)) quickSettingsRoot._sysRamPercent = Math.max(0, Math.min(100, p))
-                quickSettingsRoot.systemStatus = "CPU " + quickSettingsRoot._sysCpuPercent + "%\nRAM " + quickSettingsRoot._sysRamPercent + "%"
-                sysRamProc.running = false
+                var loc = (promptWeatherLocProc.stdout.text || "").trim()
+                quickSettingsRoot.weatherLocation = loc
+                saveWeatherLocProc.command = ["sh", "-c", "echo " + JSON.stringify(loc) + " > \"${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/weather-location.txt\""]
+                saveWeatherLocProc.running = true
+                qsWeatherProc.running = true
+                promptWeatherLocProc.running = false
+            }
+        }
+    }
+
+    Process {
+        id: qsWeatherProc
+        command: ["sh", "-c", "curl -s '" + quickSettingsRoot._weatherUrl + "?format=%C|%t|%l' 2>/dev/null"]
+        running: false
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var s = (qsWeatherProc.stdout.text || "").trim()
+                if (s && s.indexOf("|") >= 0) {
+                    var parts = s.split("|")
+                    var cond = (parts[0] || "").trim()
+                    var temp = (parts[1] || "").trim().replace(/^\+/, "")
+                    var loc = (parts[2] || "").trim()
+                    quickSettingsRoot.qsWeatherStatus = temp + ", " + cond + "\n" + loc
+                    var c = cond.toLowerCase()
+                    if (c.indexOf("sun") >= 0 || c.indexOf("clear") >= 0) quickSettingsRoot.qsWeatherIcon = "\uF185"
+                    else if (c.indexOf("rain") >= 0 || c.indexOf("drizzle") >= 0) quickSettingsRoot.qsWeatherIcon = "\uF73D"
+                    else if (c.indexOf("snow") >= 0 || c.indexOf("sleet") >= 0) quickSettingsRoot.qsWeatherIcon = "\uF2DC"
+                    else if (c.indexOf("thunder") >= 0 || c.indexOf("storm") >= 0) quickSettingsRoot.qsWeatherIcon = "\uF0E7"
+                    else if (c.indexOf("cloud") >= 0 || c.indexOf("overcast") >= 0) quickSettingsRoot.qsWeatherIcon = "\uF0C2"
+                    else if (c.indexOf("fog") >= 0 || c.indexOf("mist") >= 0) quickSettingsRoot.qsWeatherIcon = "\uF75F"
+                    else quickSettingsRoot.qsWeatherIcon = "\uF6C4"
+                } else {
+                    quickSettingsRoot.qsWeatherStatus = "Unavailable"
+                }
+                qsWeatherProc.running = false
             }
         }
     }
     Timer {
-        interval: 2000
+        interval: 900000
+        repeat: true
+        running: quickSettingsRoot.visible
+        onTriggered: if (!qsWeatherProc.running) qsWeatherProc.running = true
+    }
+
+    // --- Update data for QS card ---
+    property int qsRepoUpdates: 0
+    property int qsAurUpdates: 0
+    property string qsUpdateStatus: "—"
+    Process {
+        id: qsRepoProc
+        command: ["sh", "-c", "checkupdates 2>/dev/null | wc -l"]
+        running: false
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var n = parseInt((qsRepoProc.stdout.text || "").trim(), 10)
+                quickSettingsRoot.qsRepoUpdates = isNaN(n) ? 0 : Math.max(0, n)
+                quickSettingsRoot.qsUpdateStatus = quickSettingsRoot.qsRepoUpdates + " repo + " + quickSettingsRoot.qsAurUpdates + " AUR"
+                qsRepoProc.running = false
+            }
+        }
+    }
+    Process {
+        id: qsAurProc
+        command: ["sh", "-c", "paru -Qua 2>/dev/null | wc -l"]
+        running: false
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var n = parseInt((qsAurProc.stdout.text || "").trim(), 10)
+                quickSettingsRoot.qsAurUpdates = isNaN(n) ? 0 : Math.max(0, n)
+                quickSettingsRoot.qsUpdateStatus = quickSettingsRoot.qsRepoUpdates + " repo + " + quickSettingsRoot.qsAurUpdates + " AUR"
+                qsAurProc.running = false
+            }
+        }
+    }
+    Timer {
+        interval: 1800000
         repeat: true
         running: quickSettingsRoot.visible
         onTriggered: {
-            sysCpuProc.running = true
-            sysRamProc.running = true
+            if (!qsRepoProc.running) qsRepoProc.running = true
+            if (!qsAurProc.running) qsAurProc.running = true
+        }
+    }
+
+    // --- Power profile data for QS card ---
+    property string qsPowerProfile: "—"
+    property string qsPowerIcon: "\uF24E"
+    readonly property var _powerIcons: ({ "balanced": "\uF24E", "performance": "\uF0E4", "power-saver": "\uF06C" })
+    Process {
+        id: qsPowerGetProc
+        command: ["powerprofilesctl", "get"]
+        running: false
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var s = (qsPowerGetProc.stdout.text || "").trim()
+                if (s) {
+                    quickSettingsRoot.qsPowerProfile = s.charAt(0).toUpperCase() + s.slice(1)
+                    quickSettingsRoot.qsPowerIcon = quickSettingsRoot._powerIcons[s] || "\uF24E"
+                }
+                qsPowerGetProc.running = false
+            }
+        }
+    }
+    Process {
+        id: qsPowerSetProc
+        command: []
+        running: false
+        stdout: StdioCollector {
+            onStreamFinished: {
+                qsPowerSetProc.running = false
+                qsPowerGetProc.running = true
+            }
+        }
+    }
+    function cyclePowerProfile() {
+        var order = ["balanced", "performance", "power-saver"]
+        var cur = qsPowerProfile.toLowerCase()
+        var idx = order.indexOf(cur)
+        var next = order[(idx + 1) % order.length]
+        qsPowerSetProc.command = ["powerprofilesctl", "set", next]
+        qsPowerSetProc.running = true
+    }
+    Timer {
+        interval: 10000
+        repeat: true
+        running: quickSettingsRoot.visible
+        onTriggered: if (!qsPowerGetProc.running) qsPowerGetProc.running = true
+    }
+
+    // --- Network speed data for QS card ---
+    property string qsNetIface: ""
+    property real qsRxRate: 0
+    property real qsTxRate: 0
+    property real _qsLastRx: 0
+    property real _qsLastTx: 0
+    property bool _qsNetHasData: false
+    property string qsNetSpeed: "—"
+    function _formatSpeed(bps) {
+        if (bps < 1024) return Math.round(bps) + " B/s"
+        if (bps < 1024 * 1024) return Math.round(bps / 1024) + " KB/s"
+        return (bps / (1024 * 1024)).toFixed(1) + " MB/s"
+    }
+    Process {
+        id: qsIfaceProc
+        command: ["sh", "-c", "ip -o link show up 2>/dev/null | awk -F': ' '{print $2}' | grep -vE '^(lo|docker|br-|veth)' | head -1"]
+        running: false
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var s = (qsIfaceProc.stdout.text || "").trim()
+                if (s) quickSettingsRoot.qsNetIface = s
+                qsIfaceProc.running = false
+            }
+        }
+    }
+    Process {
+        id: qsNetStatsProc
+        command: ["sh", "-c", "cat /sys/class/net/" + qsNetIface + "/statistics/rx_bytes /sys/class/net/" + qsNetIface + "/statistics/tx_bytes 2>/dev/null"]
+        running: false
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var lines = (qsNetStatsProc.stdout.text || "").trim().split("\n")
+                if (lines.length >= 2) {
+                    var rx = parseFloat(lines[0]) || 0
+                    var tx = parseFloat(lines[1]) || 0
+                    if (quickSettingsRoot._qsNetHasData) {
+                        quickSettingsRoot.qsRxRate = Math.max(0, (rx - quickSettingsRoot._qsLastRx) / 2)
+                        quickSettingsRoot.qsTxRate = Math.max(0, (tx - quickSettingsRoot._qsLastTx) / 2)
+                        quickSettingsRoot.qsNetSpeed = "\u2193 " + quickSettingsRoot._formatSpeed(quickSettingsRoot.qsRxRate) + "  \u2191 " + quickSettingsRoot._formatSpeed(quickSettingsRoot.qsTxRate)
+                    }
+                    quickSettingsRoot._qsLastRx = rx
+                    quickSettingsRoot._qsLastTx = tx
+                    quickSettingsRoot._qsNetHasData = true
+                }
+                qsNetStatsProc.running = false
+            }
+        }
+    }
+    onQsNetIfaceChanged: if (qsNetIface) qsNetStatsProc.running = true
+    Timer {
+        interval: 2000
+        repeat: true
+        running: quickSettingsRoot.visible && quickSettingsRoot.qsNetIface !== ""
+        onTriggered: if (!qsNetStatsProc.running) qsNetStatsProc.running = true
+    }
+
+    // Initialize new QS data on panel open
+    onVisibleChanged: {
+        if (visible) {
+            qsWeatherProc.running = true
+            qsRepoProc.running = true
+            qsAurProc.running = true
+            qsPowerGetProc.running = true
+            if (!qsNetIface) qsIfaceProc.running = true
         }
     }
 

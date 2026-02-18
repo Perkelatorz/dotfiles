@@ -54,12 +54,19 @@ Item {
         width: Math.max(row.implicitWidth + (colors.widgetPillPaddingH) * 2, 52)
         anchors.verticalCenter: parent.verticalCenter
         radius: colors.widgetPillRadius
-        color: ramUsageWidget.pillColor
+        color: mouseArea.pressed ? Qt.darker(ramUsageWidget.pillColor, 1.15) : mouseArea.containsMouse ? Qt.lighter(ramUsageWidget.pillColor, 1.2) : ramUsageWidget.pillColor
         border.width: 1
-        border.color: ramUsageWidget.pillColor
+        border.color: mouseArea.containsMouse ? Qt.lighter(ramUsageWidget.pillColor, 1.4) : ramUsageWidget.pillColor
+        scale: mouseArea.pressed ? 0.94 : 1.0
+        Behavior on color { ColorAnimation { duration: 100 } }
+        Behavior on border.color { ColorAnimation { duration: 100 } }
+        Behavior on scale { NumberAnimation { duration: 80; easing.type: Easing.OutCubic } }
 
         MouseArea {
+            id: mouseArea
             anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
             onClicked: runMonitor.running = true
         }
         Row {
@@ -77,6 +84,26 @@ Item {
                 text: ramUsageWidget.ramUsagePercent + "%"
                 color: ramUsageWidget.pillTextColor
                 font.pixelSize: colors.cpuFontSize
+            }
+        }
+        Rectangle {
+            visible: mouseArea.containsMouse
+            anchors.bottom: parent.top
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.bottomMargin: 4
+            width: ramTip.implicitWidth + 12
+            height: ramTip.implicitHeight + 6
+            radius: 4
+            color: colors.surface
+            border.width: 1
+            border.color: colors.border
+            z: 1000
+            Text {
+                id: ramTip
+                anchors.centerIn: parent
+                text: "RAM: " + ramUsageWidget.ramUsagePercent + "%"
+                color: colors.textMain
+                font.pixelSize: colors.fontSize - 1
             }
         }
     }

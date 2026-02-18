@@ -28,11 +28,14 @@ Row {
                 anchors.fill: parent
                 radius: 6
                 color: {
+                    if (clientMouse.pressed) return isFocusedWindow ? Qt.darker(colors.primary, 1.15) : Qt.darker(colors.surfaceBright, 1.15)
                     if (isFocusedWindow) return colors.primary
                     if (clientMouse.containsMouse) return colors.surfaceBright
                     return colors.surfaceContainer
                 }
+                scale: clientMouse.pressed ? 0.94 : 1.0
                 Behavior on color { ColorAnimation { duration: 100 } }
+                Behavior on scale { NumberAnimation { duration: 80; easing.type: Easing.OutCubic } }
 
                 Row {
                     id: clientContentRow
@@ -67,6 +70,7 @@ Row {
                     id: clientMouse
                     anchors.fill: parent
                     hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
                     acceptedButtons: Qt.LeftButton | Qt.MiddleButton
                     onClicked: function(mouse) {
                         if (modelData.toplevel) {

@@ -1,0 +1,230 @@
+/* swaync theme — synced with matugen Colors.qml */
+
+/* ── Control Center (main panel) ── */
+.control-center {
+  background: #1e100c;
+  border: 1px solid #55423d;
+  border-radius: 12px;
+  padding: 8px;
+  font-family: "JetBrainsMono Nerd Font", monospace;
+}
+
+.control-center .notification-row {
+  margin: 4px 0;
+}
+
+/* ── Notification popups (floating) ── */
+.notification-row,
+.notification {
+  font-family: "JetBrainsMono Nerd Font", monospace;
+}
+
+.floating-notifications {
+  background: transparent;
+}
+
+.floating-notifications .notification {
+  background: #2b1c18;
+  border: 1px solid #55423d;
+  border-radius: 10px;
+  margin: 4px 8px;
+  padding: 0;
+}
+
+/* ── Individual notification ── */
+.notification {
+  background: #2b1c18;
+  border: 1px solid #55423d;
+  border-radius: 10px;
+  padding: 0;
+  transition: all 150ms ease-out;
+}
+
+.notification:hover {
+  background: #473530;
+  border-color: #a48b85;
+}
+
+.notification-content {
+  padding: 8px 12px;
+}
+
+.notification .summary {
+  color: #f9dcd5;
+  font-size: 13px;
+  font-weight: bold;
+}
+
+.notification .time {
+  color: #a48b85;
+  font-size: 10px;
+}
+
+.notification .body {
+  color: #dcc1ba;
+  font-size: 12px;
+}
+
+.notification .image {
+  border-radius: 6px;
+  margin-right: 8px;
+}
+
+/* ── Close button ── */
+.notification .close-button,
+.close-button {
+  background: #473530;
+  color: #f9dcd5;
+  border: 1px solid #55423d;
+  border-radius: 50%;
+  min-width: 22px;
+  min-height: 22px;
+  padding: 0;
+  margin: 4px;
+  transition: all 100ms ease-out;
+}
+
+.close-button:hover {
+  background: #ffb5a1;
+  color: #601400;
+  border-color: #ffb5a1;
+}
+
+/* ── Action buttons (inline reply, open, etc.) ── */
+.notification-action,
+.notification .notification-action {
+  background: #473530;
+  color: #f9dcd5;
+  border: 1px solid #55423d;
+  border-radius: 6px;
+  padding: 4px 12px;
+  margin: 2px;
+  font-size: 11px;
+  transition: all 100ms ease-out;
+}
+
+.notification-action:hover {
+  background: #ffb5a1;
+  color: #601400;
+  border-color: #ffb5a1;
+}
+
+/* ── Notification groups ── */
+.notification-group {
+  background: transparent;
+}
+
+.notification-group-headers {
+  color: #a48b85;
+  font-size: 11px;
+  font-weight: bold;
+  padding: 4px 8px;
+}
+
+.notification-group-collapse-button {
+  background: #473530;
+  color: #dcc1ba;
+  border: 1px solid #55423d;
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 10px;
+}
+
+.notification-group-collapse-button:hover {
+  background: #ffb5a1;
+  color: #601400;
+}
+
+/* ── Critical urgency ── */
+.notification.critical {
+  border-color: #ffb4ab;
+}
+
+.notification.critical .summary {
+  color: #ffb4ab;
+}
+
+/* ── Control Center widgets ── */
+.widget-title {
+  color: #ffb5a1;
+  font-size: 15px;
+  font-weight: bold;
+  padding: 8px 12px 4px 12px;
+}
+
+.widget-title > button {
+  background: #473530;
+  color: #f9dcd5;
+  border: 1px solid #55423d;
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-size: 11px;
+  transition: all 100ms ease-out;
+}
+
+.widget-title > button:hover {
+  background: #ffb5a1;
+  color: #601400;
+  border-color: #ffb5a1;
+}
+
+/* ── DND toggle ── */
+.widget-dnd {
+  padding: 4px 12px;
+}
+
+.widget-dnd > switch {
+  background: #473530;
+  border: 1px solid #55423d;
+  border-radius: 12px;
+  min-width: 40px;
+  min-height: 22px;
+}
+
+.widget-dnd > switch:checked {
+  background: #882000;
+  border-color: #ffb5a1;
+}
+
+.widget-dnd > switch slider {
+  background: #f9dcd5;
+  border-radius: 50%;
+  min-width: 16px;
+  min-height: 16px;
+  margin: 2px;
+}
+
+.widget-dnd > label {
+  color: #dcc1ba;
+  font-size: 12px;
+}
+
+/* ── Inhibitors ── */
+.widget-inhibitors {
+  padding: 4px 12px;
+  color: #dcc1ba;
+  font-size: 12px;
+}
+
+/* ── Empty state ── */
+.widget-title > label#text-empty {
+  color: #a48b85;
+  font-style: italic;
+}
+
+/* ── Scrollbar in control center ── */
+.control-center scrollbar,
+scrollbar {
+  background: transparent;
+}
+
+.control-center scrollbar slider,
+scrollbar slider {
+  background: #55423d;
+  border-radius: 3px;
+  min-width: 6px;
+}
+
+scrollbar slider:hover {
+  background: #a48b85;
+}

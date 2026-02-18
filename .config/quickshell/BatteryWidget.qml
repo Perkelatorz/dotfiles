@@ -6,7 +6,7 @@ import "."
 Item {
     id: batteryWidget
     required property var colors
-    property int pillIndex: 3
+    property int pillIndex: 5
 
     readonly property bool lowBattery: hasBattery && status !== "Charging" && capacity < 15
     readonly property color pillColor: lowBattery ? colors.urgent : ((colors.widgetPillColors && pillIndex >= 0 && pillIndex < colors.widgetPillColors.length) ? colors.widgetPillColors[pillIndex] : colors.primary)
@@ -49,6 +49,12 @@ Item {
         onTriggered: batteryProc.running = true
     }
 
+    Process {
+        id: openPowerSettings
+        command: ["xdg-open", "power"]
+        running: false
+    }
+
     Component.onCompleted: batteryProc.running = true
 
     Rectangle {
@@ -57,16 +63,31 @@ Item {
         width: row.implicitWidth + (colors.widgetPillPaddingH) * 2
         anchors.verticalCenter: parent.verticalCenter
         radius: colors.widgetPillRadius
-        color: batteryWidget.pillColor
+        color: batteryHover.pressed ? Qt.darker(batteryWidget.pillColor, 1.15) : batteryHover.containsMouse ? Qt.lighter(batteryWidget.pillColor, 1.2) : batteryWidget.pillColor
         border.width: 1
-        border.color: batteryWidget.pillColor
+        border.color: batteryHover.containsMouse ? Qt.lighter(batteryWidget.pillColor, 1.4) : batteryWidget.pillColor
+        scale: batteryHover.pressed ? 0.94 : 1.0
         visible: batteryWidget.hasBattery
+        Behavior on color { ColorAnimation { duration: 100 } }
+        Behavior on border.color { ColorAnimation { duration: 100 } }
+        Behavior on scale { NumberAnimation { duration: 80; easing.type: Easing.OutCubic } }
+
+        SequentialAnimation {
+            id: lowBatteryPulse
+            loops: Animation.Infinite
+            running: batteryWidget.lowBattery
+            NumberAnimation { target: pill; property: "opacity"; from: 1; to: 0.5; duration: 800; easing.type: Easing.InOutSine }
+            NumberAnimation { target: pill; property: "opacity"; from: 0.5; to: 1; duration: 800; easing.type: Easing.InOutSine }
+            onRunningChanged: if (!running) pill.opacity = 1
+        }
 
         MouseArea {
             id: batteryHover
             anchors.fill: parent
             hoverEnabled: true
-            acceptedButtons: Qt.NoButton
+            cursorShape: Qt.PointingHandCursor
+            acceptedButtons: Qt.RightButton
+            onClicked: openPowerSettings.running = true
         }
         Row {
             id: row
@@ -92,7 +113,9 @@ Item {
             }
         }
         Rectangle {
-            visible: batteryHover.containsMouse
+            opacity: batteryHover.containsMouse ? 1 : 0
+            visible: opacity > 0
+            Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
             anchors.bottom: parent.top
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.bottomMargin: 4
@@ -108,7 +131,7 @@ Item {
                 anchors.centerIn: parent
                 text: batteryWidget.status === "Charging" ? "Charging" : (batteryWidget.capacity + "% remaining")
                 color: colors.textMain
-                font.pixelSize: colors.clockFontSize - 1
+                font.pixelSize: colors.fontSize - 1
             }
         }
     }

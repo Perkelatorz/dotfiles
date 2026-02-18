@@ -167,12 +167,7 @@ ShellRoot {
         }
     }
 
-    Timer {
-        interval: 30000
-        repeat: true
-        running: true
-        onTriggered: if (!compositorDetectProc.running) compositorDetectProc.running = true
-    }
+    // Compositor detected once at startup by compositorDetectProc (running: true)
 
     Process {
         id: overviewTriggerProc
@@ -215,13 +210,17 @@ ShellRoot {
             function resetWidgetVisibility() {
                 volumeWidgetVisible = false
                 nowPlayingWidgetVisible = false
-                cpuWidgetVisible = false
-                ramWidgetVisible = false
+                performanceWidgetVisible = false
                 batteryWidgetVisible = false
                 brightnessWidgetVisible = false
                 microphoneWidgetVisible = false
                 ipAddressWidgetVisible = false
                 screenshotWidgetVisible = false
+                weatherWidgetVisible = false
+                updatesWidgetVisible = false
+                netSpeedWidgetVisible = false
+                notificationsWidgetVisible = false
+                powerProfileWidgetVisible = false
             }
             onIsVerticalScreenChanged: {
                 if (screenDelegate.isVerticalScreen) {
@@ -240,14 +239,18 @@ ShellRoot {
             // Widget visibility (toggle from settings menu)
             property bool volumeWidgetVisible: true
             property bool nowPlayingWidgetVisible: true
-            property bool cpuWidgetVisible: true
-            property bool ramWidgetVisible: true
+            property bool performanceWidgetVisible: true
             property bool batteryWidgetVisible: true
             property bool brightnessWidgetVisible: true
             property bool microphoneWidgetVisible: true
-            property bool ipAddressWidgetVisible: true
+            property bool ipAddressWidgetVisible: false
             property bool screenshotWidgetVisible: true
             property bool clockWidgetVisible: true
+            property bool weatherWidgetVisible: false
+            property bool updatesWidgetVisible: true
+            property bool netSpeedWidgetVisible: true
+            property bool notificationsWidgetVisible: true
+            property bool powerProfileWidgetVisible: false
 
             function loadBarWidgets() {
                 loadBarWidgetsProc.running = true
@@ -256,14 +259,18 @@ ShellRoot {
                 var args = [
                     "volume=" + (volumeWidgetVisible ? "true" : "false"),
                     "nowPlaying=" + (nowPlayingWidgetVisible ? "true" : "false"),
-                    "cpu=" + (cpuWidgetVisible ? "true" : "false"),
-                    "ram=" + (ramWidgetVisible ? "true" : "false"),
+                    "performance=" + (performanceWidgetVisible ? "true" : "false"),
                     "battery=" + (batteryWidgetVisible ? "true" : "false"),
                     "brightness=" + (brightnessWidgetVisible ? "true" : "false"),
                     "microphone=" + (microphoneWidgetVisible ? "true" : "false"),
                     "ipAddress=" + (ipAddressWidgetVisible ? "true" : "false"),
                     "screenshot=" + (screenshotWidgetVisible ? "true" : "false"),
-                    "clock=" + (clockWidgetVisible ? "true" : "false")
+                    "clock=" + (clockWidgetVisible ? "true" : "false"),
+                    "weather=" + (weatherWidgetVisible ? "true" : "false"),
+                    "updates=" + (updatesWidgetVisible ? "true" : "false"),
+                    "netSpeed=" + (netSpeedWidgetVisible ? "true" : "false"),
+                    "notifications=" + (notificationsWidgetVisible ? "true" : "false"),
+                    "powerProfile=" + (powerProfileWidgetVisible ? "true" : "false")
                 ]
                 saveBarWidgetsProc.command = ["sh", "-c", "SCRIPT=\"${XDG_CONFIG_HOME:-$HOME/.config}/scripts/write-bar-widgets.sh\"; exec \"$SCRIPT\" " + args.join(" ")]
                 saveBarWidgetsProc.running = true
@@ -278,14 +285,18 @@ ShellRoot {
                             var o = JSON.parse(loadBarWidgetsProc.stdout.text || "{}")
                             if (typeof o.volume === "boolean") screenDelegate.volumeWidgetVisible = o.volume
                             if (typeof o.nowPlaying === "boolean") screenDelegate.nowPlayingWidgetVisible = o.nowPlaying
-                            if (typeof o.cpu === "boolean") screenDelegate.cpuWidgetVisible = o.cpu
-                            if (typeof o.ram === "boolean") screenDelegate.ramWidgetVisible = o.ram
+                            if (typeof o.performance === "boolean") screenDelegate.performanceWidgetVisible = o.performance
                             if (typeof o.battery === "boolean") screenDelegate.batteryWidgetVisible = o.battery
                             if (typeof o.brightness === "boolean") screenDelegate.brightnessWidgetVisible = o.brightness
                             if (typeof o.microphone === "boolean") screenDelegate.microphoneWidgetVisible = o.microphone
                             if (typeof o.ipAddress === "boolean") screenDelegate.ipAddressWidgetVisible = o.ipAddress
                             if (typeof o.screenshot === "boolean") screenDelegate.screenshotWidgetVisible = o.screenshot
                             if (typeof o.clock === "boolean") screenDelegate.clockWidgetVisible = o.clock
+                            if (typeof o.weather === "boolean") screenDelegate.weatherWidgetVisible = o.weather
+                            if (typeof o.updates === "boolean") screenDelegate.updatesWidgetVisible = o.updates
+                            if (typeof o.netSpeed === "boolean") screenDelegate.netSpeedWidgetVisible = o.netSpeed
+                            if (typeof o.notifications === "boolean") screenDelegate.notificationsWidgetVisible = o.notifications
+                            if (typeof o.powerProfile === "boolean") screenDelegate.powerProfileWidgetVisible = o.powerProfile
                             if (screenDelegate.isVerticalScreen) {
                                 screenDelegate.resetWidgetVisibility()
                             }
@@ -420,18 +431,29 @@ ShellRoot {
                         if (bar.compositorName !== "mangowc") return
                         var arr = []
                         var tm = ToplevelManager
+                        var thisScreen = screenDelegate.modelData
                         if (tm && tm.toplevels) {
-                            var cnt = tm.toplevels.count || 0
+                            var vals = tm.toplevels.values || []
+                            var cnt = vals.length || 0
                             for (var i = 0; i < cnt; i++) {
-                                var t = tm.toplevels.get(i)
-                                if (t) arr.push({ address: "mangowc-" + i, title: t.appId || "", class: t.appId || "", toplevel: t })
+                                var t = vals[i]
+                                if (!t) continue
+                                var onScreen = false
+                                if (t.screens && t.screens.length > 0) {
+                                    for (var s = 0; s < t.screens.length; s++) {
+                                        if (t.screens[s] === thisScreen) { onScreen = true; break }
+                                    }
+                                } else {
+                                    onScreen = true
+                                }
+                                if (onScreen) arr.push({ address: "mangowc-" + i, title: t.appId || "", class: t.appId || "", toplevel: t })
                             }
                             root.clientList = arr
                             var at = tm.activeToplevel
                             if (!at) root.activeWindowAddress = ""
                             else {
                                 for (var j = 0; j < cnt; j++) {
-                                    if (tm.toplevels.get(j) === at) { root.activeWindowAddress = "mangowc-" + j; break }
+                                    if (vals[j] === at) { root.activeWindowAddress = "mangowc-" + j; break }
                                 }
                             }
                         }
@@ -595,10 +617,13 @@ ShellRoot {
                                 height: 22
                                 anchors.verticalCenter: parent.verticalCenter
                                 radius: shellRoot.shellColors.widgetPillRadius
-                                color: layoutMouse.containsMouse ? shellRoot.shellColors.surfaceBright : shellRoot.shellColors.surfaceContainer
+                                color: layoutMouse.pressed ? Qt.darker(shellRoot.shellColors.surfaceBright, 1.15) : layoutMouse.containsMouse ? shellRoot.shellColors.surfaceBright : shellRoot.shellColors.surfaceContainer
                                 border.width: 1
-                                border.color: shellRoot.shellColors.border
+                                border.color: layoutMouse.containsMouse ? Qt.lighter(shellRoot.shellColors.border, 1.3) : shellRoot.shellColors.border
+                                scale: layoutMouse.pressed ? 0.94 : 1.0
                                 Behavior on color { ColorAnimation { duration: 100 } }
+                                Behavior on border.color { ColorAnimation { duration: 100 } }
+                                Behavior on scale { NumberAnimation { duration: 80; easing.type: Easing.OutCubic } }
 
                                 Text {
                                     id: layoutText
@@ -613,6 +638,7 @@ ShellRoot {
                                     id: layoutMouse
                                     anchors.fill: parent
                                     hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
                                     acceptedButtons: Qt.LeftButton
                                     onClicked: {
                                         if (!mangowcSwitchProcess.running) {
@@ -640,6 +666,7 @@ ShellRoot {
                             colors: shellRoot.shellColors
                             outputName: root.mangowcOutputName
                             tagList: root.mangowcTagList
+                            clientList: root.clientList
                             onTagClicked: function(tagId) { root.mangowcSwitchToTag(tagId) }
                             Layout.leftMargin: 0
                             Layout.rightMargin: 4
@@ -690,16 +717,34 @@ ShellRoot {
                                 spacing: 6
                                 layoutDirection: Qt.LeftToRight
 
-                                CpuUsage {
+                                WeatherWidget {
                                     colors: shellRoot.shellColors
                                     Layout.alignment: Qt.AlignVCenter
-                                    visible: screenDelegate.cpuWidgetVisible
+                                    visible: screenDelegate.weatherWidgetVisible
                                 }
 
-                                RamUsage {
+                                UpdateWidget {
                                     colors: shellRoot.shellColors
                                     Layout.alignment: Qt.AlignVCenter
-                                    visible: screenDelegate.ramWidgetVisible
+                                    visible: screenDelegate.updatesWidgetVisible
+                                }
+
+                                NetSpeedWidget {
+                                    colors: shellRoot.shellColors
+                                    Layout.alignment: Qt.AlignVCenter
+                                    visible: screenDelegate.netSpeedWidgetVisible
+                                }
+
+                                PowerProfileWidget {
+                                    colors: shellRoot.shellColors
+                                    Layout.alignment: Qt.AlignVCenter
+                                    visible: screenDelegate.powerProfileWidgetVisible
+                                }
+
+                                PerformanceWidget {
+                                    colors: shellRoot.shellColors
+                                    Layout.alignment: Qt.AlignVCenter
+                                    visible: screenDelegate.performanceWidgetVisible
                                 }
 
                                 BatteryWidget {
@@ -786,6 +831,12 @@ ShellRoot {
                                     visible: !screenDelegate.isVerticalScreen
                                 }
 
+                                NotificationWidget {
+                                    colors: shellRoot.shellColors
+                                    Layout.alignment: Qt.AlignVCenter
+                                    visible: screenDelegate.notificationsWidgetVisible
+                                }
+
                                 QuickSettingsWidget {
                                     colors: shellRoot.shellColors
                                     Layout.alignment: Qt.AlignVCenter
@@ -810,8 +861,8 @@ ShellRoot {
                 id: quickSettingsPanel
                 screen: screenDelegate.modelData
                 visible: screenDelegate.quickSettingsMenuVisible && bar.panelsVisible
-                implicitWidth: 400
-                implicitHeight: screenDelegate.quickSettingsSubView === "settings" ? 320 : (screenDelegate.quickSettingsSubView === "power" ? 260 : 600)
+                implicitWidth: 440
+                implicitHeight: screenDelegate.quickSettingsSubView === "settings" ? 380 : (screenDelegate.quickSettingsSubView === "power" ? 260 : 660)
                 color: "transparent"
                 exclusiveZone: 0
 
@@ -819,6 +870,14 @@ ShellRoot {
                 anchors.right: true
                 margins.top: 5
                 margins.right: 8
+
+                onVisibleChanged: if (visible) { qsPanelShadow.opacity = 0; qsPanelBg.opacity = 0; qsPanelBg.anchors.topMargin = -8; qsPanelOpenAnim.restart() }
+                ParallelAnimation {
+                    id: qsPanelOpenAnim
+                    NumberAnimation { target: qsPanelShadow; property: "opacity"; from: 0; to: 1; duration: 200; easing.type: Easing.OutCubic }
+                    NumberAnimation { target: qsPanelBg; property: "opacity"; from: 0; to: 1; duration: 200; easing.type: Easing.OutCubic }
+                    NumberAnimation { target: qsPanelBg; property: "anchors.topMargin"; from: -8; to: 0; duration: 200; easing.type: Easing.OutCubic }
+                }
 
                 Component.onCompleted: {
                     if (this.WlrLayershell != null) {
@@ -831,15 +890,15 @@ ShellRoot {
                     id: qsPanelShadow
                     anchors.fill: parent
                     anchors.leftMargin: 2
-                    anchors.topMargin: 4
+                    anchors.topMargin: 3
                     z: -1
-                    radius: 18
+                    radius: 14
                     color: shellRoot.shellColors.panelShadow
                 }
                 Rectangle {
                     id: qsPanelBg
                     anchors.fill: parent
-                    radius: 16
+                    radius: 12
                     color: shellRoot.shellColors.surfaceContainer
                     border.width: 1
                     border.color: shellRoot.shellColors.borderSubtle
@@ -893,16 +952,25 @@ ShellRoot {
                             width: parent.width - 40
                             height: parent.height - (screenDelegate.quickSettingsSubView !== "main" ? 41 : 0)
                             anchors.horizontalCenter: parent.horizontalCenter
-                            QuickSettingsContent {
+                            clip: true
+                            Flickable {
                                 visible: screenDelegate.quickSettingsSubView === "main"
                                 anchors.fill: parent
                                 anchors.margins: 20
-                                colors: shellRoot.shellColors
-                                compositorName: shellRoot.compositorName
-                                screenIndex: bar.screenIndex
-                                onClose: function() { screenDelegate.quickSettingsMenuVisible = false }
-                                onOpenPowerRequested: screenDelegate.quickSettingsSubView = "power"
-                                onOpenSettingsRequested: screenDelegate.quickSettingsSubView = "settings"
+                                contentWidth: width
+                                contentHeight: qsContent.implicitHeight
+                                flickableDirection: Flickable.VerticalFlick
+                                boundsBehavior: Flickable.StopAtBounds
+                                QuickSettingsContent {
+                                    id: qsContent
+                                    width: parent.width
+                                    colors: shellRoot.shellColors
+                                    compositorName: shellRoot.compositorName
+                                    screenIndex: bar.screenIndex
+                                    onClose: function() { screenDelegate.quickSettingsMenuVisible = false }
+                                    onOpenPowerRequested: screenDelegate.quickSettingsSubView = "power"
+                                    onOpenSettingsRequested: screenDelegate.quickSettingsSubView = "settings"
+                                }
                             }
                             Item {
                                 visible: screenDelegate.quickSettingsSubView === "power"
@@ -949,6 +1017,14 @@ ShellRoot {
                 margins.top: 5
                 margins.left: screenDelegate.screenshotMenuMarginLeft
 
+                onVisibleChanged: if (visible) { ssMenuShadow.opacity = 0; ssMenuBg.opacity = 0; ssMenuBg.anchors.topMargin = -8; ssMenuOpenAnim.restart() }
+                ParallelAnimation {
+                    id: ssMenuOpenAnim
+                    NumberAnimation { target: ssMenuShadow; property: "opacity"; from: 0; to: 1; duration: 200; easing.type: Easing.OutCubic }
+                    NumberAnimation { target: ssMenuBg; property: "opacity"; from: 0; to: 1; duration: 200; easing.type: Easing.OutCubic }
+                    NumberAnimation { target: ssMenuBg; property: "anchors.topMargin"; from: -8; to: 0; duration: 200; easing.type: Easing.OutCubic }
+                }
+
                 Component.onCompleted: {
                     if (this.WlrLayershell != null) {
                         this.WlrLayershell.layer = WlrLayer.Top
@@ -957,14 +1033,16 @@ ShellRoot {
                 }
 
                 Rectangle {
+                    id: ssMenuShadow
                     anchors.fill: parent
                     anchors.leftMargin: 2
                     anchors.topMargin: 3
                     z: -1
-                    radius: 12
+                    radius: 14
                     color: shellRoot.shellColors.panelShadow
                 }
                 Rectangle {
+                    id: ssMenuBg
                     anchors.fill: parent
                     radius: 12
                     color: shellRoot.shellColors.surfaceContainer
@@ -994,6 +1072,14 @@ ShellRoot {
                 margins.top: 5
                 margins.left: 12
 
+                onVisibleChanged: if (visible) { wsOverviewShadow.opacity = 0; wsOverviewBg.opacity = 0; wsOverviewBg.anchors.topMargin = -8; wsOverviewOpenAnim.restart() }
+                ParallelAnimation {
+                    id: wsOverviewOpenAnim
+                    NumberAnimation { target: wsOverviewShadow; property: "opacity"; from: 0; to: 1; duration: 200; easing.type: Easing.OutCubic }
+                    NumberAnimation { target: wsOverviewBg; property: "opacity"; from: 0; to: 1; duration: 200; easing.type: Easing.OutCubic }
+                    NumberAnimation { target: wsOverviewBg; property: "anchors.topMargin"; from: -8; to: 0; duration: 200; easing.type: Easing.OutCubic }
+                }
+
                 Component.onCompleted: {
                     if (this.WlrLayershell != null) {
                         this.WlrLayershell.layer = WlrLayer.Top
@@ -1002,19 +1088,21 @@ ShellRoot {
                 }
 
                 Rectangle {
+                    id: wsOverviewShadow
                     anchors.fill: parent
                     anchors.leftMargin: 2
                     anchors.topMargin: 3
                     z: -1
-                    radius: 12
+                    radius: 14
                     color: shellRoot.shellColors.panelShadow
                 }
                 Rectangle {
+                    id: wsOverviewBg
                     anchors.fill: parent
                     radius: 12
                     color: shellRoot.shellColors.surfaceContainer
-                    border.width: 2
-                    border.color: shellRoot.shellColors.border
+                    border.width: 1
+                    border.color: shellRoot.shellColors.borderSubtle
                     Flickable {
                         anchors.fill: parent
                         anchors.margins: 12
@@ -1043,13 +1131,21 @@ ShellRoot {
                 visible: screenDelegate.calendarVisible && bar.panelsVisible
                 implicitWidth: 200
                 implicitHeight: 200
-                color: shellRoot.shellColors.background
+                color: "transparent"
                 exclusiveZone: 0
 
                 anchors.top: true
                 anchors.left: true
                 margins.top: 5
                 margins.left: screenDelegate.calendarMarginLeft
+
+                onVisibleChanged: if (visible) { calShadow.opacity = 0; calBg.opacity = 0; calBg.anchors.topMargin = -8; calOpenAnim.restart() }
+                ParallelAnimation {
+                    id: calOpenAnim
+                    NumberAnimation { target: calShadow; property: "opacity"; from: 0; to: 1; duration: 200; easing.type: Easing.OutCubic }
+                    NumberAnimation { target: calBg; property: "opacity"; from: 0; to: 1; duration: 200; easing.type: Easing.OutCubic }
+                    NumberAnimation { target: calBg; property: "anchors.topMargin"; from: -8; to: 0; duration: 200; easing.type: Easing.OutCubic }
+                }
 
                 Component.onCompleted: {
                     if (this.WlrLayershell != null) {
@@ -1059,17 +1155,19 @@ ShellRoot {
                 }
 
                 Rectangle {
+                    id: calShadow
                     anchors.fill: parent
                     anchors.leftMargin: 2
                     anchors.topMargin: 3
                     z: -1
-                    radius: 12
+                    radius: 14
                     color: shellRoot.shellColors.panelShadow
                 }
                 Rectangle {
+                    id: calBg
                     anchors.fill: parent
                     radius: 12
-                    color: shellRoot.shellColors.background
+                    color: shellRoot.shellColors.surfaceContainer
                     border.width: 1
                     border.color: shellRoot.shellColors.borderSubtle
                     CalendarContent {
@@ -1095,11 +1193,29 @@ ShellRoot {
                 margins.top: 5
                 margins.left: 8
 
+                onVisibleChanged: if (visible) { npShadow.opacity = 0; nowPlayingPanelContent.opacity = 0; nowPlayingPanelContent.anchors.topMargin = -8; npOpenAnim.restart() }
+                ParallelAnimation {
+                    id: npOpenAnim
+                    NumberAnimation { target: npShadow; property: "opacity"; from: 0; to: 1; duration: 200; easing.type: Easing.OutCubic }
+                    NumberAnimation { target: nowPlayingPanelContent; property: "opacity"; from: 0; to: 1; duration: 200; easing.type: Easing.OutCubic }
+                    NumberAnimation { target: nowPlayingPanelContent; property: "anchors.topMargin"; from: -8; to: 0; duration: 200; easing.type: Easing.OutCubic }
+                }
+
                 Component.onCompleted: {
                     if (this.WlrLayershell != null) {
                         this.WlrLayershell.layer = WlrLayer.Top
                         this.WlrLayershell.namespace = "quickshell-now-playing"
                     }
+                }
+
+                Rectangle {
+                    id: npShadow
+                    anchors.fill: parent
+                    anchors.leftMargin: 2
+                    anchors.topMargin: 3
+                    z: -1
+                    radius: 14
+                    color: shellRoot.shellColors.panelShadow
                 }
 
                 MiniPlayerContent {

@@ -6,7 +6,7 @@ import "."
 Item {
     id: nowPlayingWidget
     required property var colors
-    property int pillIndex: 0
+    property int pillIndex: 6
 
     signal openMiniPlayerRequested()
 
@@ -144,13 +144,20 @@ Item {
         width: Math.min(row.implicitWidth + (colors.widgetPillPaddingH) * 2, 220)
         anchors.verticalCenter: parent.verticalCenter
         radius: colors.widgetPillRadius
-        color: nowPlayingWidget.pillColor
+        color: mouseArea.pressed ? Qt.darker(nowPlayingWidget.pillColor, 1.15) : mouseArea.containsMouse ? Qt.lighter(nowPlayingWidget.pillColor, 1.2) : nowPlayingWidget.pillColor
         border.width: 1
-        border.color: nowPlayingWidget.pillColor
+        border.color: mouseArea.containsMouse ? Qt.lighter(nowPlayingWidget.pillColor, 1.4) : nowPlayingWidget.pillColor
+        scale: mouseArea.pressed ? 0.94 : 1.0
         visible: nowPlayingWidget.hasPlayer
+        Behavior on color { ColorAnimation { duration: 100 } }
+        Behavior on border.color { ColorAnimation { duration: 100 } }
+        Behavior on scale { NumberAnimation { duration: 80; easing.type: Easing.OutCubic } }
 
         MouseArea {
+            id: mouseArea
             anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
             acceptedButtons: Qt.LeftButton | Qt.MiddleButton
             onClicked: function(mouse) {
                 if (mouse.button === Qt.LeftButton)
@@ -170,17 +177,34 @@ Item {
                     font.pixelSize: colors.cpuFontSize
                     font.family: colors.widgetIconFont
                 }
-                Text {
+                Item {
                     width: 160
-                    elide: Text.ElideRight
-                    text: {
-                        var a = nowPlayingWidget.artist
-                        var t = nowPlayingWidget.title
-                        if (t) return a ? (a + " – " + t) : t
-                        return a || "—"
+                    height: npLabel.implicitHeight
+                    clip: true
+                    Text {
+                        id: npLabel
+                        readonly property string displayText: {
+                            var a = nowPlayingWidget.artist
+                            var t = nowPlayingWidget.title
+                            if (t) return a ? (a + " – " + t) : t
+                            return a || "—"
+                        }
+                        text: displayText
+                        color: nowPlayingWidget.pillTextColor
+                        font.pixelSize: colors.cpuFontSize
+                        readonly property bool overflows: implicitWidth > 160
+                        x: overflows ? npScrollAnim.scrollX : 0
+                        property real _scrollX: 0
+                        NumberAnimation on _scrollX {
+                            id: npScrollAnim
+                            property real scrollX: npLabel.overflows ? npLabel._scrollX : 0
+                            from: 0
+                            to: npLabel.overflows ? -(npLabel.implicitWidth + 40) : 0
+                            duration: npLabel.overflows ? Math.max(3000, (npLabel.implicitWidth + 40) * 30) : 0
+                            loops: Animation.Infinite
+                            running: npLabel.overflows && nowPlayingWidget.visible
+                        }
                     }
-                    color: nowPlayingWidget.pillTextColor
-                    font.pixelSize: colors.cpuFontSize
                 }
             }
         }

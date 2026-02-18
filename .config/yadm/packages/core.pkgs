@@ -37,6 +37,12 @@ nwg-look
 hypridle
 hyprpolkitagent
 wl-clip-persist
+# Notifications (swaync notification daemon for bar widget)
+swaync
+# Power profiles (powerprofilesctl for power profile widget)
+power-profiles-daemon
+# Update checking (checkupdates from pacman-contrib for update widget)
+pacman-contrib
 # XDG Portals: screen sharing, file picker, secrets
 xdg-desktop-portal-wlr
 xdg-desktop-portal-gtk

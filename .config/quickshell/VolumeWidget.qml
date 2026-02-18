@@ -7,7 +7,7 @@ import "."
 Item {
     id: volumeWidget
     required property var colors
-    property int pillIndex: 5
+    property int pillIndex: 7
 
     readonly property color pillColor: (colors.widgetPillColors && pillIndex >= 0 && pillIndex < colors.widgetPillColors.length) ? colors.widgetPillColors[pillIndex] : colors.tertiary
     readonly property color pillTextColor: (colors.widgetTextOnPillColors && pillIndex >= 0 && pillIndex < colors.widgetTextOnPillColors.length) ? colors.widgetTextOnPillColors[pillIndex] : colors.textMain
@@ -43,6 +43,11 @@ Item {
         command: ["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", "2%-"]
         running: false
     }
+    Process {
+        id: toggleMuteProc
+        command: ["wpctl", "set-mute", "@DEFAULT_AUDIO_SINK@", "toggle"]
+        running: false
+    }
 
     Rectangle {
         id: pill
@@ -50,14 +55,24 @@ Item {
         width: row.implicitWidth + (colors.widgetPillPaddingH) * 2
         anchors.verticalCenter: parent.verticalCenter
         radius: colors.widgetPillRadius
-        color: volumeWidget.pillColor
+        color: mouseArea.pressed ? Qt.darker(volumeWidget.pillColor, 1.15) : mouseArea.containsMouse ? Qt.lighter(volumeWidget.pillColor, 1.2) : volumeWidget.pillColor
         border.width: 1
-        border.color: volumeWidget.pillColor
+        border.color: mouseArea.containsMouse ? Qt.lighter(volumeWidget.pillColor, 1.4) : volumeWidget.pillColor
+        scale: mouseArea.pressed ? 0.94 : 1.0
+        Behavior on color { ColorAnimation { duration: 100 } }
+        Behavior on border.color { ColorAnimation { duration: 100 } }
+        Behavior on scale { NumberAnimation { duration: 80; easing.type: Easing.OutCubic } }
 
         MouseArea {
+            id: mouseArea
             anchors.fill: parent
-            acceptedButtons: Qt.LeftButton
-            onClicked: runVolumeControl.running = true
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
+            onClicked: function(mouse) {
+                if (mouse.button === Qt.RightButton) runVolumeControl.running = true
+                else if (mouse.button === Qt.MiddleButton) toggleMuteProc.running = true
+            }
             onWheel: function(wheel) {
                 if (wheel.angleDelta.y > 0)
                     volumeUpProc.running = true
@@ -88,6 +103,46 @@ Item {
                     }
                     color: volumeWidget.pillTextColor
                     font.pixelSize: colors.cpuFontSize
+                }
+            }
+        }
+        Rectangle {
+            opacity: mouseArea.containsMouse ? 1 : 0
+            visible: opacity > 0
+            Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+            anchors.bottom: parent.top
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.bottomMargin: 4
+            width: volTipCol.implicitWidth + 16
+            height: volTipCol.implicitHeight + 8
+            radius: 4
+            color: colors.surface
+            border.width: 1
+            border.color: colors.border
+            z: 1000
+            Column {
+                id: volTipCol
+                anchors.centerIn: parent
+                spacing: 3
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: volumeWidget.muted ? "Muted" : ("Volume: " + Math.round(volumeWidget.volume * 100) + "%")
+                    color: colors.textMain
+                    font.pixelSize: colors.fontSize - 1
+                }
+                Rectangle {
+                    width: 80
+                    height: 4
+                    radius: 2
+                    color: colors.borderSubtle
+                    visible: !volumeWidget.muted
+                    Rectangle {
+                        width: parent.width * Math.min(1, volumeWidget.volume)
+                        height: parent.height
+                        radius: 2
+                        color: colors.primary
+                        Behavior on width { NumberAnimation { duration: 80 } }
+                    }
                 }
             }
         }
