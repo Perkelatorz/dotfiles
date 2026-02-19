@@ -18,8 +18,6 @@ Item {
     function run(cmd) {
         if (compositorName === "hyprland") {
             proc.command = ["hyprctl", "dispatch", "exec", cmd]
-        } else if (compositorName === "mangowc") {
-            proc.command = ["mmsg", "-d", "spawn_shell," + cmd]
         } else {
             proc.command = ["sh", "-c", cmd]
         }

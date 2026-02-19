@@ -16,12 +16,6 @@ ShellRoot {
     property string compositorName: "hyprland"
     property bool workspaceOverviewTriggered: false
 
-    property var mangowcOutputs: []
-    property var mangowcTagStateByOutput: ({})
-    property int mangowcNumTags: Math.max(1, mangowcOutputs.length)
-    property var mangowcFullscreenByOutput: ({})
-    property var mangowcLayoutByOutput: ({})
-
     function refreshFullscreenMonitors() {
         if (compositorName === "hyprland" && !fullscreenProcess.running)
             fullscreenProcess.running = true
@@ -36,18 +30,7 @@ ShellRoot {
                 var s = (compositorDetectProc.stdout.text || "").trim().toLowerCase()
                 var next = s.indexOf("hyprland") >= 0 ? "hyprland"
                     : s.indexOf("niri") >= 0 ? "niri"
-                    : s.indexOf("mango") >= 0 ? "mangowc"
                     : "other"
-                if (next !== shellRoot.compositorName) {
-                    if (next === "hyprland") {
-                        shellRoot.mangowcOutputs = []
-                        shellRoot.mangowcTagStateByOutput = {}
-                        shellRoot.mangowcFullscreenByOutput = {}
-                        shellRoot.mangowcLayoutByOutput = {}
-                    } else if (next === "mangowc") {
-                        shellRoot.fullscreenMonitorNames = []
-                    }
-                }
                 shellRoot.compositorName = next
                 compositorDetectProc.running = false
             }
@@ -94,76 +77,6 @@ ShellRoot {
             if (n === "fullscreen") {
                 shellRoot.refreshFullscreenMonitors()
             }
-        }
-    }
-
-    // Event-driven MangoWC state watcher (replaces polling)
-    Process {
-        id: mangowcWatcher
-        command: ["mmsg", "-w"]
-        running: shellRoot.compositorName === "mangowc"
-
-        property var _tagState: ({})
-        property var _layouts: ({})
-        property var _fullscreen: ({})
-        property var _outputs: ({})
-
-        stdout: SplitParser {
-            onRead: function(line) {
-                var parts = line.trim().split(/\s+/)
-                if (parts.length < 2) return
-                var out = parts[0]
-
-                // Track discovered outputs
-                if (!mangowcWatcher._outputs[out]) {
-                    mangowcWatcher._outputs[out] = true
-                    var arr = []
-                    for (var k in mangowcWatcher._outputs) arr.push(k)
-                    shellRoot.mangowcOutputs = arr
-                }
-
-                // "<output> tags <occ> <act> <urg>" (decimal summary, skip binary)
-                if (parts.length === 5 && parts[1] === "tags" && parts[2].length <= 4) {
-                    mangowcWatcher._tagState[out] = {
-                        occupied: parseInt(parts[2], 10) || 0,
-                        active: parseInt(parts[3], 10) || 0,
-                        urgent: parseInt(parts[4], 10) || 0
-                    }
-                    var ts = {}
-                    for (var o in mangowcWatcher._tagState)
-                        ts[o] = mangowcWatcher._tagState[o]
-                    shellRoot.mangowcTagStateByOutput = ts
-                }
-                // "<output> layout <name>"
-                else if (parts.length === 3 && parts[1] === "layout") {
-                    mangowcWatcher._layouts[out] = parts[2]
-                    var lo = {}
-                    for (var l in mangowcWatcher._layouts)
-                        lo[l] = mangowcWatcher._layouts[l]
-                    shellRoot.mangowcLayoutByOutput = lo
-                }
-                // "<output> fullscreen <0|1>"
-                else if (parts.length === 3 && parts[1] === "fullscreen") {
-                    mangowcWatcher._fullscreen[out] = (parts[2] === "1")
-                    var fs = {}
-                    for (var f in mangowcWatcher._fullscreen)
-                        fs[f] = mangowcWatcher._fullscreen[f]
-                    shellRoot.mangowcFullscreenByOutput = fs
-                }
-            }
-        }
-    }
-    // Restart watcher if it exits (e.g. compositor restart)
-    Timer {
-        interval: 2000
-        repeat: true
-        running: shellRoot.compositorName === "mangowc" && !mangowcWatcher.running
-        onTriggered: {
-            mangowcWatcher._tagState = {}
-            mangowcWatcher._layouts = {}
-            mangowcWatcher._fullscreen = {}
-            mangowcWatcher._outputs = {}
-            mangowcWatcher.running = true
         }
     }
 
@@ -370,12 +283,9 @@ ShellRoot {
                 property var modelData: screenDelegate.modelData
                 property string compositorName: shellRoot.compositorName
                 property var hyprMonitor: bar.compositorName === "hyprland" ? Hyprland.monitorFor(modelData) : null
-                readonly property string mangowcOutputName: (bar.modelData && bar.modelData.name) ? String(bar.modelData.name) : ""
                 readonly property bool panelsVisible: {
                     if (bar.compositorName === "hyprland")
                         return !bar.hyprMonitor || shellRoot.fullscreenMonitorNames.indexOf(bar.hyprMonitor.name) < 0
-                    if (bar.compositorName === "mangowc")
-                        return !(shellRoot.mangowcFullscreenByOutput[bar.mangowcOutputName] === true)
                     return true
                 }
                 property int screenIndex: {
@@ -412,57 +322,6 @@ ShellRoot {
                     property var occupiedWorkspaceIds: ({})
                     property var clientsByWorkspace: ({})
                     property string activeWindowAddress: ""
-
-                    property string mangowcOutputName: (screenDelegate.modelData && screenDelegate.modelData.name) ? String(screenDelegate.modelData.name) : ""
-                    property var mangowcTagState: root.mangowcOutputName ? (shellRoot.mangowcTagStateByOutput[root.mangowcOutputName] || { occupied: 0, active: 0, urgent: 0 }) : { occupied: 0, active: 0, urgent: 0 }
-                    readonly property var mangowcTagList: (function() {
-                        var list = []
-                        var state = root.mangowcTagState
-                        var n = shellRoot.mangowcNumTags
-                        for (var i = 1; i <= n; i++) {
-                            var bit = 1 << (i - 1)
-                            list.push({ id: i, name: String(i), occupied: (state.occupied & bit) !== 0, active: (state.active & bit) !== 0, urgent: (state.urgent & bit) !== 0 })
-                        }
-                        return list
-                    })()
-                    property int pendingMangowcTag: 0
-
-                    function refreshMangowcClients() {
-                        if (bar.compositorName !== "mangowc") return
-                        var arr = []
-                        var tm = ToplevelManager
-                        var thisScreen = screenDelegate.modelData
-                        if (tm && tm.toplevels) {
-                            var vals = tm.toplevels.values || []
-                            var cnt = vals.length || 0
-                            for (var i = 0; i < cnt; i++) {
-                                var t = vals[i]
-                                if (!t) continue
-                                var onScreen = false
-                                if (t.screens && t.screens.length > 0) {
-                                    for (var s = 0; s < t.screens.length; s++) {
-                                        if (t.screens[s] === thisScreen) { onScreen = true; break }
-                                    }
-                                } else {
-                                    onScreen = true
-                                }
-                                if (onScreen) arr.push({ address: "mangowc-" + i, title: t.appId || "", class: t.appId || "", toplevel: t })
-                            }
-                            root.clientList = arr
-                            var at = tm.activeToplevel
-                            if (!at) root.activeWindowAddress = ""
-                            else {
-                                for (var j = 0; j < cnt; j++) {
-                                    if (vals[j] === at) { root.activeWindowAddress = "mangowc-" + j; break }
-                                }
-                            }
-                        }
-                    }
-                    function mangowcSwitchToTag(tagId) {
-                        if (mangowcSwitchProcess.running) return
-                        root.pendingMangowcTag = tagId
-                        mangowcSwitchProcess.running = true
-                    }
 
                     function refreshClients() {
                         if (root.hyprMonitor) {
@@ -560,95 +419,17 @@ ShellRoot {
                         }
                     }
 
-                    Process {
-                        id: mangowcSwitchProcess
-                        command: ["mmsg", "-t", String(root.pendingMangowcTag || 1)]
-                        stdout: StdioCollector {
-                            onStreamFinished: {
-                                root.pendingMangowcTag = 0
-                                mangowcSwitchProcess.running = false
-                            }
-                        }
-                    }
-                    Timer {
-                        interval: 500
-                        repeat: true
-                        running: bar.compositorName === "mangowc"
-                        onTriggered: root.refreshMangowcClients()
-                    }
-
                     Component.onCompleted: {
                         if (root.hyprMonitor) {
                             if (!clientsProcess.running) clientsProcess.running = true
                             if (!activeWindowProcess.running) activeWindowProcess.running = true
                         }
-                        if (bar.compositorName === "mangowc") root.refreshMangowcClients()
                     }
 
                     RowLayout {
                         id: barLayout
                         anchors.fill: parent
                         spacing: 0
-
-                        Item {
-                            id: layoutWidget
-                            readonly property string rawLayout: (root.mangowcOutputName && shellRoot.mangowcLayoutByOutput[root.mangowcOutputName]) ? shellRoot.mangowcLayoutByOutput[root.mangowcOutputName] : ""
-                            readonly property var layoutNames: ({
-                                "T": "Tile", "S": "Scroll", "G": "Grid", "M": "Mono",
-                                "K": "Deck", "CT": "Center", "VT": "VTile", "VS": "VScroll",
-                                "VK": "VDeck", "VG": "VGrid", "TG": "TGMix", "RT": "RightT",
-                                "tile": "Tile", "scroller": "Scroll", "grid": "Grid", "monocle": "Mono",
-                                "deck": "Deck", "center_tile": "Center", "vertical_tile": "VTile",
-                                "vertical_scroller": "VScroll", "vertical_deck": "VDeck",
-                                "vertical_grid": "VGrid", "tgmix": "TGMix", "right_tile": "RightT",
-                                "vertical_spiral": "Spiral"
-                            })
-                            readonly property string layoutDisplay: layoutNames[rawLayout] || rawLayout
-                            visible: bar.compositorName === "mangowc" && rawLayout !== ""
-                            Layout.preferredWidth: visible ? layoutPill.width : 0
-                            Layout.preferredHeight: 24
-                            Layout.alignment: Qt.AlignVCenter
-                            Layout.leftMargin: 6
-                            Layout.rightMargin: 4
-
-                            Rectangle {
-                                id: layoutPill
-                                width: layoutText.implicitWidth + 16
-                                height: 22
-                                anchors.verticalCenter: parent.verticalCenter
-                                radius: shellRoot.shellColors.widgetPillRadius
-                                color: layoutMouse.pressed ? Qt.darker(shellRoot.shellColors.surfaceBright, 1.15) : layoutMouse.containsMouse ? shellRoot.shellColors.surfaceBright : shellRoot.shellColors.surfaceContainer
-                                border.width: 1
-                                border.color: layoutMouse.containsMouse ? Qt.lighter(shellRoot.shellColors.border, 1.3) : shellRoot.shellColors.border
-                                scale: layoutMouse.pressed ? 0.94 : 1.0
-                                Behavior on color { ColorAnimation { duration: 100 } }
-                                Behavior on border.color { ColorAnimation { duration: 100 } }
-                                Behavior on scale { NumberAnimation { duration: 80; easing.type: Easing.OutCubic } }
-
-                                Text {
-                                    id: layoutText
-                                    anchors.centerIn: parent
-                                    text: layoutWidget.layoutDisplay
-                                    color: shellRoot.shellColors.textMain
-                                    font.pixelSize: 11
-                                    font.bold: true
-                                    font.family: shellRoot.shellColors.fontMain || "sans-serif"
-                                }
-                                MouseArea {
-                                    id: layoutMouse
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    acceptedButtons: Qt.LeftButton
-                                    onClicked: {
-                                        if (!mangowcSwitchProcess.running) {
-                                            mangowcSwitchProcess.command = ["mmsg", "-d", "switch_layout"]
-                                            mangowcSwitchProcess.running = true
-                                        }
-                                    }
-                                }
-                            }
-                        }
 
                         Workspaces {
                             id: workspaceRow
@@ -660,18 +441,6 @@ ShellRoot {
                             Layout.leftMargin: 0
                             Layout.rightMargin: 4
                         }
-                        WorkspacesMangowc {
-                            id: tagRowMangowc
-                            visible: bar.compositorName === "mangowc"
-                            colors: shellRoot.shellColors
-                            outputName: root.mangowcOutputName
-                            tagList: root.mangowcTagList
-                            clientList: root.clientList
-                            onTagClicked: function(tagId) { root.mangowcSwitchToTag(tagId) }
-                            Layout.leftMargin: 0
-                            Layout.rightMargin: 4
-                        }
-
                         NowPlayingWidget {
                             id: nowPlayingWidget
                             colors: shellRoot.shellColors
@@ -693,7 +462,7 @@ ShellRoot {
                             Layout.fillHeight: true
                             Layout.leftMargin: 4
                             Layout.rightMargin: 4
-                            visible: bar.compositorName === "hyprland" || bar.compositorName === "mangowc"
+                            visible: bar.compositorName === "hyprland"
                             ClientList {
                                 anchors.centerIn: parent
                                 colors: shellRoot.shellColors
@@ -758,7 +527,7 @@ ShellRoot {
                                     colors: shellRoot.shellColors
                                     Layout.alignment: Qt.AlignVCenter
                                     visible: screenDelegate.brightnessWidgetVisible
-                                    outputName: bar.compositorName === "hyprland" ? (bar.hyprMonitor ? bar.hyprMonitor.name : "") : (bar.compositorName === "mangowc" ? root.mangowcOutputName : "")
+                                    outputName: bar.hyprMonitor ? bar.hyprMonitor.name : ""
                                     screenIndex: bar.screenIndex
                                 }
 
