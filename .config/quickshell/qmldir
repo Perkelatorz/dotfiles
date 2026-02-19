@@ -25,7 +25,6 @@ VolumeWidget 1.0 VolumeWidget.qml
 WidgetToggleRow 1.0 WidgetToggleRow.qml
 WorkspaceOverviewContent 1.0 WorkspaceOverviewContent.qml
 Workspaces 1.0 Workspaces.qml
-WorkspacesMangowc 1.0 WorkspacesMangowc.qml
 PowerProfileWidget 1.0 PowerProfileWidget.qml
 NotificationWidget 1.0 NotificationWidget.qml
 NetSpeedWidget 1.0 NetSpeedWidget.qml
