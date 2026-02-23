@@ -30,3 +30,10 @@ NotificationWidget 1.0 NotificationWidget.qml
 NetSpeedWidget 1.0 NetSpeedWidget.qml
 UpdateWidget 1.0 UpdateWidget.qml
 WeatherWidget 1.0 WeatherWidget.qml
+WorkspaceOverviewWidget 1.0 WorkspaceOverviewWidget.qml
+QuickNotesWidget 1.0 QuickNotesWidget.qml
+ColorPickerWidget 1.0 ColorPickerWidget.qml
+ClipboardWidget 1.0 ClipboardWidget.qml
+ClipboardContent 1.0 ClipboardContent.qml
+KeybindsWidget 1.0 KeybindsWidget.qml
+KeybindsContent 1.0 KeybindsContent.qml
