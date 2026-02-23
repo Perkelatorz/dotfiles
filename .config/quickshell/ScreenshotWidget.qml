@@ -60,6 +60,11 @@ Item {
         _flash = true; flashTimer.restart()
     }
 
+    function takeWindow() {
+        runInSession("hyprctl activewindow -j | jq -r '\"\\(.at[0]),\\(.at[1]) \\(.size[0])x\\(.size[1])\"' | grim -g - - | wl-copy")
+        _flash = true; flashTimer.restart()
+    }
+
     Timer { id: flashTimer; interval: 600; onTriggered: screenshotWidget._flash = false }
 
     Rectangle {

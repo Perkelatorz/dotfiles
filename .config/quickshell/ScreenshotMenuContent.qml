@@ -17,6 +17,7 @@ Column {
             if (mode === "fullscreen") screenshotWidget.takeFullscreen()
             else if (mode === "select") screenshotWidget.takeSelect()
             else if (mode === "last") screenshotWidget.takeLast()
+            else if (mode === "window") screenshotWidget.takeWindow()
         }
         screenshotMenuContent.onClose()
     }
@@ -25,6 +26,7 @@ Column {
         model: [
             { label: "Fullscreen", icon: "\uF0B2", mode: "fullscreen" },
             { label: "Select region", icon: "\uF030", mode: "select" },
+            { label: "Focused window", icon: "\uF2D0", mode: "window" },
             { label: "Same as last", icon: "\uF01E", mode: "last" }
         ]
         delegate: MouseArea {

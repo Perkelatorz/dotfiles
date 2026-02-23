@@ -19,6 +19,7 @@ system-config-printer
 iproute2
 btop
 brightnessctl
+hyprpicker
 wdisplays
 wlr-randr
 # Theming: matugen + wallpaper script (select-wallpaper.sh, THEMING.md)

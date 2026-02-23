@@ -146,6 +146,8 @@ ShellRoot {
             property string quickSettingsSubView: "main"
             property bool screenshotMenuVisible: false
             property bool workspaceOverviewVisible: false
+            property bool clipboardPanelVisible: false
+            property bool keybindsPanelVisible: false
             property var screenshotWidgetRef: null
             property int screenshotMenuMarginLeft: 0
             property int calendarMarginLeft: 0
@@ -164,6 +166,11 @@ ShellRoot {
             property bool netSpeedWidgetVisible: true
             property bool notificationsWidgetVisible: true
             property bool powerProfileWidgetVisible: false
+            property bool quickNotesWidgetVisible: true
+            property bool colorPickerWidgetVisible: true
+            property bool clipboardWidgetVisible: true
+            property bool keybindsWidgetVisible: true
+            property bool workspaceOverviewWidgetVisible: true
 
             function loadBarWidgets() {
                 loadBarWidgetsProc.running = true
@@ -441,6 +448,65 @@ ShellRoot {
                             Layout.leftMargin: 0
                             Layout.rightMargin: 4
                         }
+                        QuickNotesWidget {
+                            colors: shellRoot.shellColors
+                            compositorName: bar.compositorName
+                            Layout.alignment: Qt.AlignVCenter
+                            Layout.rightMargin: 4
+                            visible: screenDelegate.quickNotesWidgetVisible
+                        }
+                        ColorPickerWidget {
+                            colors: shellRoot.shellColors
+                            Layout.alignment: Qt.AlignVCenter
+                            Layout.rightMargin: 4
+                            visible: screenDelegate.colorPickerWidgetVisible
+                        }
+                        KeybindsWidget {
+                            colors: shellRoot.shellColors
+                            Layout.alignment: Qt.AlignVCenter
+                            Layout.rightMargin: 4
+                            visible: screenDelegate.keybindsWidgetVisible
+                            onToggleRequested: {
+                                screenDelegate.calendarVisible = false
+                                screenDelegate.quickSettingsMenuVisible = false
+                                screenDelegate.screenshotMenuVisible = false
+                                screenDelegate.nowPlayingPopupVisible = false
+                                screenDelegate.workspaceOverviewVisible = false
+                                screenDelegate.clipboardPanelVisible = false
+                                screenDelegate.keybindsPanelVisible = !screenDelegate.keybindsPanelVisible
+                            }
+                        }
+                        ClipboardWidget {
+                            id: clipboardWidget
+                            colors: shellRoot.shellColors
+                            Layout.alignment: Qt.AlignVCenter
+                            Layout.rightMargin: 4
+                            visible: screenDelegate.clipboardWidgetVisible
+                            onToggleRequested: {
+                                screenDelegate.calendarVisible = false
+                                screenDelegate.quickSettingsMenuVisible = false
+                                screenDelegate.screenshotMenuVisible = false
+                                screenDelegate.nowPlayingPopupVisible = false
+                                screenDelegate.workspaceOverviewVisible = false
+                                screenDelegate.keybindsPanelVisible = false
+                                screenDelegate.clipboardPanelVisible = !screenDelegate.clipboardPanelVisible
+                            }
+                        }
+                        WorkspaceOverviewWidget {
+                            colors: shellRoot.shellColors
+                            Layout.alignment: Qt.AlignVCenter
+                            Layout.rightMargin: 4
+                            visible: bar.compositorName === "hyprland" && screenDelegate.workspaceOverviewWidgetVisible
+                            onToggleRequested: {
+                                screenDelegate.calendarVisible = false
+                                screenDelegate.quickSettingsMenuVisible = false
+                                screenDelegate.screenshotMenuVisible = false
+                                screenDelegate.nowPlayingPopupVisible = false
+                                screenDelegate.clipboardPanelVisible = false
+                                screenDelegate.keybindsPanelVisible = false
+                                screenDelegate.workspaceOverviewVisible = !screenDelegate.workspaceOverviewVisible
+                            }
+                        }
                         NowPlayingWidget {
                             id: nowPlayingWidget
                             colors: shellRoot.shellColors
@@ -453,6 +519,8 @@ ShellRoot {
                                         screenDelegate.quickSettingsMenuVisible = false
                                         screenDelegate.screenshotMenuVisible = false
                                         screenDelegate.workspaceOverviewVisible = false
+                                        screenDelegate.clipboardPanelVisible = false
+                                        screenDelegate.keybindsPanelVisible = false
                                         screenDelegate.nowPlayingPopupVisible = !screenDelegate.nowPlayingPopupVisible
                                     }
                         }
@@ -582,6 +650,8 @@ ShellRoot {
                                             screenDelegate.quickSettingsMenuVisible = false
                                             screenDelegate.screenshotMenuVisible = false
                                             screenDelegate.workspaceOverviewVisible = false
+                                            screenDelegate.clipboardPanelVisible = false
+                                            screenDelegate.keybindsPanelVisible = false
                                             var pt = clockWidget.mapToItem(root, 0, 0)
                                             screenDelegate.calendarMarginLeft = Math.max(0, Math.floor(pt.x + (clockWidget.width - 200) / 2))
                                             var now = new Date()
@@ -617,6 +687,8 @@ ShellRoot {
                                             screenDelegate.nowPlayingPopupVisible = false
                                             screenDelegate.screenshotMenuVisible = false
                                             screenDelegate.workspaceOverviewVisible = false
+                                            screenDelegate.clipboardPanelVisible = false
+                                            screenDelegate.keybindsPanelVisible = false
                                         }
                                     }
                                 }
@@ -777,7 +849,7 @@ ShellRoot {
                 screen: screenDelegate.modelData
                 visible: screenDelegate.screenshotMenuVisible && bar.panelsVisible
                 implicitWidth: 168
-                implicitHeight: 100
+                implicitHeight: 130
                 color: "transparent"
                 exclusiveZone: 0
 
@@ -890,6 +962,126 @@ ShellRoot {
                                 shellRoot.workspaceOverviewTriggered = false
                             }
                         }
+                    }
+                }
+            }
+
+            PanelWindow {
+                id: clipboardPanel
+                screen: screenDelegate.modelData
+                visible: screenDelegate.clipboardPanelVisible && bar.panelsVisible
+                implicitWidth: 360
+                implicitHeight: 440
+                color: "transparent"
+                exclusiveZone: 0
+
+                anchors.top: true
+                anchors.left: true
+                margins.top: 5
+                margins.left: 12
+
+                onVisibleChanged: {
+                    if (visible) {
+                        clipShadow.opacity = 0; clipBg.opacity = 0; clipBg.anchors.topMargin = -8; clipOpenAnim.restart()
+                        clipContent.refresh()
+                    }
+                }
+                ParallelAnimation {
+                    id: clipOpenAnim
+                    NumberAnimation { target: clipShadow; property: "opacity"; from: 0; to: 1; duration: 200; easing.type: Easing.OutCubic }
+                    NumberAnimation { target: clipBg; property: "opacity"; from: 0; to: 1; duration: 200; easing.type: Easing.OutCubic }
+                    NumberAnimation { target: clipBg; property: "anchors.topMargin"; from: -8; to: 0; duration: 200; easing.type: Easing.OutCubic }
+                }
+
+                Component.onCompleted: {
+                    if (this.WlrLayershell != null) {
+                        this.WlrLayershell.layer = WlrLayer.Top
+                        this.WlrLayershell.namespace = "quickshell-clipboard"
+                    }
+                }
+
+                Rectangle {
+                    id: clipShadow
+                    anchors.fill: parent
+                    anchors.leftMargin: 2
+                    anchors.topMargin: 3
+                    z: -1
+                    radius: 14
+                    color: shellRoot.shellColors.panelShadow
+                }
+                Rectangle {
+                    id: clipBg
+                    anchors.fill: parent
+                    radius: 12
+                    color: shellRoot.shellColors.surfaceContainer
+                    border.width: 1
+                    border.color: shellRoot.shellColors.borderSubtle
+                    ClipboardContent {
+                        id: clipContent
+                        anchors.fill: parent
+                        anchors.margins: 12
+                        colors: shellRoot.shellColors
+                        onClose: function() { screenDelegate.clipboardPanelVisible = false }
+                    }
+                }
+            }
+
+            PanelWindow {
+                id: keybindsPanel
+                screen: screenDelegate.modelData
+                visible: screenDelegate.keybindsPanelVisible && bar.panelsVisible
+                implicitWidth: 420
+                implicitHeight: 520
+                color: "transparent"
+                exclusiveZone: 0
+
+                anchors.top: true
+                anchors.left: true
+                margins.top: 5
+                margins.left: 12
+
+                onVisibleChanged: {
+                    if (visible) {
+                        kbShadow.opacity = 0; kbBg.opacity = 0; kbBg.anchors.topMargin = -8; kbOpenAnim.restart()
+                        kbContent.refresh()
+                    }
+                }
+                ParallelAnimation {
+                    id: kbOpenAnim
+                    NumberAnimation { target: kbShadow; property: "opacity"; from: 0; to: 1; duration: 200; easing.type: Easing.OutCubic }
+                    NumberAnimation { target: kbBg; property: "opacity"; from: 0; to: 1; duration: 200; easing.type: Easing.OutCubic }
+                    NumberAnimation { target: kbBg; property: "anchors.topMargin"; from: -8; to: 0; duration: 200; easing.type: Easing.OutCubic }
+                }
+
+                Component.onCompleted: {
+                    if (this.WlrLayershell != null) {
+                        this.WlrLayershell.layer = WlrLayer.Top
+                        this.WlrLayershell.namespace = "quickshell-keybinds"
+                    }
+                }
+
+                Rectangle {
+                    id: kbShadow
+                    anchors.fill: parent
+                    anchors.leftMargin: 2
+                    anchors.topMargin: 3
+                    z: -1
+                    radius: 14
+                    color: shellRoot.shellColors.panelShadow
+                }
+                Rectangle {
+                    id: kbBg
+                    anchors.fill: parent
+                    radius: 12
+                    color: shellRoot.shellColors.surfaceContainer
+                    border.width: 1
+                    border.color: shellRoot.shellColors.borderSubtle
+                    KeybindsContent {
+                        id: kbContent
+                        anchors.fill: parent
+                        anchors.margins: 12
+                        colors: shellRoot.shellColors
+                        onClose: function() { screenDelegate.keybindsPanelVisible = false }
                     }
                 }
             }
