@@ -148,6 +148,20 @@ ShellRoot {
             property bool workspaceOverviewVisible: false
             property bool clipboardPanelVisible: false
             property bool keybindsPanelVisible: false
+            property bool toolsMenuVisible: false
+            property int toolsMenuMarginRight: 0
+
+            function closeAllPanels() {
+                calendarVisible = false
+                nowPlayingPopupVisible = false
+                quickSettingsMenuVisible = false
+                screenshotMenuVisible = false
+                workspaceOverviewVisible = false
+                shellRoot.workspaceOverviewTriggered = false
+                clipboardPanelVisible = false
+                keybindsPanelVisible = false
+                toolsMenuVisible = false
+            }
             property var screenshotWidgetRef: null
             property int screenshotMenuMarginLeft: 0
             property int calendarMarginLeft: 0
@@ -438,63 +452,10 @@ ShellRoot {
                         anchors.fill: parent
                         spacing: 0
 
-                        Workspaces {
-                            id: workspaceRow
-                            visible: bar.compositorName === "hyprland"
-                            colors: shellRoot.shellColors
-                            hyprMonitor: root.hyprMonitor
-                            occupiedWorkspaceIds: root.occupiedWorkspaceIds
-                            clientsByWorkspace: root.clientsByWorkspace
-                            Layout.leftMargin: 0
-                            Layout.rightMargin: 4
-                        }
-                        QuickNotesWidget {
-                            colors: shellRoot.shellColors
-                            compositorName: bar.compositorName
-                            Layout.alignment: Qt.AlignVCenter
-                            Layout.rightMargin: 4
-                            visible: screenDelegate.quickNotesWidgetVisible
-                        }
-                        ColorPickerWidget {
-                            colors: shellRoot.shellColors
-                            Layout.alignment: Qt.AlignVCenter
-                            Layout.rightMargin: 4
-                            visible: screenDelegate.colorPickerWidgetVisible
-                        }
-                        KeybindsWidget {
-                            colors: shellRoot.shellColors
-                            Layout.alignment: Qt.AlignVCenter
-                            Layout.rightMargin: 4
-                            visible: screenDelegate.keybindsWidgetVisible
-                            onToggleRequested: {
-                                screenDelegate.calendarVisible = false
-                                screenDelegate.quickSettingsMenuVisible = false
-                                screenDelegate.screenshotMenuVisible = false
-                                screenDelegate.nowPlayingPopupVisible = false
-                                screenDelegate.workspaceOverviewVisible = false
-                                screenDelegate.clipboardPanelVisible = false
-                                screenDelegate.keybindsPanelVisible = !screenDelegate.keybindsPanelVisible
-                            }
-                        }
-                        ClipboardWidget {
-                            id: clipboardWidget
-                            colors: shellRoot.shellColors
-                            Layout.alignment: Qt.AlignVCenter
-                            Layout.rightMargin: 4
-                            visible: screenDelegate.clipboardWidgetVisible
-                            onToggleRequested: {
-                                screenDelegate.calendarVisible = false
-                                screenDelegate.quickSettingsMenuVisible = false
-                                screenDelegate.screenshotMenuVisible = false
-                                screenDelegate.nowPlayingPopupVisible = false
-                                screenDelegate.workspaceOverviewVisible = false
-                                screenDelegate.keybindsPanelVisible = false
-                                screenDelegate.clipboardPanelVisible = !screenDelegate.clipboardPanelVisible
-                            }
-                        }
                         WorkspaceOverviewWidget {
                             colors: shellRoot.shellColors
                             Layout.alignment: Qt.AlignVCenter
+                            Layout.leftMargin: 4
                             Layout.rightMargin: 4
                             visible: bar.compositorName === "hyprland" && screenDelegate.workspaceOverviewWidgetVisible
                             onToggleRequested: {
@@ -504,8 +465,19 @@ ShellRoot {
                                 screenDelegate.nowPlayingPopupVisible = false
                                 screenDelegate.clipboardPanelVisible = false
                                 screenDelegate.keybindsPanelVisible = false
+                                screenDelegate.toolsMenuVisible = false
                                 screenDelegate.workspaceOverviewVisible = !screenDelegate.workspaceOverviewVisible
                             }
+                        }
+                        Workspaces {
+                            id: workspaceRow
+                            visible: bar.compositorName === "hyprland"
+                            colors: shellRoot.shellColors
+                            hyprMonitor: root.hyprMonitor
+                            occupiedWorkspaceIds: root.occupiedWorkspaceIds
+                            clientsByWorkspace: root.clientsByWorkspace
+                            Layout.leftMargin: 0
+                            Layout.rightMargin: 4
                         }
                         NowPlayingWidget {
                             id: nowPlayingWidget
@@ -521,6 +493,7 @@ ShellRoot {
                                         screenDelegate.workspaceOverviewVisible = false
                                         screenDelegate.clipboardPanelVisible = false
                                         screenDelegate.keybindsPanelVisible = false
+                                        screenDelegate.toolsMenuVisible = false
                                         screenDelegate.nowPlayingPopupVisible = !screenDelegate.nowPlayingPopupVisible
                                     }
                         }
@@ -622,17 +595,31 @@ ShellRoot {
                                     colors: shellRoot.shellColors
                                     compositorName: bar.compositorName
                                     Layout.alignment: Qt.AlignVCenter
-                                    visible: screenDelegate.screenshotWidgetVisible
+                                    visible: false
                                     fullscreenOutput: screenDelegate.modelData && screenDelegate.modelData.name ? String(screenDelegate.modelData.name) : ""
                                     Component.onCompleted: screenDelegate.screenshotWidgetRef = screenshotWidget
-                                    onMenuToggleRequested: {
+                                }
+
+                                ToolsMenuWidget {
+                                    id: toolsMenuWidget
+                                    colors: shellRoot.shellColors
+                                    Layout.alignment: Qt.AlignVCenter
+                                    onToggleRequested: {
+                                        var anyToolOpen = screenDelegate.toolsMenuVisible || screenDelegate.clipboardPanelVisible || screenDelegate.keybindsPanelVisible || screenDelegate.screenshotMenuVisible
                                         screenDelegate.calendarVisible = false
                                         screenDelegate.quickSettingsMenuVisible = false
-                                        if (!screenDelegate.screenshotMenuVisible) {
-                                            var pt = screenshotWidget.mapToItem(root, 0, 0)
-                                            screenDelegate.screenshotMenuMarginLeft = Math.max(0, Math.floor(pt.x + (screenshotWidget.width - 168) / 2))
+                                        screenDelegate.nowPlayingPopupVisible = false
+                                        screenDelegate.workspaceOverviewVisible = false
+                                        screenDelegate.clipboardPanelVisible = false
+                                        screenDelegate.keybindsPanelVisible = false
+                                        screenDelegate.screenshotMenuVisible = false
+                                        screenDelegate.toolsMenuVisible = false
+                                        if (!anyToolOpen) {
+                                            var pt = toolsMenuWidget.mapToItem(root, 0, 0)
+                                            var screenW = root.width || 1920
+                                            screenDelegate.toolsMenuMarginRight = Math.max(0, Math.floor(screenW - pt.x - toolsMenuWidget.width / 2 - 90))
+                                            screenDelegate.toolsMenuVisible = true
                                         }
-                                        screenDelegate.screenshotMenuVisible = !screenDelegate.screenshotMenuVisible
                                     }
                                 }
 
@@ -652,6 +639,7 @@ ShellRoot {
                                             screenDelegate.workspaceOverviewVisible = false
                                             screenDelegate.clipboardPanelVisible = false
                                             screenDelegate.keybindsPanelVisible = false
+                                            screenDelegate.toolsMenuVisible = false
                                             var pt = clockWidget.mapToItem(root, 0, 0)
                                             screenDelegate.calendarMarginLeft = Math.max(0, Math.floor(pt.x + (clockWidget.width - 200) / 2))
                                             var now = new Date()
@@ -689,6 +677,7 @@ ShellRoot {
                                             screenDelegate.workspaceOverviewVisible = false
                                             screenDelegate.clipboardPanelVisible = false
                                             screenDelegate.keybindsPanelVisible = false
+                                            screenDelegate.toolsMenuVisible = false
                                         }
                                     }
                                 }
@@ -702,49 +691,67 @@ ShellRoot {
                 id: quickSettingsPanel
                 screen: screenDelegate.modelData
                 visible: screenDelegate.quickSettingsMenuVisible && bar.panelsVisible
-                implicitWidth: 440
-                implicitHeight: screenDelegate.quickSettingsSubView === "settings" ? 380 : (screenDelegate.quickSettingsSubView === "power" ? 260 : 660)
                 color: "transparent"
-                exclusiveZone: 0
+                exclusiveZone: -1
+                anchors { top: true; bottom: true; left: true; right: true }
 
-                anchors.top: true
-                anchors.right: true
-                margins.top: 5
-                margins.right: 8
+                readonly property int _qsH: screenDelegate.quickSettingsSubView === "settings"
+                    ? Math.min(qsSettingsContent.implicitHeight + 60, 500)
+                    : (screenDelegate.quickSettingsSubView === "power"
+                        ? Math.min(qsPowerContent.implicitHeight + 60, 400)
+                        : Math.min(qsContent.implicitHeight + 40, 700))
 
-                onVisibleChanged: if (visible) { qsPanelShadow.opacity = 0; qsPanelBg.opacity = 0; qsPanelBg.anchors.topMargin = -8; qsPanelOpenAnim.restart() }
+                focusable: true
+                onVisibleChanged: {
+                    if (visible) {
+                        qsContainer.opacity = 0
+                        qsContainer.y = bar.implicitHeight + 5 - 8
+                        qsPanelOpenAnim.restart()
+                        qsEscScope.forceActiveFocus()
+                    }
+                }
+                Item { id: qsEscScope; focus: true; Keys.onEscapePressed: screenDelegate.closeAllPanels() }
                 ParallelAnimation {
                     id: qsPanelOpenAnim
-                    NumberAnimation { target: qsPanelShadow; property: "opacity"; from: 0; to: 1; duration: 200; easing.type: Easing.OutCubic }
-                    NumberAnimation { target: qsPanelBg; property: "opacity"; from: 0; to: 1; duration: 200; easing.type: Easing.OutCubic }
-                    NumberAnimation { target: qsPanelBg; property: "anchors.topMargin"; from: -8; to: 0; duration: 200; easing.type: Easing.OutCubic }
+                    NumberAnimation { target: qsContainer; property: "opacity"; from: 0; to: 1; duration: 200; easing.type: Easing.OutCubic }
+                    NumberAnimation { target: qsContainer; property: "y"; from: bar.implicitHeight + 5 - 8; to: bar.implicitHeight + 5; duration: 200; easing.type: Easing.OutCubic }
                 }
 
                 Component.onCompleted: {
                     if (this.WlrLayershell != null) {
-                        this.WlrLayershell.layer = WlrLayer.Top
+                        this.WlrLayershell.layer = WlrLayer.Overlay
+                        this.WlrLayershell.keyboardFocus = WlrKeyboardFocus.Exclusive
                         this.WlrLayershell.namespace = "quickshell-quick-settings"
                     }
                 }
 
-                Rectangle {
-                    id: qsPanelShadow
-                    anchors.fill: parent
-                    anchors.leftMargin: 2
-                    anchors.topMargin: 3
-                    z: -1
-                    radius: 14
-                    color: shellRoot.shellColors.panelShadow
-                }
-                Rectangle {
-                    id: qsPanelBg
-                    anchors.fill: parent
-                    radius: 12
-                    color: shellRoot.shellColors.surfaceContainer
-                    border.width: 1
-                    border.color: shellRoot.shellColors.borderSubtle
-                    Column {
+                MouseArea { anchors.fill: parent; onClicked: screenDelegate.closeAllPanels() }
+
+                Item {
+                    id: qsContainer
+                    x: parent.width - 440 - 8
+                    y: bar.implicitHeight + 5
+                    width: 440
+                    height: quickSettingsPanel._qsH
+                    MouseArea { anchors.fill: parent }
+                    Rectangle {
+                        id: qsPanelShadow
                         anchors.fill: parent
+                        anchors.leftMargin: 2
+                        anchors.topMargin: 3
+                        z: -1
+                        radius: 14
+                        color: shellRoot.shellColors.panelShadow
+                    }
+                    Rectangle {
+                        id: qsPanelBg
+                        anchors.fill: parent
+                        radius: 12
+                        color: shellRoot.shellColors.surfaceContainer
+                        border.width: 1
+                        border.color: shellRoot.shellColors.borderSubtle
+                        Column {
+                            anchors.fill: parent
                         spacing: 0
                         Row {
                             visible: screenDelegate.quickSettingsSubView !== "main"
@@ -795,6 +802,7 @@ ShellRoot {
                             anchors.horizontalCenter: parent.horizontalCenter
                             clip: true
                             Flickable {
+                                id: qsFlick
                                 visible: screenDelegate.quickSettingsSubView === "main"
                                 anchors.fill: parent
                                 anchors.margins: 20
@@ -813,10 +821,21 @@ ShellRoot {
                                     onOpenSettingsRequested: screenDelegate.quickSettingsSubView = "settings"
                                 }
                             }
+                            MouseArea {
+                                anchors.fill: parent
+                                anchors.margins: 20
+                                visible: screenDelegate.quickSettingsSubView === "main"
+                                acceptedButtons: Qt.MiddleButton
+                                onWheel: function(wheel) {
+                                    var step = (wheel.angleDelta.y / 120) * 80
+                                    qsFlick.contentY = Math.max(0, Math.min(qsFlick.contentY - step, Math.max(0, qsFlick.contentHeight - qsFlick.height)))
+                                }
+                            }
                             Item {
                                 visible: screenDelegate.quickSettingsSubView === "power"
                                 anchors.fill: parent
                                 PowerMenuContent {
+                                    id: qsPowerContent
                                     anchors.centerIn: parent
                                     width: Math.min(180, parent.width - 24)
                                     colors: shellRoot.shellColors
@@ -830,6 +849,7 @@ ShellRoot {
                                 visible: screenDelegate.quickSettingsSubView === "settings"
                                 anchors.fill: parent
                                 SettingsMenuContent {
+                                    id: qsSettingsContent
                                     anchors.fill: parent
                                     anchors.margins: 8
                                     colors: shellRoot.shellColors
@@ -842,59 +862,157 @@ ShellRoot {
                         }
                     }
                 }
+                }
+            }
+
+            PanelWindow {
+                id: toolsMenuPanel
+                screen: screenDelegate.modelData
+                visible: screenDelegate.toolsMenuVisible && bar.panelsVisible
+                color: "transparent"
+                exclusiveZone: -1
+                anchors { top: true; bottom: true; left: true; right: true }
+
+                focusable: true
+                onVisibleChanged: {
+                    if (visible) {
+                        toolsContainer.opacity = 0
+                        toolsContainer.y = bar.implicitHeight + 5 - 8
+                        toolsOpenAnim.restart()
+                        toolsEscScope.forceActiveFocus()
+                    }
+                }
+                Item { id: toolsEscScope; focus: true; Keys.onEscapePressed: screenDelegate.closeAllPanels() }
+                ParallelAnimation {
+                    id: toolsOpenAnim
+                    NumberAnimation { target: toolsContainer; property: "opacity"; from: 0; to: 1; duration: 200; easing.type: Easing.OutCubic }
+                    NumberAnimation { target: toolsContainer; property: "y"; from: bar.implicitHeight + 5 - 8; to: bar.implicitHeight + 5; duration: 200; easing.type: Easing.OutCubic }
+                }
+
+                Component.onCompleted: {
+                    if (this.WlrLayershell != null) {
+                        this.WlrLayershell.layer = WlrLayer.Overlay
+                        this.WlrLayershell.keyboardFocus = WlrKeyboardFocus.Exclusive
+                        this.WlrLayershell.namespace = "quickshell-tools-menu"
+                    }
+                }
+
+                MouseArea { anchors.fill: parent; onClicked: screenDelegate.closeAllPanels() }
+
+                Item {
+                    id: toolsContainer
+                    x: parent.width - 188 - screenDelegate.toolsMenuMarginRight
+                    y: bar.implicitHeight + 5
+                    width: 188
+                    height: 168
+                    MouseArea { anchors.fill: parent }
+                    Rectangle {
+                        id: toolsShadow
+                        anchors.fill: parent
+                        anchors.leftMargin: 2
+                        anchors.topMargin: 3
+                        z: -1
+                        radius: 14
+                        color: shellRoot.shellColors.panelShadow
+                    }
+                    Rectangle {
+                        id: toolsBg
+                        anchors.fill: parent
+                        radius: 12
+                        color: shellRoot.shellColors.surfaceContainer
+                        border.width: 1
+                        border.color: shellRoot.shellColors.borderSubtle
+                        ToolsMenuContent {
+                            anchors.fill: parent
+                            anchors.margins: 4
+                            colors: shellRoot.shellColors
+                            compositorName: shellRoot.compositorName
+                            screenshotWidget: screenDelegate.screenshotWidgetRef
+                            onClose: function() { screenDelegate.toolsMenuVisible = false }
+                            onClipboardRequested: {
+                                screenDelegate.clipboardPanelVisible = !screenDelegate.clipboardPanelVisible
+                            }
+                            onKeybindsRequested: {
+                                screenDelegate.keybindsPanelVisible = !screenDelegate.keybindsPanelVisible
+                            }
+                            onScreenshotMenuRequested: {
+                                if (!screenDelegate.screenshotMenuVisible) {
+                                    var pt = toolsMenuWidget.mapToItem(root, 0, 0)
+                                    var screenW = root.width || 1920
+                                    screenDelegate.screenshotMenuMarginLeft = Math.max(0, Math.floor(screenW - screenDelegate.toolsMenuMarginRight - 168))
+                                }
+                                screenDelegate.screenshotMenuVisible = !screenDelegate.screenshotMenuVisible
+                            }
+                        }
+                    }
+                }
             }
 
             PanelWindow {
                 id: screenshotMenuPanel
                 screen: screenDelegate.modelData
                 visible: screenDelegate.screenshotMenuVisible && bar.panelsVisible
-                implicitWidth: 168
-                implicitHeight: 130
                 color: "transparent"
-                exclusiveZone: 0
+                exclusiveZone: -1
+                anchors { top: true; bottom: true; left: true; right: true }
 
-                anchors.top: true
-                anchors.left: true
-                margins.top: 5
-                margins.left: screenDelegate.screenshotMenuMarginLeft
-
-                onVisibleChanged: if (visible) { ssMenuShadow.opacity = 0; ssMenuBg.opacity = 0; ssMenuBg.anchors.topMargin = -8; ssMenuOpenAnim.restart() }
+                focusable: true
+                onVisibleChanged: {
+                    if (visible) {
+                        ssContainer.opacity = 0
+                        ssContainer.y = bar.implicitHeight + 5 - 8
+                        ssMenuOpenAnim.restart()
+                        ssEscScope.forceActiveFocus()
+                    }
+                }
+                Item { id: ssEscScope; focus: true; Keys.onEscapePressed: screenDelegate.closeAllPanels() }
                 ParallelAnimation {
                     id: ssMenuOpenAnim
-                    NumberAnimation { target: ssMenuShadow; property: "opacity"; from: 0; to: 1; duration: 200; easing.type: Easing.OutCubic }
-                    NumberAnimation { target: ssMenuBg; property: "opacity"; from: 0; to: 1; duration: 200; easing.type: Easing.OutCubic }
-                    NumberAnimation { target: ssMenuBg; property: "anchors.topMargin"; from: -8; to: 0; duration: 200; easing.type: Easing.OutCubic }
+                    NumberAnimation { target: ssContainer; property: "opacity"; from: 0; to: 1; duration: 200; easing.type: Easing.OutCubic }
+                    NumberAnimation { target: ssContainer; property: "y"; from: bar.implicitHeight + 5 - 8; to: bar.implicitHeight + 5; duration: 200; easing.type: Easing.OutCubic }
                 }
 
                 Component.onCompleted: {
                     if (this.WlrLayershell != null) {
-                        this.WlrLayershell.layer = WlrLayer.Top
+                        this.WlrLayershell.layer = WlrLayer.Overlay
+                        this.WlrLayershell.keyboardFocus = WlrKeyboardFocus.Exclusive
                         this.WlrLayershell.namespace = "quickshell-screenshot-menu"
                     }
                 }
 
-                Rectangle {
-                    id: ssMenuShadow
-                    anchors.fill: parent
-                    anchors.leftMargin: 2
-                    anchors.topMargin: 3
-                    z: -1
-                    radius: 14
-                    color: shellRoot.shellColors.panelShadow
-                }
-                Rectangle {
-                    id: ssMenuBg
-                    anchors.fill: parent
-                    radius: 12
-                    color: shellRoot.shellColors.surfaceContainer
-                    border.width: 1
-                    border.color: shellRoot.shellColors.borderSubtle
-                    ScreenshotMenuContent {
+                MouseArea { anchors.fill: parent; onClicked: screenDelegate.closeAllPanels() }
+
+                Item {
+                    id: ssContainer
+                    x: screenDelegate.screenshotMenuMarginLeft
+                    y: bar.implicitHeight + 5
+                    width: 168
+                    height: 128
+                    MouseArea { anchors.fill: parent }
+                    Rectangle {
+                        id: ssMenuShadow
                         anchors.fill: parent
-                        anchors.margins: 4
-                        colors: shellRoot.shellColors
-                        screenshotWidget: screenDelegate.screenshotWidgetRef
-                        onClose: function() { screenDelegate.screenshotMenuVisible = false }
+                        anchors.leftMargin: 2
+                        anchors.topMargin: 3
+                        z: -1
+                        radius: 14
+                        color: shellRoot.shellColors.panelShadow
+                    }
+                    Rectangle {
+                        id: ssMenuBg
+                        anchors.fill: parent
+                        radius: 12
+                        color: shellRoot.shellColors.surfaceContainer
+                        border.width: 1
+                        border.color: shellRoot.shellColors.borderSubtle
+                        ScreenshotMenuContent {
+                            id: ssMenuContentItem
+                            anchors.fill: parent
+                            anchors.margins: 4
+                            colors: shellRoot.shellColors
+                            screenshotWidget: screenDelegate.screenshotWidgetRef
+                            onClose: function() { screenDelegate.screenshotMenuVisible = false }
+                        }
                     }
                 }
             }
@@ -903,63 +1021,88 @@ ShellRoot {
                 id: workspaceOverviewPanel
                 screen: screenDelegate.modelData
                 visible: (screenDelegate.workspaceOverviewVisible || shellRoot.workspaceOverviewTriggered) && bar.panelsVisible && bar.compositorName === "hyprland"
-                implicitWidth: 320
-                implicitHeight: 380
                 color: "transparent"
-                exclusiveZone: 0
+                exclusiveZone: -1
+                anchors { top: true; bottom: true; left: true; right: true }
 
-                anchors.top: true
-                anchors.left: true
-                margins.top: 5
-                margins.left: 12
-
-                onVisibleChanged: if (visible) { wsOverviewShadow.opacity = 0; wsOverviewBg.opacity = 0; wsOverviewBg.anchors.topMargin = -8; wsOverviewOpenAnim.restart() }
+                focusable: true
+                onVisibleChanged: {
+                    if (visible) {
+                        wsContainer.opacity = 0
+                        wsContainer.y = bar.implicitHeight + 5 - 8
+                        wsOverviewOpenAnim.restart()
+                        wsEscScope.forceActiveFocus()
+                    }
+                }
+                Item { id: wsEscScope; focus: true; Keys.onEscapePressed: screenDelegate.closeAllPanels() }
                 ParallelAnimation {
                     id: wsOverviewOpenAnim
-                    NumberAnimation { target: wsOverviewShadow; property: "opacity"; from: 0; to: 1; duration: 200; easing.type: Easing.OutCubic }
-                    NumberAnimation { target: wsOverviewBg; property: "opacity"; from: 0; to: 1; duration: 200; easing.type: Easing.OutCubic }
-                    NumberAnimation { target: wsOverviewBg; property: "anchors.topMargin"; from: -8; to: 0; duration: 200; easing.type: Easing.OutCubic }
+                    NumberAnimation { target: wsContainer; property: "opacity"; from: 0; to: 1; duration: 200; easing.type: Easing.OutCubic }
+                    NumberAnimation { target: wsContainer; property: "y"; from: bar.implicitHeight + 5 - 8; to: bar.implicitHeight + 5; duration: 200; easing.type: Easing.OutCubic }
                 }
 
                 Component.onCompleted: {
                     if (this.WlrLayershell != null) {
-                        this.WlrLayershell.layer = WlrLayer.Top
+                        this.WlrLayershell.layer = WlrLayer.Overlay
+                        this.WlrLayershell.keyboardFocus = WlrKeyboardFocus.Exclusive
                         this.WlrLayershell.namespace = "quickshell-workspace-overview"
                     }
                 }
 
-                Rectangle {
-                    id: wsOverviewShadow
-                    anchors.fill: parent
-                    anchors.leftMargin: 2
-                    anchors.topMargin: 3
-                    z: -1
-                    radius: 14
-                    color: shellRoot.shellColors.panelShadow
-                }
-                Rectangle {
-                    id: wsOverviewBg
-                    anchors.fill: parent
-                    radius: 12
-                    color: shellRoot.shellColors.surfaceContainer
-                    border.width: 1
-                    border.color: shellRoot.shellColors.borderSubtle
-                    Flickable {
+                MouseArea { anchors.fill: parent; onClicked: screenDelegate.closeAllPanels() }
+
+                Item {
+                    id: wsContainer
+                    x: 12
+                    y: bar.implicitHeight + 5
+                    width: 320
+                    height: Math.min(overviewContent.implicitHeight + 24, 600)
+                    MouseArea { anchors.fill: parent }
+                    Rectangle {
+                        id: wsOverviewShadow
                         anchors.fill: parent
-                        anchors.margins: 12
-                        contentWidth: overviewContent.width
-                        contentHeight: overviewContent.implicitHeight
-                        clip: true
-                        WorkspaceOverviewContent {
-                            id: overviewContent
-                            width: workspaceOverviewPanel.implicitWidth - 24
-                            colors: shellRoot.shellColors
-                            hyprMonitor: root.hyprMonitor
-                            clientsByWorkspace: root.clientsByWorkspace
-                            activeWindowAddress: root.activeWindowAddress
-                            onClose: function() {
-                                screenDelegate.workspaceOverviewVisible = false
-                                shellRoot.workspaceOverviewTriggered = false
+                        anchors.leftMargin: 2
+                        anchors.topMargin: 3
+                        z: -1
+                        radius: 14
+                        color: shellRoot.shellColors.panelShadow
+                    }
+                    Rectangle {
+                        id: wsOverviewBg
+                        anchors.fill: parent
+                        radius: 12
+                        color: shellRoot.shellColors.surfaceContainer
+                        border.width: 1
+                        border.color: shellRoot.shellColors.borderSubtle
+                        Flickable {
+                            id: wsOverviewFlick
+                            anchors.fill: parent
+                            anchors.margins: 12
+                            contentWidth: overviewContent.width
+                            contentHeight: overviewContent.implicitHeight
+                            clip: true
+                            flickableDirection: Flickable.VerticalFlick
+                            boundsBehavior: Flickable.StopAtBounds
+                            WorkspaceOverviewContent {
+                                id: overviewContent
+                                width: 320 - 24
+                                colors: shellRoot.shellColors
+                                hyprMonitor: root.hyprMonitor
+                                clientsByWorkspace: root.clientsByWorkspace
+                                activeWindowAddress: root.activeWindowAddress
+                                onClose: function() {
+                                    screenDelegate.workspaceOverviewVisible = false
+                                    shellRoot.workspaceOverviewTriggered = false
+                                }
+                            }
+                        }
+                        MouseArea {
+                            anchors.fill: parent
+                            anchors.margins: 12
+                            acceptedButtons: Qt.MiddleButton
+                            onWheel: function(wheel) {
+                                var step = (wheel.angleDelta.y / 120) * 80
+                                wsOverviewFlick.contentY = Math.max(0, Math.min(wsOverviewFlick.contentY - step, Math.max(0, wsOverviewFlick.contentHeight - wsOverviewFlick.height)))
                             }
                         }
                     }
@@ -970,58 +1113,67 @@ ShellRoot {
                 id: clipboardPanel
                 screen: screenDelegate.modelData
                 visible: screenDelegate.clipboardPanelVisible && bar.panelsVisible
-                implicitWidth: 360
-                implicitHeight: 440
                 color: "transparent"
-                exclusiveZone: 0
+                exclusiveZone: -1
+                anchors { top: true; bottom: true; left: true; right: true }
 
-                anchors.top: true
-                anchors.left: true
-                margins.top: 5
-                margins.left: 12
-
+                focusable: true
                 onVisibleChanged: {
                     if (visible) {
-                        clipShadow.opacity = 0; clipBg.opacity = 0; clipBg.anchors.topMargin = -8; clipOpenAnim.restart()
+                        clipContainer.opacity = 0
+                        clipContainer.y = bar.implicitHeight + 5 - 8
+                        clipOpenAnim.restart()
                         clipContent.refresh()
+                        clipEscScope.forceActiveFocus()
                     }
                 }
+                Item { id: clipEscScope; focus: true; Keys.onEscapePressed: screenDelegate.closeAllPanels() }
                 ParallelAnimation {
                     id: clipOpenAnim
-                    NumberAnimation { target: clipShadow; property: "opacity"; from: 0; to: 1; duration: 200; easing.type: Easing.OutCubic }
-                    NumberAnimation { target: clipBg; property: "opacity"; from: 0; to: 1; duration: 200; easing.type: Easing.OutCubic }
-                    NumberAnimation { target: clipBg; property: "anchors.topMargin"; from: -8; to: 0; duration: 200; easing.type: Easing.OutCubic }
+                    NumberAnimation { target: clipContainer; property: "opacity"; from: 0; to: 1; duration: 200; easing.type: Easing.OutCubic }
+                    NumberAnimation { target: clipContainer; property: "y"; from: bar.implicitHeight + 5 - 8; to: bar.implicitHeight + 5; duration: 200; easing.type: Easing.OutCubic }
                 }
 
                 Component.onCompleted: {
                     if (this.WlrLayershell != null) {
-                        this.WlrLayershell.layer = WlrLayer.Top
+                        this.WlrLayershell.layer = WlrLayer.Overlay
+                        this.WlrLayershell.keyboardFocus = WlrKeyboardFocus.Exclusive
                         this.WlrLayershell.namespace = "quickshell-clipboard"
                     }
                 }
 
-                Rectangle {
-                    id: clipShadow
-                    anchors.fill: parent
-                    anchors.leftMargin: 2
-                    anchors.topMargin: 3
-                    z: -1
-                    radius: 14
-                    color: shellRoot.shellColors.panelShadow
-                }
-                Rectangle {
-                    id: clipBg
-                    anchors.fill: parent
-                    radius: 12
-                    color: shellRoot.shellColors.surfaceContainer
-                    border.width: 1
-                    border.color: shellRoot.shellColors.borderSubtle
-                    ClipboardContent {
-                        id: clipContent
+                MouseArea { anchors.fill: parent; onClicked: screenDelegate.closeAllPanels() }
+
+                Item {
+                    id: clipContainer
+                    x: parent.width - 560 - 8
+                    y: bar.implicitHeight + 5
+                    width: 560
+                    height: Math.min(Math.max(300, clipContent.desiredHeight + 24), 600)
+                    MouseArea { anchors.fill: parent }
+                    Rectangle {
+                        id: clipShadow
                         anchors.fill: parent
-                        anchors.margins: 12
-                        colors: shellRoot.shellColors
-                        onClose: function() { screenDelegate.clipboardPanelVisible = false }
+                        anchors.leftMargin: 2
+                        anchors.topMargin: 3
+                        z: -1
+                        radius: 14
+                        color: shellRoot.shellColors.panelShadow
+                    }
+                    Rectangle {
+                        id: clipBg
+                        anchors.fill: parent
+                        radius: 12
+                        color: shellRoot.shellColors.surfaceContainer
+                        border.width: 1
+                        border.color: shellRoot.shellColors.borderSubtle
+                        ClipboardContent {
+                            id: clipContent
+                            anchors.fill: parent
+                            anchors.margins: 12
+                            colors: shellRoot.shellColors
+                            onClose: function() { screenDelegate.clipboardPanelVisible = false }
+                        }
                     }
                 }
             }
@@ -1030,58 +1182,67 @@ ShellRoot {
                 id: keybindsPanel
                 screen: screenDelegate.modelData
                 visible: screenDelegate.keybindsPanelVisible && bar.panelsVisible
-                implicitWidth: 420
-                implicitHeight: 520
                 color: "transparent"
-                exclusiveZone: 0
+                exclusiveZone: -1
+                anchors { top: true; bottom: true; left: true; right: true }
 
-                anchors.top: true
-                anchors.left: true
-                margins.top: 5
-                margins.left: 12
-
+                focusable: true
                 onVisibleChanged: {
                     if (visible) {
-                        kbShadow.opacity = 0; kbBg.opacity = 0; kbBg.anchors.topMargin = -8; kbOpenAnim.restart()
+                        kbContainer.opacity = 0
+                        kbContainer.y = bar.implicitHeight + 5 - 8
+                        kbOpenAnim.restart()
                         kbContent.refresh()
+                        kbEscScope.forceActiveFocus()
                     }
                 }
+                Item { id: kbEscScope; focus: true; Keys.onEscapePressed: screenDelegate.closeAllPanels() }
                 ParallelAnimation {
                     id: kbOpenAnim
-                    NumberAnimation { target: kbShadow; property: "opacity"; from: 0; to: 1; duration: 200; easing.type: Easing.OutCubic }
-                    NumberAnimation { target: kbBg; property: "opacity"; from: 0; to: 1; duration: 200; easing.type: Easing.OutCubic }
-                    NumberAnimation { target: kbBg; property: "anchors.topMargin"; from: -8; to: 0; duration: 200; easing.type: Easing.OutCubic }
+                    NumberAnimation { target: kbContainer; property: "opacity"; from: 0; to: 1; duration: 200; easing.type: Easing.OutCubic }
+                    NumberAnimation { target: kbContainer; property: "y"; from: bar.implicitHeight + 5 - 8; to: bar.implicitHeight + 5; duration: 200; easing.type: Easing.OutCubic }
                 }
 
                 Component.onCompleted: {
                     if (this.WlrLayershell != null) {
-                        this.WlrLayershell.layer = WlrLayer.Top
+                        this.WlrLayershell.layer = WlrLayer.Overlay
+                        this.WlrLayershell.keyboardFocus = WlrKeyboardFocus.Exclusive
                         this.WlrLayershell.namespace = "quickshell-keybinds"
                     }
                 }
 
-                Rectangle {
-                    id: kbShadow
-                    anchors.fill: parent
-                    anchors.leftMargin: 2
-                    anchors.topMargin: 3
-                    z: -1
-                    radius: 14
-                    color: shellRoot.shellColors.panelShadow
-                }
-                Rectangle {
-                    id: kbBg
-                    anchors.fill: parent
-                    radius: 12
-                    color: shellRoot.shellColors.surfaceContainer
-                    border.width: 1
-                    border.color: shellRoot.shellColors.borderSubtle
-                    KeybindsContent {
-                        id: kbContent
+                MouseArea { anchors.fill: parent; onClicked: screenDelegate.closeAllPanels() }
+
+                Item {
+                    id: kbContainer
+                    x: parent.width - 420 - 8
+                    y: bar.implicitHeight + 5
+                    width: 420
+                    height: Math.min(Math.max(300, kbContent.desiredHeight + 24), 600)
+                    MouseArea { anchors.fill: parent }
+                    Rectangle {
+                        id: kbShadow
                         anchors.fill: parent
-                        anchors.margins: 12
-                        colors: shellRoot.shellColors
-                        onClose: function() { screenDelegate.keybindsPanelVisible = false }
+                        anchors.leftMargin: 2
+                        anchors.topMargin: 3
+                        z: -1
+                        radius: 14
+                        color: shellRoot.shellColors.panelShadow
+                    }
+                    Rectangle {
+                        id: kbBg
+                        anchors.fill: parent
+                        radius: 12
+                        color: shellRoot.shellColors.surfaceContainer
+                        border.width: 1
+                        border.color: shellRoot.shellColors.borderSubtle
+                        KeybindsContent {
+                            id: kbContent
+                            anchors.fill: parent
+                            anchors.margins: 12
+                            colors: shellRoot.shellColors
+                            onClose: function() { screenDelegate.keybindsPanelVisible = false }
+                        }
                     }
                 }
             }
@@ -1090,52 +1251,66 @@ ShellRoot {
                 id: calendarPanel
                 screen: screenDelegate.modelData
                 visible: screenDelegate.calendarVisible && bar.panelsVisible
-                implicitWidth: 200
-                implicitHeight: 200
                 color: "transparent"
-                exclusiveZone: 0
+                exclusiveZone: -1
+                anchors { top: true; bottom: true; left: true; right: true }
 
-                anchors.top: true
-                anchors.left: true
-                margins.top: 5
-                margins.left: screenDelegate.calendarMarginLeft
-
-                onVisibleChanged: if (visible) { calShadow.opacity = 0; calBg.opacity = 0; calBg.anchors.topMargin = -8; calOpenAnim.restart() }
+                focusable: true
+                onVisibleChanged: {
+                    if (visible) {
+                        calContainer.opacity = 0
+                        calContainer.y = bar.implicitHeight + 5 - 8
+                        calOpenAnim.restart()
+                        calEscScope.forceActiveFocus()
+                    }
+                }
+                Item { id: calEscScope; focus: true; Keys.onEscapePressed: screenDelegate.closeAllPanels() }
                 ParallelAnimation {
                     id: calOpenAnim
-                    NumberAnimation { target: calShadow; property: "opacity"; from: 0; to: 1; duration: 200; easing.type: Easing.OutCubic }
-                    NumberAnimation { target: calBg; property: "opacity"; from: 0; to: 1; duration: 200; easing.type: Easing.OutCubic }
-                    NumberAnimation { target: calBg; property: "anchors.topMargin"; from: -8; to: 0; duration: 200; easing.type: Easing.OutCubic }
+                    NumberAnimation { target: calContainer; property: "opacity"; from: 0; to: 1; duration: 200; easing.type: Easing.OutCubic }
+                    NumberAnimation { target: calContainer; property: "y"; from: bar.implicitHeight + 5 - 8; to: bar.implicitHeight + 5; duration: 200; easing.type: Easing.OutCubic }
                 }
 
                 Component.onCompleted: {
                     if (this.WlrLayershell != null) {
-                        this.WlrLayershell.layer = WlrLayer.Top
+                        this.WlrLayershell.layer = WlrLayer.Overlay
+                        this.WlrLayershell.keyboardFocus = WlrKeyboardFocus.Exclusive
                         this.WlrLayershell.namespace = "quickshell-calendar"
                     }
                 }
 
-                Rectangle {
-                    id: calShadow
-                    anchors.fill: parent
-                    anchors.leftMargin: 2
-                    anchors.topMargin: 3
-                    z: -1
-                    radius: 14
-                    color: shellRoot.shellColors.panelShadow
-                }
-                Rectangle {
-                    id: calBg
-                    anchors.fill: parent
-                    radius: 12
-                    color: shellRoot.shellColors.surfaceContainer
-                    border.width: 1
-                    border.color: shellRoot.shellColors.borderSubtle
-                    CalendarContent {
+                MouseArea { anchors.fill: parent; onClicked: screenDelegate.closeAllPanels() }
+
+                Item {
+                    id: calContainer
+                    x: screenDelegate.calendarMarginLeft
+                    y: bar.implicitHeight + 5
+                    width: 200
+                    height: 200
+                    MouseArea { anchors.fill: parent }
+                    Rectangle {
+                        id: calShadow
                         anchors.fill: parent
-                        anchors.margins: 1
-                        colors: shellRoot.shellColors
-                        calendarState: screenDelegate
+                        anchors.leftMargin: 2
+                        anchors.topMargin: 3
+                        z: -1
+                        radius: 14
+                        color: shellRoot.shellColors.panelShadow
+                    }
+                    Rectangle {
+                        id: calBg
+                        anchors.fill: parent
+                        radius: 12
+                        color: shellRoot.shellColors.surfaceContainer
+                        border.width: 1
+                        border.color: shellRoot.shellColors.borderSubtle
+                        CalendarContent {
+                            id: calContentItem
+                            anchors.fill: parent
+                            anchors.margins: 1
+                            colors: shellRoot.shellColors
+                            calendarState: screenDelegate
+                        }
                     }
                 }
             }
@@ -1144,48 +1319,60 @@ ShellRoot {
                 id: nowPlayingPanel
                 screen: screenDelegate.modelData
                 visible: screenDelegate.nowPlayingPopupVisible && nowPlayingWidget.hasPlayer && bar.panelsVisible
-                implicitWidth: 280
-                implicitHeight: 140
                 color: "transparent"
-                exclusiveZone: 0
+                exclusiveZone: -1
+                anchors { top: true; bottom: true; left: true; right: true }
 
-                anchors.top: true
-                anchors.left: true
-                margins.top: 5
-                margins.left: 8
-
-                onVisibleChanged: if (visible) { npShadow.opacity = 0; nowPlayingPanelContent.opacity = 0; nowPlayingPanelContent.anchors.topMargin = -8; npOpenAnim.restart() }
+                focusable: true
+                onVisibleChanged: {
+                    if (visible) {
+                        npContainer.opacity = 0
+                        npContainer.y = bar.implicitHeight + 5 - 8
+                        npOpenAnim.restart()
+                        npEscScope.forceActiveFocus()
+                    }
+                }
+                Item { id: npEscScope; focus: true; Keys.onEscapePressed: screenDelegate.closeAllPanels() }
                 ParallelAnimation {
                     id: npOpenAnim
-                    NumberAnimation { target: npShadow; property: "opacity"; from: 0; to: 1; duration: 200; easing.type: Easing.OutCubic }
-                    NumberAnimation { target: nowPlayingPanelContent; property: "opacity"; from: 0; to: 1; duration: 200; easing.type: Easing.OutCubic }
-                    NumberAnimation { target: nowPlayingPanelContent; property: "anchors.topMargin"; from: -8; to: 0; duration: 200; easing.type: Easing.OutCubic }
+                    NumberAnimation { target: npContainer; property: "opacity"; from: 0; to: 1; duration: 200; easing.type: Easing.OutCubic }
+                    NumberAnimation { target: npContainer; property: "y"; from: bar.implicitHeight + 5 - 8; to: bar.implicitHeight + 5; duration: 200; easing.type: Easing.OutCubic }
                 }
 
                 Component.onCompleted: {
                     if (this.WlrLayershell != null) {
-                        this.WlrLayershell.layer = WlrLayer.Top
+                        this.WlrLayershell.layer = WlrLayer.Overlay
+                        this.WlrLayershell.keyboardFocus = WlrKeyboardFocus.Exclusive
                         this.WlrLayershell.namespace = "quickshell-now-playing"
                     }
                 }
 
-                Rectangle {
-                    id: npShadow
-                    anchors.fill: parent
-                    anchors.leftMargin: 2
-                    anchors.topMargin: 3
-                    z: -1
-                    radius: 14
-                    color: shellRoot.shellColors.panelShadow
-                }
+                MouseArea { anchors.fill: parent; onClicked: screenDelegate.closeAllPanels() }
 
-                MiniPlayerContent {
-                    id: nowPlayingPanelContent
-                    anchors.fill: parent
-                    colors: shellRoot.shellColors
-                    player: nowPlayingWidget
-                    isOpen: screenDelegate.nowPlayingPopupVisible
-                    onClose: function() { screenDelegate.nowPlayingPopupVisible = false }
+                Item {
+                    id: npContainer
+                    x: 8
+                    y: bar.implicitHeight + 5
+                    width: nowPlayingPanelContent.implicitWidth
+                    height: nowPlayingPanelContent.implicitHeight
+                    MouseArea { anchors.fill: parent }
+                    Rectangle {
+                        id: npShadow
+                        anchors.fill: parent
+                        anchors.leftMargin: 2
+                        anchors.topMargin: 3
+                        z: -1
+                        radius: 14
+                        color: shellRoot.shellColors.panelShadow
+                    }
+                    MiniPlayerContent {
+                        id: nowPlayingPanelContent
+                        anchors.fill: parent
+                        colors: shellRoot.shellColors
+                        player: nowPlayingWidget
+                        isOpen: screenDelegate.nowPlayingPopupVisible
+                        onClose: function() { screenDelegate.nowPlayingPopupVisible = false }
+                    }
                 }
             }
 

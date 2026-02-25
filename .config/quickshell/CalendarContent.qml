@@ -11,6 +11,7 @@ Column {
     required property var calendarState
 
     spacing: 0
+
     Rectangle {
         width: content.width
         height: Math.max(0, content.height - 28)

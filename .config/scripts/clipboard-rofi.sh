@@ -12,7 +12,7 @@ paste_selection() {
 
 show_text() {
     local selected
-    selected=$(cliphist list | grep -v '^\[[[:space:]]*binary' | rofi -dmenu -i -p "Clipboard (text)" \
+    selected=$(cliphist list | grep -v '\[\[.*binary.*\]\]' | rofi -dmenu -i -p "Clipboard (text)" \
         -theme-str 'window { width: 50%; } listview { lines: 15; }')
     [ -n "$selected" ] && paste_selection "$selected"
 }
@@ -20,16 +20,17 @@ show_text() {
 show_images() {
     rm -f "$THUMB_DIR"/thumb_*.png
 
-    local entries=()
+    local -a entries
+    local -a thumbs
     local idx=0
 
     while IFS= read -r line; do
         if [[ "$line" == *"binary"* ]] || [[ "$line" == *"[["*"]]"* ]]; then
-            local id="${line%%	*}"
             local thumb="$THUMB_DIR/thumb_${idx}.png"
             echo "$line" | cliphist decode > "$thumb" 2>/dev/null
             if file "$thumb" | grep -qiE 'image|png|jpeg|gif|webp|bitmap'; then
                 entries+=("$line")
+                thumbs+=("$thumb")
                 idx=$((idx + 1))
             else
                 rm -f "$thumb"
@@ -44,19 +45,20 @@ show_images() {
 
     local display=""
     for i in "${!entries[@]}"; do
-        local thumb="$THUMB_DIR/thumb_${i}.png"
-        if [ -f "$thumb" ]; then
-            display+="${entries[$i]}\x00icon\x1f${thumb}\n"
-        else
-            display+="${entries[$i]}\n"
-        fi
+        display+="Image $((i + 1))\x00icon\x1f${thumbs[$i]}\n"
     done
 
-    local selected
-    selected=$(echo -en "$display" | rofi -dmenu -i -p "Clipboard (images)" \
-        -show-icons \
-        -theme-str 'window { width: 50%; } listview { lines: 8; } element-icon { size: 64px; }')
-    [ -n "$selected" ] && paste_selection "$selected"
+    local selected_line
+    selected_line=$(echo -en "$display" | rofi -dmenu -i -p "Clipboard (images)" \
+        -theme-str 'window { width: 60%; } listview { lines: 8; } element-icon { size: 128px; } element { padding: 8px; }')
+
+    if [ -n "$selected_line" ]; then
+        local num="${selected_line#Image }"
+        num=$((num - 1))
+        if [ "$num" -ge 0 ] && [ "$num" -lt ${#entries[@]} ]; then
+            paste_selection "${entries[$num]}"
+        fi
+    fi
 }
 
 show_all() {

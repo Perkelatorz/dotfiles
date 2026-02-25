@@ -37,3 +37,5 @@ ClipboardWidget 1.0 ClipboardWidget.qml
 ClipboardContent 1.0 ClipboardContent.qml
 KeybindsWidget 1.0 KeybindsWidget.qml
 KeybindsContent 1.0 KeybindsContent.qml
+ToolsMenuWidget 1.0 ToolsMenuWidget.qml
+ToolsMenuContent 1.0 ToolsMenuContent.qml
