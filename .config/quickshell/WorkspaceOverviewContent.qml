@@ -73,8 +73,8 @@ ColumnLayout {
 
             visible: onThisMonitor
             Layout.fillWidth: true
-            readonly property int clientRowsHeight: wsClients.length * 32 + Math.max(0, wsClients.length - 1) * 2
-            height: visible ? (36 + 8 + clientRowsHeight) : 0
+            Layout.preferredHeight: visible ? wsColumn.implicitHeight : 0
+            implicitHeight: wsColumn.implicitHeight
 
             Column {
                 id: wsColumn

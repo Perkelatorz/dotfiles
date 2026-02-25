@@ -12,6 +12,9 @@ ColumnLayout {
     property var categories: []
     property string searchText: ""
 
+    readonly property int _headerHeight: 81
+    property int desiredHeight: _headerHeight + catColumn.implicitHeight
+
     spacing: 8
 
     Process {
@@ -167,17 +170,20 @@ ColumnLayout {
         }
     }
 
-    Flickable {
+    Item {
         Layout.fillWidth: true
         Layout.fillHeight: true
-        contentWidth: width
-        contentHeight: catColumn.implicitHeight
         clip: true
-        flickableDirection: Flickable.VerticalFlick
-        boundsBehavior: Flickable.StopAtBounds
+        Flickable {
+            id: kbFlick
+            anchors.fill: parent
+            contentWidth: width
+            contentHeight: catColumn.implicitHeight
+            flickableDirection: Flickable.VerticalFlick
+            boundsBehavior: Flickable.StopAtBounds
 
-        Column {
-            id: catColumn
+            Column {
+                id: catColumn
             width: parent.width
             spacing: 12
 
@@ -259,6 +265,15 @@ ColumnLayout {
                         }
                     }
                 }
+            }
+        }
+        }
+        MouseArea {
+            anchors.fill: parent
+            acceptedButtons: Qt.MiddleButton
+            onWheel: function(wheel) {
+                var step = (wheel.angleDelta.y / 120) * 80
+                kbFlick.contentY = Math.max(0, Math.min(kbFlick.contentY - step, Math.max(0, kbFlick.contentHeight - kbFlick.height)))
             }
         }
     }

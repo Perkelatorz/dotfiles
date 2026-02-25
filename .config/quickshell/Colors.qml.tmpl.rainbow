@@ -36,9 +36,10 @@ QtObject {
     property color textDim: "{{colors.on_surface_variant.default.hex}}"
     property color textMuted: "{{colors.outline.default.hex}}"
 
-    // --- BORDERS ---
+    // --- BORDERS & SHADOWS ---
     property color border: "{{colors.outline.default.hex}}"
     property color borderSubtle: "{{colors.outline_variant.default.hex}}"
+    property color panelShadow: Qt.rgba(0, 0, 0, 0.35)
 
     // --- URGENT (always bright red + black "!", independent of theme) ---
     property color urgent: "#e53935"

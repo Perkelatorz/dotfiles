@@ -13,10 +13,14 @@ ColumnLayout {
     property var textEntries: []
     property var imageEntries: []
     property string searchText: ""
+    property int previewIndex: -1
+
+    readonly property int _headerHeight: 117
+    readonly property int _textListHeight: Math.max(3, Math.min(textEntries.length, 15)) * 34
+    readonly property int _imageListHeight: Math.max(200, Math.min(imageEntries.length, 8) * 50)
+    property int desiredHeight: _headerHeight + (activeTab === "text" ? _textListHeight : _imageListHeight)
 
     spacing: 8
-
-    readonly property string thumbDir: (Qt.resolvedUrl(".").toString().replace("file://", "").replace(/\/$/, "") + "/../../../.cache/cliphist-thumbs")
 
     Process {
         id: listProc
@@ -40,6 +44,7 @@ ColumnLayout {
                 }
                 clipRoot.textEntries = texts
                 clipRoot.imageEntries = images
+                clipRoot.previewIndex = images.length > 0 ? 0 : -1
                 listProc.running = false
                 if (images.length > 0) thumbProc.running = true
             }
@@ -66,12 +71,34 @@ ColumnLayout {
     }
 
     function refresh() {
+        clipRoot.previewIndex = -1
         listProc.running = true
     }
 
     function pasteEntry(entry) {
         pasteProc.command = ["sh", "-c", "echo " + JSON.stringify(entry) + " | cliphist decode | wl-copy"]
         pasteProc.running = true
+    }
+
+    function thumbPath(idx) {
+        return "file:///run/user/" + Qt.application.pid.toString().replace(/.*/, "") + "/../cliphist-thumbs/qml_" + idx + ".png"
+    }
+
+    function runtimeThumbPath(idx) {
+        return "file://" + "/tmp/cliphist-thumbs/qml_" + idx + ".png"
+    }
+
+    Process {
+        id: runtimeDirProc
+        command: ["sh", "-c", "echo \"${XDG_RUNTIME_DIR:-/tmp}\""]
+        running: true
+        property string dir: "/tmp"
+        stdout: StdioCollector {
+            onStreamFinished: {
+                runtimeDirProc.dir = (runtimeDirProc.stdout.text || "/tmp").trim()
+                runtimeDirProc.running = false
+            }
+        }
     }
 
     Process {
@@ -83,6 +110,7 @@ ColumnLayout {
                 clearProc.running = false
                 clipRoot.textEntries = []
                 clipRoot.imageEntries = []
+                clipRoot.previewIndex = -1
             }
         }
     }
@@ -187,7 +215,11 @@ ColumnLayout {
                 Layout.fillWidth: true
                 height: 28
                 hoverEnabled: true
-                onClicked: clipRoot.activeTab = modelData.key
+                onClicked: {
+                    clipRoot.activeTab = modelData.key
+                    if (modelData.key === "images" && clipRoot.imageEntries.length > 0)
+                        clipRoot.previewIndex = 0
+                }
                 Rectangle {
                     anchors.fill: parent
                     radius: 6
@@ -204,91 +236,218 @@ ColumnLayout {
         }
     }
 
-    Flickable {
+    // --- TEXT TAB: full-width list ---
+    Item {
         Layout.fillWidth: true
         Layout.fillHeight: true
-        contentWidth: width
-        contentHeight: contentCol.implicitHeight
+        visible: clipRoot.activeTab === "text"
         clip: true
-        flickableDirection: Flickable.VerticalFlick
-        boundsBehavior: Flickable.StopAtBounds
+        Flickable {
+            id: textFlick
+            anchors.fill: parent
+            contentWidth: width
+            contentHeight: textCol.implicitHeight
+            flickableDirection: Flickable.VerticalFlick
+            boundsBehavior: Flickable.StopAtBounds
 
-        Column {
-            id: contentCol
+            Column {
+                id: textCol
             width: parent.width
             spacing: 2
 
             Repeater {
                 model: {
-                    var src = clipRoot.activeTab === "text" ? clipRoot.textEntries : clipRoot.imageEntries
-                    if (!clipRoot.searchText) return src
+                    if (!clipRoot.searchText) return clipRoot.textEntries
                     var q = clipRoot.searchText.toLowerCase()
-                    return src.filter(function(e) { return e.toLowerCase().indexOf(q) >= 0 })
+                    return clipRoot.textEntries.filter(function(e) { return e.toLowerCase().indexOf(q) >= 0 })
                 }
-
                 delegate: MouseArea {
-                    id: entryMa
-                    width: contentCol.width
-                    height: clipRoot.activeTab === "images" ? 72 : 32
+                    id: textEntryMa
+                    width: textCol.width
+                    height: 32
                     hoverEnabled: true
                     onClicked: clipRoot.pasteEntry(modelData)
-
                     Rectangle {
                         anchors.fill: parent
                         radius: 6
-                        color: entryMa.containsMouse ? colors.surfaceBright : "transparent"
+                        color: textEntryMa.containsMouse ? colors.surfaceBright : "transparent"
                     }
-
-                    Row {
-                        anchors.fill: parent
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.left: parent.left
+                        anchors.right: parent.right
                         anchors.leftMargin: 8
                         anchors.rightMargin: 8
-                        spacing: 8
-                        anchors.verticalCenter: parent.verticalCenter
-
-                        Image {
-                            visible: clipRoot.activeTab === "images"
-                            width: 56; height: 56
-                            anchors.verticalCenter: parent.verticalCenter
-                            fillMode: Image.PreserveAspectFit
-                            source: {
-                                if (clipRoot.activeTab !== "images") return ""
-                                var runtimeDir = StandardPaths ? StandardPaths.writableLocation(StandardPaths.RuntimeLocation) : "/tmp"
-                                return "file://" + (runtimeDir || "/tmp") + "/cliphist-thumbs/qml_" + index + ".png"
-                            }
-                            sourceSize.width: 56
-                            sourceSize.height: 56
-                            smooth: true
-                            cache: false
-                            onStatusChanged: if (status === Image.Error) source = ""
+                        text: {
+                            var raw = modelData || ""
+                            var tab = raw.indexOf("\t")
+                            var display = tab > 0 ? raw.substring(tab + 1) : raw
+                            return display.length > 100 ? display.substring(0, 100) + "..." : display
                         }
-
-                        Text {
-                            width: parent.width - (clipRoot.activeTab === "images" ? 72 : 0)
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: {
-                                var raw = modelData || ""
-                                var tab = raw.indexOf("\t")
-                                var display = tab > 0 ? raw.substring(tab + 1) : raw
-                                if (clipRoot.activeTab === "images") return "Image " + (index + 1)
-                                return display.length > 80 ? display.substring(0, 80) + "..." : display
-                            }
-                            elide: Text.ElideRight
-                            color: entryMa.containsMouse ? colors.textMain : colors.textDim
-                            font.pixelSize: 11
-                            font.family: colors.fontMain
-                        }
+                        elide: Text.ElideRight
+                        color: textEntryMa.containsMouse ? colors.textMain : colors.textDim
+                        font.pixelSize: 11
+                        font.family: colors.fontMain
                     }
                 }
             }
 
             Text {
-                visible: (clipRoot.activeTab === "text" ? clipRoot.textEntries.length : clipRoot.imageEntries.length) === 0
-                text: clipRoot.activeTab === "text" ? "No text in clipboard" : "No images in clipboard"
+                visible: clipRoot.textEntries.length === 0
+                text: "No text in clipboard"
                 color: colors.textMuted
                 font.pixelSize: 12
                 anchors.horizontalCenter: parent.horizontalCenter
                 topPadding: 20
+            }
+        }
+        }
+        MouseArea {
+            anchors.fill: parent
+            acceptedButtons: Qt.MiddleButton
+            onWheel: function(wheel) {
+                var step = (wheel.angleDelta.y / 120) * 80
+                textFlick.contentY = Math.max(0, Math.min(textFlick.contentY - step, Math.max(0, textFlick.contentHeight - textFlick.height)))
+            }
+        }
+    }
+
+    // --- IMAGES TAB: split layout (list left, preview right) ---
+    RowLayout {
+        Layout.fillWidth: true
+        Layout.fillHeight: true
+        visible: clipRoot.activeTab === "images"
+        spacing: 8
+
+        Item {
+            Layout.preferredWidth: parent.width * 0.4
+            Layout.fillHeight: true
+            clip: true
+            Flickable {
+                id: imgFlick
+                anchors.fill: parent
+                contentWidth: width
+                contentHeight: imgListCol.implicitHeight
+                flickableDirection: Flickable.VerticalFlick
+                boundsBehavior: Flickable.StopAtBounds
+
+                Column {
+                    id: imgListCol
+                width: parent.width
+                spacing: 2
+
+                Repeater {
+                    model: clipRoot.imageEntries
+                    delegate: MouseArea {
+                        id: imgEntryMa
+                        width: imgListCol.width
+                        height: 48
+                        hoverEnabled: true
+                        readonly property bool isSelected: index === clipRoot.previewIndex
+                        onClicked: {
+                            clipRoot.previewIndex = index
+                        }
+
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: 6
+                            color: imgEntryMa.isSelected ? colors.primary : (imgEntryMa.containsMouse ? colors.surfaceBright : "transparent")
+                        }
+
+                        Row {
+                            anchors.fill: parent
+                            anchors.leftMargin: 6
+                            anchors.rightMargin: 6
+                            spacing: 8
+
+                            Image {
+                                width: 36; height: 36
+                                anchors.verticalCenter: parent.verticalCenter
+                                fillMode: Image.PreserveAspectFit
+                                source: "file://" + runtimeDirProc.dir + "/cliphist-thumbs/qml_" + index + ".png"
+                                sourceSize.width: 36
+                                sourceSize.height: 36
+                                smooth: true
+                                cache: false
+                                onStatusChanged: if (status === Image.Error) source = ""
+                            }
+
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: "Image " + (index + 1)
+                                color: imgEntryMa.isSelected ? colors.textOnPrimary : (imgEntryMa.containsMouse ? colors.textMain : colors.textDim)
+                                font.pixelSize: 11
+                                font.family: colors.fontMain
+                            }
+                        }
+                    }
+                }
+
+                Text {
+                    visible: clipRoot.imageEntries.length === 0
+                    text: "No images"
+                    color: colors.textMuted
+                    font.pixelSize: 12
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    topPadding: 20
+                }
+            }
+            }
+            MouseArea {
+                anchors.fill: parent
+                acceptedButtons: Qt.MiddleButton
+                onWheel: function(wheel) {
+                    var step = (wheel.angleDelta.y / 120) * 80
+                    imgFlick.contentY = Math.max(0, Math.min(imgFlick.contentY - step, Math.max(0, imgFlick.contentHeight - imgFlick.height)))
+                }
+            }
+        }
+
+        // Large preview pane
+        Rectangle {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            radius: 8
+            color: colors.surface
+            border.width: 1
+            border.color: colors.borderSubtle
+
+            Image {
+                id: previewImage
+                anchors.fill: parent
+                anchors.margins: 8
+                fillMode: Image.PreserveAspectFit
+                source: clipRoot.previewIndex >= 0 ? ("file://" + runtimeDirProc.dir + "/cliphist-thumbs/qml_" + clipRoot.previewIndex + ".png") : ""
+                smooth: true
+                cache: false
+                onStatusChanged: if (status === Image.Error) source = ""
+            }
+
+            Text {
+                anchors.centerIn: parent
+                visible: clipRoot.previewIndex < 0 || previewImage.status !== Image.Ready
+                text: clipRoot.imageEntries.length === 0 ? "No images" : "Select an image"
+                color: colors.textMuted
+                font.pixelSize: 12
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                cursorShape: clipRoot.previewIndex >= 0 ? Qt.PointingHandCursor : Qt.ArrowCursor
+                onClicked: {
+                    if (clipRoot.previewIndex >= 0 && clipRoot.previewIndex < clipRoot.imageEntries.length)
+                        clipRoot.pasteEntry(clipRoot.imageEntries[clipRoot.previewIndex])
+                }
+            }
+
+            Text {
+                anchors.bottom: parent.bottom
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.bottomMargin: 4
+                visible: clipRoot.previewIndex >= 0
+                text: "Click to copy"
+                color: colors.textMuted
+                font.pixelSize: 10
             }
         }
     }

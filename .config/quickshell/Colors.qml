@@ -36,9 +36,10 @@ QtObject {
     property color textDim: "#d8c1c8"
     property color textMuted: "#a08b92"
 
-    // --- BORDERS ---
+    // --- BORDERS & SHADOWS ---
     property color border: "#a08b92"
     property color borderSubtle: "#534248"
+    property color panelShadow: Qt.rgba(0, 0, 0, 0.35)
 
     // --- URGENT (always bright red + black "!", independent of theme) ---
     property color urgent: "#e53935"
