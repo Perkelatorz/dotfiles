@@ -1,10 +1,8 @@
 return {
 	"folke/which-key.nvim",
-	-- Load early so triggers are registered before user presses leader (VeryLazy was too late)
 	event = "VimEnter",
 	init = function()
 		vim.o.timeout = true
-		vim.o.timeoutlen = 500
 	end,
 	keys = {
 		{ "<leader>?", "<cmd>WhichKey<cr>", desc = "Which-key (show all keymaps)" },
@@ -51,7 +49,6 @@ return {
 			},
 			show_help = true,
 			show_keys = true,
-			-- v3 format: trigger key + mode. Omit "t" (terminal) so Space types a space in the terminal
 			triggers = {
 				{ " ", mode = "nixso" },
 				{ "]", mode = "n" },
@@ -59,52 +56,44 @@ return {
 			},
 		})
 
-		-- Keys are defined in keymaps.lua and plugin configs (with desc); we register them here so they show in which-key.
 		which_key.add({
-			-- Groups with consistent icons
+			-- Groups
 			{ "<leader>a", group = "󰚩 AI" },
 			{ "<leader>b", group = "󰓩 Buffer" },
 			{ "<leader>c", group = "󰨞 Code" },
 			{ "<leader>d", group = "󰔫 Diagnostics/Diff" },
+			{ "<leader>D", group = "󰈙 Docs" },
 			{ "<leader>e", group = "󰉋 Explorer" },
-			{ "<leader>f", group = "󰱼 Find (Telescope)" },
-			{ "<leader>g", group = "󰬴 Case" },
+			{ "<leader>f", group = "󰱼 Find" },
 			{ "<leader>G", group = "󰟓 Go" },
-			{ "<leader>Gr", desc = "󰟓 Run current file" },
-			{ "<leader>Gt", desc = "󰟓 Test package" },
-			{ "<leader>Ga", desc = "󰟓 Test all packages" },
-			{ "<leader>Gb", desc = "󰟓 Build" },
 			{ "<leader>h", group = "󰊢 Git Hunk" },
 			{ "<leader>H", group = "󰖟 HTTP" },
-			{ "<leader>l", group = "󰀂 Live server / LazyGit" },
-			{ "<leader>m", group = "󰍍 Markdown/Format" },
-			{ "<leader>n", group = "󰐊 Clear/Number" },
+			{ "<leader>n", group = "󰘧 Hex" },
 			{ "<leader>o", group = "󰋩 Obsidian" },
-			{ "<leader>-", group = "󰏖 Oil", desc = "󰏖 Oil (floating)" },
 			{ "<leader>r", group = "󰑄 Rename/Restart" },
 			{ "<leader>s", group = "󰜁 Svelte" },
-			{ "<leader>t", group = "󰔃 Tab/Toggle/Spell" },
-			{ "<leader>z", group = "󰆍 Terminal" },
+			{ "<leader>t", group = "󰎔 Tab" },
 			{ "<leader>u", group = "󰔡 UI Toggle" },
-			{ "<leader>v", group = "󰄳 Version/Checkpoint" },
-			{ "<leader>w", group = "󰆓 Save/Window/Session", desc = "󰆓 Save file" },
+			{ "<leader>v", group = "󰄳 Checkpoint" },
+			{ "<leader>w", group = "󰕝 Window/Session" },
 			{ "<leader>x", group = "󰔫 Trouble" },
 			{ "<leader>y", group = "󰆒 Yank path" },
-			{ "<leader>?", desc = "󰌍 Show which-key (all keymaps)" },
+			{ "<leader>z", group = "󰆍 Terminal" },
+			{ "<leader>-", desc = "󰏖 Oil (floating)" },
+			{ "<leader>?", desc = "󰌍 Show which-key" },
 
-			-- Core keymaps
-			{ "<leader>nh", desc = "󰐊 Clear search highlights" },
-			{ "<leader>+", desc = "󰎎 Increment number" },
-			{ "<leader>=", desc = "󰎐 Decrement number" },
-			{ "<leader>ct", desc = "󰏘 Toggle colorscheme" },
-			
-			-- Quick actions
-			{ "<leader>ww", desc = "󰆓 Save all files" },
+			-- Save (Ctrl-s)
+			{ "<C-s>", desc = "󰆓 Save file" },
+			{ "<C-S-s>", desc = "󰆓 Save all files" },
+
+			-- Quit
 			{ "<leader>q", desc = "󰅙 Quit window" },
-			{ "<leader>qq", desc = "󰅚 Force quit window" },
-			{ "<leader>sr", desc = "󰛔 Search and replace word", mode = { "n", "v" } },
-			
-			-- AI (Codeium/Windsurf + Cursor Agent)
+			{ "<leader>Q", desc = "󰅚 Force quit" },
+
+			-- Search/Replace
+			{ "<leader>sr", desc = "󰛔 Search/replace word", mode = { "n", "v" } },
+
+			-- AI
 			{ "<leader>aw", desc = "󱚟 Codeium toggle" },
 			{ "<leader>ac", desc = "󰭹 Codeium chat" },
 			{ "<leader>aa", desc = "󰷖 Codeium auth" },
@@ -113,80 +102,67 @@ return {
 			{ "<leader>aj", desc = "󰚩 Cursor Agent (root)" },
 			{ "<leader>at", desc = "󰚩 Cursor Agent sessions" },
 
-			-- Explorer (nvim-tree)
+			-- Buffer
+			{ "[b", desc = "󰅝 Previous buffer" },
+			{ "]b", desc = "󰅞 Next buffer" },
+			{ "<leader>bd", desc = "󰅙 Delete buffer" },
+			{ "<leader>bx", desc = "󰅙 Force delete buffer" },
+
+			-- Code
+			{ "<leader>ca", desc = "󰨞 Code action" },
+			{ "<leader>ci", desc = "󰒕 Organize imports" },
+			{ "<leader>ct", desc = "󰏘 Toggle colorscheme" },
+			{ "<leader>ch", desc = "󰌁 Toggle color highlighter" },
+			{ "<leader>cs", desc = "󰌟 Toggle CSV view" },
+
+			-- Diagnostics/Diff
+			{ "<leader>dd", desc = "󰔫 Line diagnostic (float)" },
+			{ "<leader>dl", desc = "󰔫 Diagnostics (Telescope)" },
+			{ "<leader>dt", desc = "󰒕 Diff this" },
+			{ "<leader>do", desc = "󰒕 Diff off" },
+			{ "<leader>du", desc = "󰒕 Diff update" },
+			{ "[D", desc = "󰅝 Previous error" },
+			{ "]D", desc = "󰅞 Next error" },
+
+			-- Docs
+			{ "<leader>Dz", desc = "󰈙 Zeal lookup" },
+			{ "<leader>Dd", desc = "󰈙 DevDocs lookup" },
+			{ "<leader>Dp", desc = " Pydoc" },
+			{ "<leader>Ds", desc = "󰖟 Web search" },
+
+			-- Explorer
 			{ "<leader>ee", desc = "󰉋 Toggle tree" },
 			{ "<leader>ef", desc = "󰈔 Find in tree" },
 			{ "<leader>ec", desc = "󰝥 Collapse tree" },
 			{ "<leader>er", desc = "󰑓 Refresh tree" },
 
-			-- Obsidian
-			{ "<leader>on", desc = "󰋩 New note" },
-			{ "<leader>oq", desc = "󰋩 Quick switch" },
-			{ "<leader>of", desc = "󰋩 Follow link" },
-			{ "<leader>ob", desc = "󰋩 Backlinks" },
-			{ "<leader>ot", desc = "󰋩 Today" },
-			{ "<leader>od", desc = "󰋩 Dailies" },
-			{ "<leader>os", desc = "󰋩 Search vault" },
-			{ "<leader>otl", desc = "󰋩 Insert template" },
-			{ "<leader>oo", desc = "󰋩 Open in Obsidian app" },
-			{ "<leader>oc", desc = "󰋩 Toggle checkbox", mode = { "n", "v" } },
-
-			-- Find (telescope) with icons
-			{ "<leader>ff", desc = "󰱼 Fuzzy find files in cwd" },
-			{ "<leader>fr", desc = "󰄉 Fuzzy find recent files" },
-			{ "<leader>fs", desc = "󰊢 Find string in cwd" },
-			{ "<leader>fc", desc = "󰊢 Find string under cursor in cwd" },
+			-- Find (Telescope)
+			{ "<leader>ff", desc = "󰱼 Find files" },
+			{ "<leader>fr", desc = "󰄉 Recent files" },
+			{ "<leader>fs", desc = "󰊢 Grep string" },
+			{ "<leader>fc", desc = "󰊢 Grep word under cursor" },
 			{ "<leader>ft", desc = "󰔫 Find todos" },
-			{ "<leader>fb", desc = "󰈔 Open telescope buffers" },
+			{ "<leader>fb", desc = "󰈔 Buffers" },
 
-			-- Format with icons
-			{ "<leader>mp", desc = "󰨞 Format file or range" },
+			-- Go
+			{ "<leader>Gr", desc = "󰟓 Run file" },
+			{ "<leader>Gt", desc = "󰟓 Test package" },
+			{ "<leader>Ga", desc = "󰟓 Test all" },
+			{ "<leader>Gb", desc = "󰟓 Build" },
 
-			-- Session (auto-session) with icons
-			{ "<leader>wr", desc = "󰁯 Restore session for cwd" },
-			{ "<leader>ws", desc = "󰄳 Save session for cwd" },
-
-			-- Terminal (z = shell)
-			{ "<leader>zt", desc = "󰆍 Toggle terminal" },
-			{ "<leader>zf", desc = "󰆍 Floating terminal" },
-			{ "<leader>zv", desc = "󰆍 Vertical terminal" },
-			{ "<leader>zx", desc = "󰔌 Shutdown all terminals" },
-			{ "<leader>zc", desc = "󰆍 Terminal: cd to current file dir" },
-
-			-- Trouble with icons
-			{ "<leader>xw", desc = "󰔫 Open trouble workspace diagnostics" },
-			{ "<leader>xd", desc = "󰈔 Open trouble document diagnostics" },
-			{ "<leader>xq", desc = "󰛨 Open trouble quickfix list" },
-			{ "<leader>xl", desc = "󰦨 Open trouble location list" },
-			{ "<leader>xt", desc = "󰔫 Open todos in trouble" },
-
-			-- LSP (K=hover doc, gd/gD/gi=go to def/decl/impl, gR=refs)
-			{ "K", desc = "󰋖 Hover documentation" },
-			{ "gd", desc = "󰒕 Go to definition" },
-			{ "gD", desc = "󰒕 Go to declaration" },
-			{ "gi", desc = "󰒕 Go to implementation" },
-			{ "gR", desc = "󰞔 References (Telescope)" },
-			{ "<leader>ca", desc = "󰨞 Code action" },
-			{ "<leader>rn", desc = "󰑓 Rename" },
-			{ "<leader>dl", desc = "󰔫 Diagnostics (Telescope)" },
-			{ "<leader>dd", desc = "󰔫 Line diagnostic (float)" },
-			{ "<leader>rs", desc = "󰑄 Restart LSP" },
-			
-			-- UI toggles
-			{ "<leader>uh", desc = "󰘨 Toggle inlay hints" },
-			{ "<leader>uv", desc = "󰨞 Toggle virtual text diagnostics" },
-
-			-- Markdown
-			{ "<leader>mv", desc = "󰍔 Toggle markdown preview" },
-			{ "<leader>ms", desc = "󰅙 Stop markdown preview" },
-
-
-			-- Live Server
-			{ "<leader>ls", desc = "󰀂 Start live server" },
-			{ "<leader>lz", desc = "󰋼 Live server status" },
-			{ "<leader>lc", desc = "󰅙 Stop serving directory" },
-			{ "<leader>lx", desc = "󰅙 Stop all live servers" },
-			{ "<leader>ll", desc = "󰌱 Live server log" },
+			-- Git Hunks
+			{ "<leader>hs", desc = "󰐖 Stage hunk" },
+			{ "<leader>hr", desc = "󰍴 Reset hunk" },
+			{ "<leader>hx", desc = "󰐖 Stage buffer" },
+			{ "<leader>he", desc = "󰍴 Reset buffer" },
+			{ "<leader>hu", desc = "󰑄 Undo stage" },
+			{ "<leader>hp", desc = "󰨞 Preview hunk" },
+			{ "<leader>hb", desc = "󰊢 Blame line" },
+			{ "<leader>hl", desc = "󰊢 Toggle line blame" },
+			{ "<leader>hd", desc = "󰐖 Diff this" },
+			{ "<leader>hy", desc = "󰐖 Diff this ~" },
+			{ "[c", desc = "󰅝 Previous hunk" },
+			{ "]c", desc = "󰅞 Next hunk" },
 
 			-- HTTP Client
 			{ "<leader>Hr", desc = "󰜏 Run request" },
@@ -198,140 +174,130 @@ return {
 			{ "<leader>Hs", desc = "󰧮 Scratchpad" },
 			{ "<leader>Hq", desc = "󰅙 Close" },
 
-			-- Git Hunks (gitsigns) with icons
-			{ "<leader>hs", desc = "󰐖 Stage hunk" },
-			{ "<leader>hr", desc = "󰍴 Reset hunk" },
-			{ "<leader>hx", desc = "󰐖 Stage buffer" },
-			{ "<leader>he", desc = "󰍴 Reset buffer" },
-			{ "<leader>hu", desc = "󰑄 Undo stage hunk" },
-			{ "<leader>hp", desc = "󰨞 Preview hunk" },
-			{ "<leader>hb", desc = "󰊢 Blame line" },
-			{ "<leader>hl", desc = "󰊢 Toggle line blame" },
-			{ "<leader>hd", desc = "󰐖 Diff this" },
-			{ "<leader>hy", desc = "󰐖 Diff this ~" },
-			{ "[c", desc = "󰅝 Previous git hunk" },
-			{ "]c", desc = "󰅞 Next git hunk" },
-
-			-- Todo comments
-			{ "[t", desc = "󰅝 Previous todo comment" },
-			{ "]t", desc = "󰅞 Next todo comment" },
-			
-			-- Buffer navigation
-			{ "[b", desc = "󰅝 Previous buffer" },
-			{ "]b", desc = "󰅞 Next buffer" },
-			{ "<leader>bd", desc = "󰅙 Delete buffer" },
-			{ "<leader>bx", desc = "󰅙 Force delete buffer" },
-			
-			-- Quickfix navigation
-			{ "[q", desc = "󰅝 Previous quickfix item" },
-			{ "]q", desc = "󰅞 Next quickfix item" },
-			{ "[Q", desc = "󰅝 First quickfix item" },
-			{ "]Q", desc = "󰅞 Last quickfix item" },
-			
-			-- Location list navigation
-			{ "[l", desc = "󰅝 Previous location item" },
-			{ "]l", desc = "󰅞 Next location item" },
-			{ "[L", desc = "󰅝 First location item" },
-			{ "]L", desc = "󰅞 Last location item" },
-			
-			-- Diagnostic navigation (enhanced)
-			{ "[d", desc = "󰅝 Previous diagnostic" },
-			{ "]d", desc = "󰅞 Next diagnostic" },
-			{ "[D", desc = "󰅝 Previous error" },
-			{ "]D", desc = "󰅞 Next error" },
-			
-			-- Window management
-			{ "<leader>w=", desc = "󰕴 Equalize windows" },
-			{ "<leader>w|", desc = "󰕩 Maximize width" },
-			{ "<leader>w_", desc = "󰕧 Maximize height" },
-			
-			-- Tab management
-			{ "<leader>tn", desc = "󰎔 New tab" },
-			{ "<leader>tc", desc = "󰅙 Close tab" },
-			{ "<leader>to", desc = "󰅙 Close other tabs" },
-			{ "<leader>tp", desc = "󰅝 Previous tab" },
-			{ "<leader>tj", desc = "󰅞 Next tab" },
-			{ "<leader>tm", desc = "󰅟 Move tab" },
-			{ "<leader>t1", desc = "󰎤 Tab 1" },
-			{ "<leader>t2", desc = "󰎧 Tab 2" },
-			{ "<leader>t3", desc = "󰎪 Tab 3" },
-			{ "<leader>t4", desc = "󰎭 Tab 4" },
-			{ "<leader>t5", desc = "󰎱 Tab 5" },
-			
-			-- Toggles
-			{ "<leader>tr", desc = "󰔡 Toggle relative numbers" },
-			{ "<leader>tw", desc = "󰖶 Toggle wrap" },
-			{ "<leader>tl", desc = "󰌑 Toggle whitespace" },
-			{ "<leader>ts", desc = "󰓆 Toggle spell" },
-			
-			-- Spell checking
-			{ "[s", desc = "󰅝 Previous misspelled" },
-			{ "]s", desc = "󰅞 Next misspelled" },
-			{ "z=", desc = "󰓆 Spelling suggestions" },
-			{ "zg", desc = "󰐕 Add to dictionary" },
-			{ "zw", desc = "󰅖 Mark as misspelled" },
-			{ "zug", desc = "󰩹 Remove from dictionary" },
-			
-			-- Case conversion
-			{ "<leader>gu", desc = "󰬴 Uppercase word", mode = { "n", "v" } },
-			{ "<leader>gl", desc = "󰬲 Lowercase word", mode = { "n", "v" } },
-			{ "<leader>g~", desc = "󰬱 Toggle case word", mode = { "n", "v" } },
-			
-			-- Number format
+			-- Hex
 			{ "<leader>nx", desc = "󰘧 Convert to hex" },
 			{ "<leader>nr", desc = "󰘧 Revert from hex" },
-			
-			-- Diff shortcuts
-			{ "<leader>dt", desc = "󰒕 Diff this" },
-			{ "<leader>do", desc = "󰒕 Diff off" },
-			{ "<leader>du", desc = "󰒕 Diff update" },
-			
-			-- Quick config edit
-			{ "<leader>ev", desc = "󰏫 Edit init.lua" },
-			{ "<leader>sv", desc = "󰑓 Source init.lua" },
-			
-			-- File reload (for AI tool changes)
-			{ "<leader>rr", desc = "󰑓 Reload buffers from disk" },
-			{ "<leader>uu", desc = "󰕌 Undo to previous save" },
-			
-			-- Yank path to clipboard
-			{ "<leader>yp", desc = "󰆒 Yank full path" },
-			{ "<leader>yr", desc = "󰆒 Yank relative path" },
-			{ "<leader>yn", desc = "󰆒 Yank filename" },
-			
 
+			-- Obsidian
+			{ "<leader>on", desc = "󰋩 New note" },
+			{ "<leader>oq", desc = "󰋩 Quick switch" },
+			{ "<leader>of", desc = "󰋩 Follow link" },
+			{ "<leader>ob", desc = "󰋩 Backlinks" },
+			{ "<leader>ot", desc = "󰋩 Today" },
+			{ "<leader>od", desc = "󰋩 Dailies" },
+			{ "<leader>os", desc = "󰋩 Search vault" },
+			{ "<leader>otl", desc = "󰋩 Insert template" },
+			{ "<leader>oo", desc = "󰋩 Open in app" },
+			{ "<leader>oc", desc = "󰋩 Toggle checkbox", mode = { "n", "v" } },
 
-			-- LazyGit
-			{ "<leader>lg", desc = "󰊢 Open lazy git" },
+			-- Rename/Restart
+			{ "<leader>rn", desc = "󰑓 Rename symbol" },
+			{ "<leader>rs", desc = "󰑄 Restart LSP" },
+			{ "<leader>rr", desc = "󰑓 Reload buffers" },
 
-			-- CSV
-			{ "<leader>cs", desc = "󰌟 Toggle CSV view" },
-
-			-- Color highlighter (nvim-highlight-colors)
-			{ "<leader>ch", desc = "󰌁 Toggle color highlighter" },
-			
-			-- Svelte templates
+			-- Svelte
 			{ "<leader>sc", desc = "󰜁 New component" },
 			{ "<leader>sp", desc = "󰜁 New page" },
 			{ "<leader>sl", desc = "󰜁 New layout" },
-			
-			-- Visual mode improvements
-			{ "<", desc = "󰉵 Indent left (stay in visual)", mode = "v" },
-			{ ">", desc = "󰉶 Indent right (stay in visual)", mode = "v" },
-			{ "J", desc = "󰜮 Move lines down", mode = "v" },
-			{ "K", desc = "󰜷 Move lines up", mode = "v" },
-			{ "p", desc = "󰆒 Paste without yank", mode = "v" },
-			
-			-- Version/Checkpoint system (AI edit recovery)
+
+			-- Tab
+			{ "<leader>tn", desc = "󰎔 New tab" },
+			{ "<leader>tc", desc = "󰅙 Close tab" },
+			{ "<leader>to", desc = "󰅙 Close other tabs" },
+			{ "<leader>tm", desc = "󰅟 Move tab" },
+
+			-- UI Toggles
+			{ "<leader>uh", desc = "󰘨 Toggle inlay hints" },
+			{ "<leader>uv", desc = "󰨞 Toggle virtual text" },
+			{ "<leader>us", desc = "󰓆 Toggle spell" },
+			{ "<leader>ur", desc = "󰔡 Toggle relative numbers" },
+			{ "<leader>uw", desc = "󰖶 Toggle wrap" },
+			{ "<leader>ul", desc = "󰌑 Toggle whitespace" },
+			{ "<leader>uu", desc = "󰕌 Undo to previous save" },
+
+			-- Checkpoint
 			{ "<leader>vc", desc = "󰄳 Create checkpoint" },
 			{ "<leader>vr", desc = "󰕌 Restore checkpoint" },
 			{ "<leader>vd", desc = "󰒕 Diff with checkpoint" },
 			{ "<leader>vx", desc = "󰩺 Delete checkpoint" },
 			{ "<leader>vh", desc = "󰄳 Checkpoint open files" },
-			{ "<leader>vj", desc = "󰄳 Checkpoint entire project" },
+			{ "<leader>vj", desc = "󰄳 Checkpoint project" },
 			{ "<leader>vk", desc = "󰕌 Restore all files" },
 			{ "<leader>vl", desc = "󰒕 Show all changes" },
 
+			-- Window/Session
+			{ "<leader>w=", desc = "󰕴 Equalize windows" },
+			{ "<leader>w|", desc = "󰕩 Maximize width" },
+			{ "<leader>w_", desc = "󰕧 Maximize height" },
+			{ "<leader>wr", desc = "󰁯 Restore session" },
+			{ "<leader>ws", desc = "󰄳 Save session" },
+
+			-- Trouble
+			{ "<leader>xw", desc = "󰔫 Workspace diagnostics" },
+			{ "<leader>xd", desc = "󰈔 Document diagnostics" },
+			{ "<leader>xq", desc = "󰛨 Quickfix list" },
+			{ "<leader>xl", desc = "󰦨 Location list" },
+			{ "<leader>xt", desc = "󰔫 Todos" },
+
+			-- Yank path
+			{ "<leader>yp", desc = "󰆒 Yank full path" },
+			{ "<leader>yr", desc = "󰆒 Yank relative path" },
+			{ "<leader>yn", desc = "󰆒 Yank filename" },
+
+			-- Terminal
+			{ "<leader>zt", desc = "󰆍 Toggle terminal" },
+			{ "<leader>zf", desc = "󰆍 Floating terminal" },
+			{ "<leader>zv", desc = "󰆍 Vertical terminal" },
+			{ "<leader>zx", desc = "󰔌 Shutdown all terminals" },
+			{ "<leader>zc", desc = "󰆍 cd to file dir" },
+
+			-- LazyGit
+			{ "<leader>lg", desc = "󰊢 LazyGit" },
+
+			-- Format
+			{ "<leader>mp", desc = "󰨞 Format file/range" },
+
+			-- Markdown
+			{ "<leader>mv", desc = "󰍔 Toggle markdown preview" },
+			{ "<leader>ms", desc = "󰅙 Stop markdown preview" },
+
+			-- Config
+			{ "<leader>ev", desc = "󰏫 Edit init.lua" },
+
+			-- LSP (defaults, just adding descriptions)
+			{ "K", desc = "󰋖 Hover documentation" },
+			{ "gd", desc = "󰒕 Go to definition" },
+			{ "gD", desc = "󰒕 Go to declaration" },
+			{ "gi", desc = "󰒕 Go to implementation" },
+			{ "gR", desc = "󰞔 References (Telescope)" },
+
+			-- Quickfix/Location
+			{ "[q", desc = "󰅝 Previous quickfix" },
+			{ "]q", desc = "󰅞 Next quickfix" },
+			{ "[Q", desc = "󰅝 First quickfix" },
+			{ "]Q", desc = "󰅞 Last quickfix" },
+			{ "[l", desc = "󰅝 Previous location" },
+			{ "]l", desc = "󰅞 Next location" },
+			{ "[L", desc = "󰅝 First location" },
+			{ "]L", desc = "󰅞 Last location" },
+
+			-- Spell
+			{ "[s", desc = "󰅝 Previous misspelled" },
+			{ "]s", desc = "󰅞 Next misspelled" },
+			{ "z=", desc = "󰓆 Spelling suggestions" },
+			{ "zg", desc = "󰐕 Add to dictionary" },
+			{ "zw", desc = "󰅖 Mark as misspelled" },
+
+			-- Todo comments
+			{ "[t", desc = "󰅝 Previous todo" },
+			{ "]t", desc = "󰅞 Next todo" },
+
+			-- Visual mode
+			{ "<", desc = "󰉵 Indent left (reselect)", mode = "v" },
+			{ ">", desc = "󰉶 Indent right (reselect)", mode = "v" },
+			{ "J", desc = "󰜮 Move lines down", mode = "v" },
+			{ "K", desc = "󰜷 Move lines up", mode = "v" },
+			{ "p", desc = "󰆒 Paste without yank", mode = "v" },
 		})
 	end,
 }

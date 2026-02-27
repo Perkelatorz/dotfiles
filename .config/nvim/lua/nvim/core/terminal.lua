@@ -1,14 +1,11 @@
--- Smart terminal management
 local M = {}
 
--- Terminal state tracking
 M.terminals = {
 	horizontal = { buf = nil, win = nil },
 	vertical = { buf = nil, win = nil },
 	float = { buf = nil, win = nil },
 }
 
--- Directory for new terminals: current file's dir, or cwd
 local function get_term_cwd()
 	local file = vim.api.nvim_buf_get_name(vim.api.nvim_get_current_buf())
 	local dir = file ~= "" and vim.fn.fnamemodify(file, ":p:h") or ""
@@ -18,23 +15,19 @@ local function get_term_cwd()
 	return dir
 end
 
--- Start terminal in given buffer with cwd (call from that buffer)
 local function start_term_in_buf(cwd)
 	vim.fn.termopen(vim.o.shell, { cwd = cwd })
 end
 
--- Create or toggle horizontal terminal
 function M.toggle_horizontal()
 	local term = M.terminals.horizontal
 
-	-- If window exists and is visible, hide it
 	if term.win and vim.api.nvim_win_is_valid(term.win) then
 		vim.api.nvim_win_hide(term.win)
 		term.win = nil
 		return
 	end
 
-	-- If buffer exists, reuse it
 	if term.buf and vim.api.nvim_buf_is_valid(term.buf) then
 		vim.cmd("botright split")
 		term.win = vim.api.nvim_get_current_win()
@@ -54,7 +47,6 @@ function M.toggle_horizontal()
 	vim.cmd("startinsert")
 end
 
--- Create or toggle vertical terminal
 function M.toggle_vertical()
 	local term = M.terminals.vertical
 
@@ -83,7 +75,6 @@ function M.toggle_vertical()
 	vim.cmd("startinsert")
 end
 
--- Create or toggle floating terminal
 function M.toggle_float()
 	local term = M.terminals.float
 
@@ -93,7 +84,6 @@ function M.toggle_float()
 		return
 	end
 
-	-- Get cwd before we switch to term buffer (so it's the current file's dir)
 	local cwd = get_term_cwd()
 
 	if not term.buf or not vim.api.nvim_buf_is_valid(term.buf) then
@@ -125,16 +115,13 @@ function M.toggle_float()
 	vim.cmd("startinsert")
 end
 
--- Close all terminals
 function M.close_all()
-	for name, term in pairs(M.terminals) do
-		-- Hide window if it exists
+	for _, term in pairs(M.terminals) do
 		if term.win and vim.api.nvim_win_is_valid(term.win) then
 			vim.api.nvim_win_hide(term.win)
 			term.win = nil
 		end
 
-		-- Delete buffer if it exists
 		if term.buf and vim.api.nvim_buf_is_valid(term.buf) then
 			vim.api.nvim_buf_delete(term.buf, { force = true })
 			term.buf = nil
@@ -143,7 +130,6 @@ function M.close_all()
 	vim.notify("All terminals closed", vim.log.levels.INFO)
 end
 
--- Find a terminal buffer (our tracked one, or any visible terminal)
 local function find_terminal_buf()
 	for _, term in pairs(M.terminals) do
 		if term.buf and vim.api.nvim_buf_is_valid(term.buf) and vim.bo[term.buf].buftype == "terminal" then
@@ -161,7 +147,6 @@ local function find_terminal_buf()
 	return nil
 end
 
--- Send "cd <current file's dir>" to the terminal (so you can sync terminal to open file)
 function M.cd_to_file_dir()
 	local dir = get_term_cwd()
 	local term_buf = find_terminal_buf()
@@ -179,7 +164,6 @@ function M.cd_to_file_dir()
 	vim.notify("Terminal: cd " .. dir, vim.log.levels.INFO)
 end
 
--- Create user commands
 vim.api.nvim_create_user_command("TermToggle", function()
 	M.toggle_horizontal()
 end, { desc = "Toggle horizontal terminal" })

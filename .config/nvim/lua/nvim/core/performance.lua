@@ -4,7 +4,7 @@ local M = {}
 
 -- Measure startup time with detailed breakdown
 function M.startup_time()
-	vim.cmd("StartupTime")
+	M.startup_info()
 end
 
 -- Profile Neovim performance
@@ -90,7 +90,7 @@ function M.startup_info()
 end
 
 -- Create user commands
-vim.api.nvim_create_user_command("StartupTime", M.startup_info, { desc = "Show startup time" })
+vim.api.nvim_create_user_command("NvimStartupInfo", M.startup_info, { desc = "Show startup info" })
 vim.api.nvim_create_user_command("ProfileStart", M.profile_start, { desc = "Start profiling" })
 vim.api.nvim_create_user_command("ProfileStop", M.profile_stop, { desc = "Stop profiling" })
 vim.api.nvim_create_user_command("MemoryUsage", M.memory_usage, { desc = "Show memory usage" })

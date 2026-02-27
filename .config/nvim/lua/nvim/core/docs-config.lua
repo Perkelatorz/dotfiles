@@ -1,8 +1,4 @@
--- Documentation configuration as an array of filetype config objects
--- This structure makes it easy to add, modify, or remove configurations
-
 return {
-	-- Filetype configurations
 	{
 		filetype = "python",
 		icon = "",
@@ -181,7 +177,6 @@ return {
 		zeal_default = "vim",
 		official_bang = "!vim",
 	},
-	-- Filetype aliases
 	{
 		filetype = "sh",
 		alias = "bash",
@@ -210,13 +205,11 @@ return {
 		filetype = "yml",
 		alias = "yaml",
 	},
-	-- Default fallback
 	{
 		filetype = "_default",
 		icon = "󰖟",
 		zeal_default = nil,
 	},
-	-- Docset-specific overrides for official docs
 	{
 		type = "docset_override",
 		docset = "fastapi",
