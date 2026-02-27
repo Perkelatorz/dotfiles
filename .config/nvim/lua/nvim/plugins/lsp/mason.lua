@@ -23,9 +23,9 @@ return {
 			ensure_installed = {
 				"html",
 				"ts_ls", -- TypeScript/JavaScript (replaces deprecated tsserver)
-				"svelte",
-				"emmet_ls",
-				"tailwindcss",
+			"svelte",
+			"emmet_language_server",
+			"tailwindcss",
 				"cssmodules_ls",
 				"jsonls",
 				"cssls",
@@ -33,7 +33,6 @@ return {
 				"pyright",
 				"pylsp",
 				"ruff",
-				"powershell_es",
 				"ansiblels",
 				"dockerls",
 				"lemminx",
@@ -52,23 +51,24 @@ return {
 		})
 
 		mason_tool_installer.setup({
-			ensure_installed = {
-				"prettier",
-				"stylua",
-				"isort",
-				"tflint",
-				"golangci-lint",
-				"gofumpt",
-				"goimports",
-				"ansible-lint",
-				"hadolint",
-				"markdownlint",
-				"yamllint",
-				"ruff",
-				"mypy",
-				"csharpier",
-				"shfmt",
-			},
+		ensure_installed = {
+			"prettier",
+			"stylua",
+			"isort",
+			"tflint",
+			"golangci-lint",
+			"gofumpt",
+			"goimports",
+			"ansible-lint",
+			"hadolint",
+			"markdownlint",
+			"yamllint",
+			"ruff",
+			"mypy",
+			"csharpier",
+			"shfmt",
+			"shellcheck",
+		},
 		})
 	end,
 }

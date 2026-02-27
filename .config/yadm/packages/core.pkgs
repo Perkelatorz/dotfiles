@@ -50,6 +50,9 @@ xdg-desktop-portal-gtk
 # Fonts (bar uses Nerd Font for icons)
 ttf-sourcecodepro-nerd
 otf-opendyslexic-nerd
+otf-atkinsonhyperlegiblemono-nerd
+ttf-intone-nerd
+ttf-jetbrains-mono-nerd
 ttf-mononoki-nerd
 ttf-firacode-nerd
 ttf-hack-nerd

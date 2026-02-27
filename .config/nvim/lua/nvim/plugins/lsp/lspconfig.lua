@@ -6,7 +6,7 @@ return {
 		"williamboman/mason.nvim",
 		"williamboman/mason-lspconfig.nvim",
 		{ "antosha417/nvim-lsp-file-operations", config = true },
-		{ "folke/neodev.nvim", opts = {} },
+		{ "folke/lazydev.nvim", ft = "lua", opts = {} },
 		"b0o/schemastore.nvim",
 	},
 	config = function()
@@ -14,40 +14,33 @@ return {
 		local cmp_nvim_lsp = require("cmp_nvim_lsp")
 		local keymap = vim.keymap
 
-		-- Track inlay hint state per buffer
 		local inlay_hint_enabled = {}
 
 		local on_attach = function(client, bufnr)
-			-- Start with inlay hints enabled by default
-			if client.supports_method("textDocument/inlayHint") then
-				inlay_hint_enabled[bufnr] = true
-				vim.lsp.inlay_hint(bufnr, true)
-			end
+		if client.supports_method("textDocument/inlayHint") then
+			inlay_hint_enabled[bufnr] = true
+			vim.lsp.inlay_hint.enable(true, { bufnr = bufnr })
+		end
 
 			local opts = { buffer = bufnr, silent = true }
 
-			-- Hover documentation (like VS Code: put cursor on symbol, press K or rest briefly)
 			if client.supports_method("textDocument/hover") then
-				opts.desc = "Hover documentation"
-				keymap.set("n", "K", vim.lsp.buf.hover, opts)
-				-- Auto-hover: show doc after cursor rests for 500ms (like VS Code hover)
 				local hover_timer = nil
-				vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
+				vim.api.nvim_create_autocmd("CursorHold", {
 					buffer = bufnr,
 					callback = function()
 						if hover_timer then
 							hover_timer:close()
+							hover_timer = nil
 						end
 						hover_timer = vim.defer_fn(function()
 							hover_timer = nil
 							vim.lsp.buf.hover()
-						end, 500)
+						end, 1000)
 					end,
-					desc = "Auto-hover after 500ms on symbol",
 				})
 			end
 
-			-- Go to definition
 			opts.desc = "Go to definition"
 			keymap.set("n", "gd", vim.lsp.buf.definition, opts)
 			opts.desc = "Go to declaration"
@@ -55,42 +48,34 @@ return {
 			opts.desc = "Go to implementation"
 			keymap.set("n", "gi", vim.lsp.buf.implementation, opts)
 
-			-- Enhanced references with Telescope (better than default gr)
 			opts.desc = "Show LSP references"
 			keymap.set("n", "gR", "<cmd>Telescope lsp_references<CR>", opts)
 
-			-- Code actions (standard binding)
 			opts.desc = "Code actions"
 			keymap.set({ "n", "v" }, "<leader>ca", vim.lsp.buf.code_action, opts)
 
-			-- Rename (standard binding)
 			opts.desc = "Rename symbol"
 			keymap.set("n", "<leader>rn", vim.lsp.buf.rename, opts)
 
-			-- Diagnostics in Telescope (enhanced view)
 			opts.desc = "Buffer diagnostics"
 			keymap.set("n", "<leader>dl", "<cmd>Telescope diagnostics bufnr=0<CR>", opts)
 
-			-- Diagnostic float (quick view); <leader>dd to avoid conflict with Flash on "f"
 			opts.desc = "Line diagnostics (float)"
 			keymap.set("n", "<leader>dd", vim.diagnostic.open_float, opts)
 
-			-- Restart LSP
 			opts.desc = "Restart LSP"
 			keymap.set("n", "<leader>rs", ":LspRestart<CR>", opts)
 
-			-- Toggle inlay hints
 			if client.supports_method("textDocument/inlayHint") then
-				opts.desc = "Toggle inlay hints"
-				keymap.set("n", "<leader>uh", function()
-					local enabled = not inlay_hint_enabled[bufnr]
-					inlay_hint_enabled[bufnr] = enabled
-					vim.lsp.inlay_hint(bufnr, enabled)
-				end, opts)
+			opts.desc = "Toggle inlay hints"
+			keymap.set("n", "<leader>uh", function()
+				local enabled = not inlay_hint_enabled[bufnr]
+				inlay_hint_enabled[bufnr] = enabled
+				vim.lsp.inlay_hint.enable(enabled, { bufnr = bufnr })
+			end, opts)
 			end
 		end
 
-		-- Global toggle for virtual text diagnostics
 		local virtual_text_enabled = false
 		vim.keymap.set("n", "<leader>uv", function()
 			virtual_text_enabled = not virtual_text_enabled
@@ -98,18 +83,14 @@ return {
 		end, { desc = "Toggle virtual text diagnostics" })
 
 		local capabilities = cmp_nvim_lsp.default_capabilities()
-		-- Ensure all clients use UTF-8 position encoding to avoid mismatches
 		capabilities.positionEncoding = "utf-8"
-		-- Disable inlay hints (inline type hints, parameter hints, etc.)
 		if capabilities.textDocument and capabilities.textDocument.inlayHint then
 			capabilities.textDocument.inlayHint.dynamicRegistration = false
 		end
 
-		-- Configure diagnostics using the modern API
 		vim.diagnostic.config({
-			virtual_text = false, -- Disable inline diagnostic text
+			virtual_text = false,
 			signs = {
-				-- Define diagnostic signs using the modern API (replaces deprecated sign_define)
 				text = {
 					[vim.diagnostic.severity.ERROR] = " ",
 					[vim.diagnostic.severity.WARN] = " ",
@@ -166,17 +147,13 @@ return {
 					})
 				end,
 
-				pyright = function()
-					lspconfig.pyright.setup({
-						on_attach = function(client, bufnr)
-							-- Turn off doc-related providers from Pyright
-							client.server_capabilities.hoverProvider = false
-							client.server_capabilities.signatureHelpProvider = nil
-							-- optional: also disable completion if you want pylsp completions
-							-- client.server_capabilities.completionProvider = nil
-
-							on_attach(client, bufnr)
-						end,
+			pyright = function()
+				lspconfig.pyright.setup({
+					on_attach = function(client, bufnr)
+						client.server_capabilities.hoverProvider = false
+						client.server_capabilities.signatureHelpProvider = nil
+						on_attach(client, bufnr)
+					end,
 						capabilities = capabilities,
 						settings = {
 							python = {
@@ -193,11 +170,8 @@ return {
 				pylsp = function()
 					lspconfig.pylsp.setup({
 						on_attach = function(client, bufnr)
-							-- Let pyright own diagnostics; keep jedi hover/signature
-							-- Neovim doesn’t have a simple diagnosticProvider toggle, so prevent pylsp from publishing diagnostics:
 							client.handlers["textDocument/publishDiagnostics"] = function() end
 
-							-- Optional: also turn off formatting here if you use black/ruff elsewhere
 							client.server_capabilities.documentFormattingProvider = false
 							client.server_capabilities.documentRangeFormattingProvider = false
 
@@ -207,49 +181,35 @@ return {
 						settings = {
 							pylsp = {
 								plugins = {
-									-- Turn off pylsp linters/formatters if you use ruff/black
-									pycodestyle = { enabled = false },
+							pycodestyle = { enabled = false },
 									pyflakes = { enabled = false },
 									mccabe = { enabled = false },
 									autopep8 = { enabled = false },
 									yapf = { enabled = false },
 
-									-- Jedi for rich docs
-									jedi_completion = { enabled = true, include_params = true },
+							jedi_completion = { enabled = true, include_params = true },
 									jedi_hover = { enabled = true },
 									jedi_signature_help = { enabled = true },
 									jedi_symbols = { enabled = true },
 
-									-- Optional: rope
-									rope_completion = { enabled = true, eager = true },
+							rope_completion = { enabled = true, eager = true },
 								},
 							},
 						},
 					})
 				end,
 
-				-- Optional but recommended: Ruff for lint/fixes/imports; keep formatting off if using Black
-				ruff = function()
-					lspconfig.ruff.setup({
-						on_attach = function(client, bufnr)
-							client.server_capabilities.documentFormattingProvider = false
-							client.server_capabilities.documentRangeFormattingProvider = false
-							-- Optional: keymap to organize imports via Ruff
-							vim.keymap.set("n", "<leader>oi", function()
+			ruff = function()
+				lspconfig.ruff.setup({
+					on_attach = function(client, bufnr)
+						client.server_capabilities.documentFormattingProvider = false
+						client.server_capabilities.documentRangeFormattingProvider = false
+						vim.keymap.set("n", "<leader>ci", function()
 								vim.lsp.buf.code_action({ context = { only = { "source.organizeImports.ruff" } } })
-							end, { buffer = bufnr, desc = "Ruff: Organize Imports" })
+							end, { buffer = bufnr, desc = "Organize imports (Ruff)" })
 							on_attach(client, bufnr)
 						end,
 						capabilities = capabilities,
-					})
-				end,
-
-				powershell_es = function()
-					lspconfig.powershell_es.setup({
-						on_attach = on_attach,
-						capabilities = capabilities,
-						bundle_path = vim.fn.stdpath("data") .. "/mason/packages/powershell-editor-services",
-						single_file_support = true,
 					})
 				end,
 
@@ -275,22 +235,19 @@ return {
 					})
 				end,
 
-				-- Svelte Language Server
-				svelte = function()
+			svelte = function()
 					lspconfig.svelte.setup({
 						on_attach = on_attach,
 						capabilities = capabilities,
 						filetypes = { "svelte" },
-						settings = {
-							svelte = {
-								plugin = {
-									svelte = {
-										compilerWarnings = {
-											-- Adjust warnings as needed
-											["a11y-accesskey"] = "ignore",
-										},
-										-- Use TypeScript version from workspace
-										useNewTransformation = true,
+					settings = {
+						svelte = {
+							plugin = {
+								svelte = {
+									compilerWarnings = {
+										["a11y-accesskey"] = "ignore",
+									},
+									useNewTransformation = true,
 									},
 								},
 							},
@@ -298,8 +255,7 @@ return {
 					})
 				end,
 
-				-- Emmet Language Server for fast HTML expansion
-				emmet_language_server = function()
+			emmet_language_server = function()
 					lspconfig.emmet_language_server.setup({
 						on_attach = on_attach,
 						capabilities = capabilities,
@@ -314,15 +270,11 @@ return {
 							"javascriptreact",
 							"typescriptreact",
 						},
-						init_options = {
-							-- Show abbreviation suggestions
-							showAbbreviationSuggestions = true,
-							-- Show expanded abbreviations
-							showExpandedAbbreviation = "always",
-							-- Emmet preferences
-							preferences = {},
-							-- Include languages
-							includeLanguages = {
+					init_options = {
+						showAbbreviationSuggestions = true,
+						showExpandedAbbreviation = "always",
+						preferences = {},
+						includeLanguages = {
 								svelte = "html",
 								vue = "html",
 							},
@@ -330,8 +282,7 @@ return {
 					})
 				end,
 
-				-- Tailwind CSS Language Server (auto-detects tailwind.config.js)
-				tailwindcss = function()
+			tailwindcss = function()
 					lspconfig.tailwindcss.setup({
 						on_attach = on_attach,
 						capabilities = capabilities,
@@ -348,21 +299,16 @@ return {
 						},
 						settings = {
 							tailwindCSS = {
-								-- Class attributes to check
 								classAttributes = { "class", "className", "classList", "ngClass" },
-								-- Include Svelte as HTML
 								includeLanguages = {
 									svelte = "html",
 									vue = "html",
 								},
-								-- Experimental features
 								experimental = {
 									classRegex = {
-										-- Support for class: directive in Svelte
 										"class:([\\w-]+)",
 									},
 								},
-								-- Lint settings
 								lint = {
 									cssConflict = "warning",
 									invalidApply = "error",
@@ -372,11 +318,9 @@ return {
 									invalidTailwindDirective = "error",
 									recommendedVariantOrder = "warning",
 								},
-								-- Validate on file types
 								validate = true,
 							},
 						},
-						-- Only activate if tailwind.config.js/ts or tailwind in package.json exists
 						root_dir = function(fname)
 							local root_pattern = require("lspconfig").util.root_pattern(
 								"tailwind.config.js",
@@ -388,7 +332,6 @@ return {
 							if root then
 								return root
 							end
-							-- Also check package.json for tailwindcss dependency
 							local package_json = require("lspconfig").util.root_pattern("package.json")(fname)
 							if package_json then
 								local package = vim.fn.json_decode(vim.fn.readfile(package_json .. "/package.json"))
@@ -448,8 +391,7 @@ return {
 					})
 				end,
 
-				-- Bash Language Server
-				bashls = function()
+			bashls = function()
 					lspconfig.bashls.setup({
 						on_attach = on_attach,
 						capabilities = capabilities,
@@ -462,8 +404,7 @@ return {
 					})
 				end,
 
-				-- Hyprland Language Server (hyprls)
-				hyprls = function()
+			hyprls = function()
 					lspconfig.hyprls.setup({
 						on_attach = on_attach,
 						capabilities = capabilities,

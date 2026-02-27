@@ -29,7 +29,6 @@ return {
         cs = { "csharpier" },
         sh = { "shfmt" },
         bash = { "shfmt" },
-        powershell = { "prettier" },
       },
       format_on_save = {
         lsp_fallback = true,

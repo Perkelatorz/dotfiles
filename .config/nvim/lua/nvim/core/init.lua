@@ -1,8 +1,7 @@
--- Load core modules
 require("nvim.core.options")
 require("nvim.core.keymaps")
 require("nvim.core.autocmds")
-require("nvim.core.filetype-settings")
+require("nvim.core.filetype-settings").setup()
 require("nvim.core.performance")
 require("nvim.core.terminal")
 require("nvim.core.checkpoint")
