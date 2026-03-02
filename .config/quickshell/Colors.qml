@@ -4,41 +4,41 @@ import QtQuick
 
 QtObject {
     // --- BASE SURFACES ---
-    property color background: "#1e100d"
-    property color surface: "#1e100d"
-    property color surfaceContainer: "#2b1c19"
-    property color surfaceBright: "#473531"
+    property color background: "#1c1015"
+    property color surface: "#1c1015"
+    property color surfaceContainer: "#291c22"
+    property color surfaceBright: "#44353b"
 
     // --- ACCENTS ---
-    property color primary: "#ffb4a5"
-    property color secondary: "#f3ba9c"
-    property color tertiary: "#f7bb7e"
+    property color primary: "#ffafd6"
+    property color secondary: "#f0b7c5"
+    property color tertiary: "#ffb3b6"
     property color error: "#ffb4ab"
 
     // --- CONTAINERS ---
-    property color primaryContainer: "#8e1200"
-    property color secondaryContainer: "#653d26"
-    property color tertiaryContainer: "#663d0b"
+    property color primaryContainer: "#8a005f"
+    property color secondaryContainer: "#643b46"
+    property color tertiaryContainer: "#6e353a"
     property color errorContainer: "#93000a"
 
     // --- TEXT ON ACCENTS ---
-    property color textOnPrimary: "#650a00"
-    property color textOnSecondary: "#4a2712"
-    property color textOnTertiary: "#4a2800"
+    property color textOnPrimary: "#620042"
+    property color textOnSecondary: "#4a2530"
+    property color textOnTertiary: "#532024"
     property color textOnError: "#690005"
-    property color textOnPrimaryContainer: "#ffdad3"
-    property color textOnSecondaryContainer: "#ffdbca"
-    property color textOnTertiaryContainer: "#ffdcbd"
+    property color textOnPrimaryContainer: "#ffd8e8"
+    property color textOnSecondaryContainer: "#ffd9e1"
+    property color textOnTertiaryContainer: "#ffdada"
     property color textOnErrorContainer: "#ffdad6"
 
     // --- GENERAL TEXT ---
-    property color textMain: "#f9dcd7"
-    property color textDim: "#dcc0bb"
-    property color textMuted: "#a48b87"
+    property color textMain: "#f4dde5"
+    property color textDim: "#d7c1c9"
+    property color textMuted: "#9f8c93"
 
     // --- BORDERS & SHADOWS ---
-    property color border: "#a48b87"
-    property color borderSubtle: "#55423e"
+    property color border: "#9f8c93"
+    property color borderSubtle: "#524249"
     property color panelShadow: Qt.rgba(0, 0, 0, 0.35)
 
     // --- URGENT (always bright red + black "!", independent of theme) ---
@@ -66,24 +66,24 @@ QtObject {
 
     // --- WIDGET PILLS: varied order so adjacent widgets get different hues (rainbow) ---
     property var widgetPillColors: [
-        "#ffb4a5",
-        "#f7bb7e",
+        "#ffafd6",
+        "#ffb3b6",
         "#ffb4ab",
-        "#f3ba9c",
-        "#8e1200",
-        "#663d0b",
+        "#f0b7c5",
+        "#8a005f",
+        "#6e353a",
         "#93000a",
-        "#653d26"
+        "#643b46"
     ]
     property var widgetTextOnPillColors: [
-        "#650a00",
-        "#4a2800",
+        "#620042",
+        "#532024",
         "#690005",
-        "#4a2712",
-        "#ffdad3",
-        "#ffdcbd",
+        "#4a2530",
+        "#ffd8e8",
+        "#ffdada",
         "#ffdad6",
-        "#ffdbca"
+        "#ffd9e1"
     ]
 
     // --- BAR SIZING ---
