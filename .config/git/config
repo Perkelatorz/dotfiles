@@ -5,11 +5,12 @@
     helper = manager
     credentialStore = secretservice
 
+[user]
+    name = Perklatorz
+    email = 27794858+Perkelatorz@users.noreply.github.com
+
 [includeIf "gitdir:~/code/personal/**"]
     path = ~/.config/git/config-personal
 
 [includeIf "gitdir:~/code/work/**"]
     path = ~/.config/git/config-work
-[user]
-	email = 27794858+Perkelatorz@users.noreply.github.com
-	name = Perklatorz
