@@ -115,6 +115,9 @@ MATUGEN_CONTRAST="${MATUGEN_CONTRAST:-$DEFAULT_CONTRAST}"
 MATUGEN_SHOW_COLORS="${MATUGEN_SHOW_COLORS:-false}"
 MATUGEN_DRY_RUN="${MATUGEN_DRY_RUN:-false}"
 MATUGEN_RESIZE_FILTER="${MATUGEN_RESIZE_FILTER:-lanczos3}"
+# When matugen finds multiple source colors, it prompts in a TTY; headless runs need an explicit pick.
+# darkness | lightness | saturation | less-saturation | value | closest-to-fallback
+MATUGEN_PREFER="${MATUGEN_PREFER:-saturation}"
 
 # Preprocessing (pywal-style color extraction)
 PREPROCESS_FOR_PYWAL="${PREPROCESS_FOR_PYWAL:-$DEFAULT_PREPROCESS}"
@@ -214,7 +217,7 @@ generate_accent_text() {
 # --- SCRIPT LOGIC ---
 
 log "INFO" "Starting wallpaper selection script"
-log "INFO" "Theme style: $THEME_STYLE, palette: $PALETTE_STYLE (scheme=$MATUGEN_SCHEME, contrast=$MATUGEN_CONTRAST, preprocess=$PREPROCESS_FOR_PYWAL)"
+log "INFO" "Theme style: $THEME_STYLE, palette: $PALETTE_STYLE (scheme=$MATUGEN_SCHEME, contrast=$MATUGEN_CONTRAST, preprocess=$PREPROCESS_FOR_PYWAL, prefer=$MATUGEN_PREFER)"
 log "INFO" "Working directory: $(pwd)"
 log "INFO" "HOME: $HOME"
 check_dependencies
@@ -357,6 +360,9 @@ MATUGEN_CMD+=(--type "$MATUGEN_TYPE")
 # Add resize filter for better color extraction
 MATUGEN_CMD+=(--resize-filter "$MATUGEN_RESIZE_FILTER")
 
+# Non-interactive source color when multiple candidates exist (no TTY from Hyprland/rofi)
+MATUGEN_CMD+=(--prefer "$MATUGEN_PREFER")
+
 # Add contrast (helps distinguish colors between wallpapers)
 if [ -n "$MATUGEN_CONTRAST" ] && [ "$MATUGEN_CONTRAST" != "0" ] && [ "$MATUGEN_CONTRAST" != "0.0" ]; then
   MATUGEN_CMD+=(--contrast "$MATUGEN_CONTRAST")
@@ -472,7 +478,7 @@ else
   fi
 
   # Extract and log the source color for debugging
-  SOURCE_COLOR=$(matugen image "$WALLPAPER_FOR_MATUGEN" --mode "$MATUGEN_MODE" --type "$MATUGEN_TYPE" --json hex 2>/dev/null | grep -o '"source_color"[^}]*' | head -1 || echo "unknown")
+  SOURCE_COLOR=$(matugen image "$WALLPAPER_FOR_MATUGEN" --mode "$MATUGEN_MODE" --type "$MATUGEN_TYPE" --resize-filter "$MATUGEN_RESIZE_FILTER" --prefer "$MATUGEN_PREFER" --json hex 2>/dev/null | grep -o '"source_color"[^}]*' | head -1 || echo "unknown")
   log "INFO" "Extracted source color: $SOURCE_COLOR"
 fi
 
@@ -488,7 +494,7 @@ if [ "$GENERATE_HIGH_CONTRAST_TEXT" = "true" ]; then
   
   # Fallback: try to extract from matugen JSON output
   if [ -z "$BG_COLOR" ]; then
-    BG_COLOR=$(matugen image "$WALLPAPER_FOR_MATUGEN" --mode "$MATUGEN_MODE" --type "$MATUGEN_TYPE" --json hex 2>/dev/null | grep -oP '"background".*?"hex":\s*"\K#[0-9a-fA-F]{6}' | head -1 || echo "")
+    BG_COLOR=$(matugen image "$WALLPAPER_FOR_MATUGEN" --mode "$MATUGEN_MODE" --type "$MATUGEN_TYPE" --resize-filter "$MATUGEN_RESIZE_FILTER" --prefer "$MATUGEN_PREFER" --json hex 2>/dev/null | grep -oP '"background".*?"hex":\s*"\K#[0-9a-fA-F]{6}' | head -1 || echo "")
   fi
   
   # Final fallback based on mode
