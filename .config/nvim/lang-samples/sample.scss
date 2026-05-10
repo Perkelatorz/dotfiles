@@ -1,0 +1,10 @@
+// cssls (SCSS) + Prettier
+$accent: #646cff;
+
+.card {
+  border: 1px solid $accent;
+
+  &:hover {
+    opacity: 0.9;
+  }
+}

@@ -34,3 +34,13 @@ another-package
 1. Create a new file with `.pkgs` or `.aur` extension
 2. Add package names, one per line
 3. The bootstrap script will automatically detect and offer it for selection (if not named `core.*`)
+
+## Neovim
+
+Core **pacman** packages for Neovim (git, curl, build toolchain, `tree-sitter` CLI, `neovim`, …) are in **`core.pkgs`**. After core installs, **`bootstrap`** runs a short headless **`nvim`** pass so **vim.pack** pulls plugins. Mason LSP/tools finish when you open **`:Mason`** in Neovim.
+
+**Claude Code CLI** — after core packages, **`install_claude_code_cli`** downloads and runs Anthropic’s **`https://claude.ai/install.sh`** (same as `curl -fsSL … | bash`). Skip with **`CLAUDE_CODE_SKIP=1 yadm bootstrap`**. Ensure **`~/.local/bin`** is on your **`PATH`** (typical for the installed `claude` binary).
+
+**Pacman:** by default the script runs **`pacman -Sy`** then installs packages (Arch documents risks of syncing without upgrading). For a full upgrade during bootstrap use **`BOOTSTRAP_FULL_SYSTEM_UPGRADE=1 yadm bootstrap`** (runs **`pacman -Syu`** after sync).
+
+**Default browser** — **`firefox`** and **`xdg-utils`** are in **`core.pkgs`**. After core installs, **`setup_default_browser_firefox`** runs **`xdg-mime default …`** for **`x-scheme-handler/http`** and **`https`**. **`BROWSER=firefox`** is also set in **`~/.config/environment.d/browser.conf`** (systemd user session) and **`~/.config/zsh/.zprofile`** (login shells). Re-login to apply **`environment.d`** everywhere; or run **`systemctl --user import-environment BROWSER`** after editing.
