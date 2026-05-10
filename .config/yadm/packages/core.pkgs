@@ -63,6 +63,13 @@ gvfs-smb
 trash-cli
 bitwarden
 github-cli
+# Neovim (vim.pack, Mason, nvim-treesitter native parsers): Git, HTTP, toolchain, tree-sitter CLI
+git
+curl
+tar
+gcc
+make
+tree-sitter
 neovim
 meson
 cpio
@@ -73,6 +80,8 @@ cifs-utils
 mpv
 fzf
 vesktop
+firefox
+xdg-utils
 kitty
 npm
 seahorse

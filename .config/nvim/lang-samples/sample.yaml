@@ -1,0 +1,3 @@
+# Plain YAML — Prettier on save (see conform.lua)
+version: "3"
+services: {}

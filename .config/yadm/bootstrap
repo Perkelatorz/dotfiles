@@ -5,6 +5,8 @@ set -euo pipefail
 # Automates Arch Linux package installation and system setup (Arch Linux only).
 # Requires: bash 4+, GNU find. Run after: yadm clone <repo> && yadm bootstrap
 # Options: --core-only  skip interactive extra-package selection and Hyprland plugin prompt
+#          CLAUDE_CODE_SKIP=1  skip Claude Code CLI install (official curl | bash installer)
+#          BOOTSTRAP_FULL_SYSTEM_UPGRADE=1  run pacman -Syu after -Sy (recommended on fresh machines)
 
 # Configuration
 PKG_DIR="$HOME/.config/yadm/packages"
@@ -45,13 +47,13 @@ ensure_paru() {
     if ! command -v paru &>/dev/null; then
         ensure_base_devel
         echo "🔧 Installing 'paru' AUR helper..."
-        tmpdir="$(mktemp -d)"
-        trap "rm -rf '$tmpdir'" EXIT
-        git clone https://aur.archlinux.org/paru.git "$tmpdir/paru"
-        (cd "$tmpdir/paru" && makepkg -si --noconfirm)
-        rm -rf "$tmpdir"
-        trap - EXIT
-        trap cleanup_temp_files EXIT
+        # Subshell so we do not replace the global EXIT trap (cleanup_temp_files).
+        (
+            tmpdir="$(mktemp -d)"
+            trap 'rm -rf "$tmpdir"' EXIT
+            git clone https://aur.archlinux.org/paru.git "$tmpdir/paru"
+            (cd "$tmpdir/paru" && makepkg -si --noconfirm)
+        )
     fi
 }
 
@@ -143,10 +145,11 @@ install_packages_batch() {
             done
             if [ $failed -eq 0 ]; then
                 echo "   ✓ All packages installed successfully via fallback"
+                return 0
             else
                 echo "   ⚠️  $failed package(s) failed to install"
+                return 1
             fi
-            return 0
         fi
     else
         pkgmgr_name="AUR"
@@ -173,10 +176,11 @@ install_packages_batch() {
             done
             if [ $failed -eq 0 ]; then
                 echo "   ✓ All packages installed successfully via fallback"
+                return 0
             else
                 echo "   ⚠️  $failed package(s) failed to install"
+                return 1
             fi
-            return 0
         fi
     fi
 }
@@ -237,8 +241,9 @@ process_packages() {
     eval "$skipped_var=\$((\$$skipped_var + \${#installed_list[@]}))"
     
     if [ ${#missing_list[@]} -gt 0 ]; then
-        install_packages_batch "$pkgmgr" "${missing_list[@]}"
-        eval "$installed_var=\$((\$$installed_var + \${#missing_list[@]}))"
+        if install_packages_batch "$pkgmgr" "${missing_list[@]}"; then
+            eval "$installed_var=\$((\$$installed_var + \${#missing_list[@]}))"
+        fi
     fi
 }
 
@@ -279,6 +284,102 @@ setup_scripts_executable() {
         fi
     else
         echo "   (scripts dir not found: $SCRIPTS_DIR)"
+    fi
+}
+
+# HTTP/HTTPS default handler (xdg-open, Codeium Chat, many GUIs). Complements ~/.config/environment.d/browser.conf + $BROWSER in .zprofile.
+setup_default_browser_firefox() {
+    echo "🌐 Default browser (http/https) → Firefox (xdg-mime)..."
+    if ! command -v xdg-mime &>/dev/null; then
+        echo "   ⚠️  xdg-mime not found; install xdg-utils"
+        return 0
+    fi
+    local desk=""
+    local appdir="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
+    for d in firefox.desktop org.mozilla.firefox.desktop; do
+        if [[ -f "/usr/share/applications/$d" ]] || [[ -f "$appdir/$d" ]]; then
+            desk="$d"
+            break
+        fi
+    done
+    if [[ -z "$desk" ]]; then
+        echo "   ⚠️  No Firefox .desktop found; install firefox or set xdg-mime default manually"
+        return 0
+    fi
+    if xdg-mime default "$desk" x-scheme-handler/http 2>/dev/null &&
+        xdg-mime default "$desk" x-scheme-handler/https 2>/dev/null; then
+        echo "   ✓ xdg-mime default: $desk (http, https)"
+    else
+        echo "   ⚠️  xdg-mime default failed"
+    fi
+}
+
+# After pacman installs `neovim`, clone vim.pack plugins once (Mason/LSP still finish in :Mason).
+warm_neovim_plugins() {
+    if ! command -v nvim &>/dev/null; then
+        echo "   (Neovim not on PATH yet; skipping vim.pack warm)"
+        return 0
+    fi
+    if [[ ! -f "$HOME/.config/nvim/init.lua" ]]; then
+        echo "   (No ~/.config/nvim/init.lua; skipping vim.pack warm)"
+        return 0
+    fi
+    echo "📝 Neovim: running headless startup to install vim.pack plugins (from nvim-pack-lock.json)..."
+    local log
+    log=$(mktemp)
+    set +e
+    nvim --headless -u "$HOME/.config/nvim/init.lua" -c 'qa' >"$log" 2>&1
+    local ec=$?
+    set -e
+    tail -n 8 "$log" 2>/dev/null || true
+    rm -f "$log"
+    if [[ $ec -eq 0 ]]; then
+        echo "   ✓ vim.pack step done — open Neovim and :Mason for LSP/formatter binaries"
+    else
+        echo "   ⚠️  Headless Neovim exited with $ec (network?); run nvim once manually."
+    fi
+}
+
+# Official installer: https://docs.claude.com/en/docs/claude-code (binary is typically `claude`).
+install_claude_code_cli() {
+    if [[ "${CLAUDE_CODE_SKIP:-}" == "1" ]]; then
+        echo "⏭️  CLAUDE_CODE_SKIP=1 — skipping Claude Code CLI install"
+        return 0
+    fi
+    if command -v claude &>/dev/null; then
+        echo "   ✓ Claude Code CLI already on PATH ($(command -v claude))"
+        return 0
+    fi
+    if [[ -x "$HOME/.local/bin/claude" ]]; then
+        echo "   ✓ Claude Code CLI already at ~/.local/bin/claude (ensure ~/.local/bin is on your PATH)"
+        return 0
+    fi
+    if ! command -v curl &>/dev/null; then
+        echo "   ⚠️  curl not on PATH; skipping Claude Code install"
+        return 0
+    fi
+    echo "🤖 Installing Claude Code CLI (https://claude.ai/install.sh)..."
+    mkdir -p "$HOME/.local/bin"
+    local inst
+    inst=$(mktemp "${TMPDIR:-/tmp}/claude-install.XXXXXX")
+    if ! curl -fsSL https://claude.ai/install.sh -o "$inst"; then
+        echo "   ⚠️  Failed to download install.sh (network?)"
+        rm -f "$inst"
+        return 0
+    fi
+    set +e
+    bash "$inst"
+    local ec=$?
+    set -e
+    rm -f "$inst"
+    if [[ $ec -ne 0 ]]; then
+        echo "   ⚠️  Claude Code install exited $ec — install manually: curl -fsSL https://claude.ai/install.sh | bash"
+        return 0
+    fi
+    if command -v claude &>/dev/null || [[ -x "$HOME/.local/bin/claude" ]]; then
+        echo "   ✓ Claude Code CLI install step finished"
+    else
+        echo "   ⚠️  Install ran but \`claude\` not found; check script output and your PATH (~/.local/bin)"
     fi
 }
 
@@ -359,7 +460,7 @@ setup_hyprland_plugins() {
 }
 
 # --- Parse options ---
-for arg in "${@:-}"; do
+for arg in "$@"; do
     case "$arg" in
         --core-only) CORE_ONLY=true ;;
     esac
@@ -391,14 +492,27 @@ echo
 
 echo "🔄 Installing core system tools..."
 
-# Update package database
+# Update package database (see Arch wiki "System maintenance" — avoid isolated -Sy without upgrade).
 sudo pacman -Sy --noconfirm
+if [[ "${BOOTSTRAP_FULL_SYSTEM_UPGRADE:-}" == "1" ]]; then
+    echo "   → BOOTSTRAP_FULL_SYSTEM_UPGRADE=1: running pacman -Syu ..."
+    sudo pacman -Syu --noconfirm
+else
+    echo "   ℹ️  DB synced only. For a full system upgrade run: sudo pacman -Syu"
+    echo "      (Or re-run bootstrap with BOOTSTRAP_FULL_SYSTEM_UPGRADE=1 to upgrade during install.)"
+fi
 
 # Core pacman packages
 process_packages "pacman" "$PKG_DIR/core.pkgs" "core_pacman_installed" "core_pacman_skipped"
 
 # Core AUR packages (ensure_paru will install base-devel if needed for paru build)
 process_packages "aur" "$PKG_DIR/core.aur" "core_aur_installed" "core_aur_skipped"
+
+setup_default_browser_firefox
+
+warm_neovim_plugins
+
+install_claude_code_cli
 
 # Post-install: matugen-themes for select-wallpaper.sh / Quickshell theme
 setup_matugen_themes
@@ -410,7 +524,7 @@ echo "✅ Core tools done."
 echo
 
 # --- Hyprland plugin setup (optional, runs after core so hyprpm may be available) ---
-if [[ "$CORE_ONLY" != "true" ]] && [[ -t 0 ]] && (command -v hyprpm &>/dev/null || command -v hyprland &>/dev/null); then
+if [[ "$CORE_ONLY" != "true" ]] && [[ -t 0 ]] && (command -v hyprpm &>/dev/null || command -v Hyprland &>/dev/null); then
     read -p "Do you want to set up Hyprland plugins? (y/N): " choice
     choice=${choice,,}
     if [[ "$choice" == "y" || "$choice" == "yes" ]]; then

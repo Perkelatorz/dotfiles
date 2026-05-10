@@ -1,6 +1,7 @@
 # set session-wide environment (LANG, EDITOR, etc.)
 export LANG=en_US.UTF-8
 export EDITOR=nvim
+export BROWSER=firefox
 
 
 # Try different schemes to see which you like best

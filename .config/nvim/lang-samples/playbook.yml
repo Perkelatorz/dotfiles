@@ -1,0 +1,8 @@
+# vim: set ft=yaml.ansible:
+---
+- name: Lang sample playbook
+  hosts: localhost
+  connection: local
+  tasks:
+    - name: Ping
+      ansible.builtin.ping:

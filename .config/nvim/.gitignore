@@ -1,2 +1,5 @@
 secrets.lua
 lazy-lock.json
+
+# Compiled Vim spell file (regenerated from *.add); optional to commit instead for speed
+spell/*.spl
