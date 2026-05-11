@@ -4,15 +4,8 @@ export EDITOR=nvim
 export BROWSER=firefox
 
 
-# Try different schemes to see which you like best
-export MATUGEN_SCHEME="vibrant"      # Bold, saturated colors
-#export MATUGEN_SCHEME="expressive"   # Creative, artistic palette
-#export MATUGEN_SCHEME="tonal-spot"   # Conservative, muted (your old default)
-#export MATUGEN_SCHEME="rainbow"      # Colorful, playful
-#export MATUGEN_SCHEME="fruit-salad"  # Bright, varied colors
-
-# Then run your script
-./your-script.sh
+# Matugen color scheme (vibrant | expressive | tonal-spot | rainbow | fruit-salad)
+export MATUGEN_SCHEME="vibrant"
 
 # Supported applications should follow these rules if they are an option
 # Set XDG base directories (if not already set by system)
@@ -47,7 +40,11 @@ export ASPELL_CONF="per-conf $XDG_CONFIG_HOME/aspell/aspell.conf; personal $XDG_
 export AWS_SHARED_CREDENTIALS_FILE="$XDG_CONFIG_HOME"/aws/credentials
 export AWS_CONFIG_FILE="$XDG_CONFIG_HOME"/aws/config
 export BITWARDEN_SSH_AUTH_SOCK="$XDG_RUNTIME_DIR/.bitwarden-ssh-agent.sock"
-export SSH_AUTH_SOCK="$BITWARDEN_SSH_AUTH_SOCK"
+# Only point SSH at Bitwarden's socket if it actually exists (Bitwarden running).
+# Otherwise leave SSH_AUTH_SOCK alone so a system/user ssh-agent still works.
+if [ -S "$BITWARDEN_SSH_AUTH_SOCK" ]; then
+    export SSH_AUTH_SOCK="$BITWARDEN_SSH_AUTH_SOCK"
+fi
 export CARGO_HOME="$XDG_DATA_HOME"/cargo
 export DISCORD_USER_DATA_DIR="${XDG_DATA_HOME}"
 export DOCKER_CONFIG="$XDG_CONFIG_HOME"/docker

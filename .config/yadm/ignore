@@ -1,2 +1,15 @@
 # Third-party clone; clone on each machine: git clone https://github.com/InioX/matugen-themes.git ~/.config/matugen-themes
 .config/matugen-themes
+
+# Caches / history / runtime junk — keep `yadm status` usable
+.cache
+.local/share
+.local/state
+.bash_history
+.zsh_history
+.viminfo
+.lesshst
+.wget-hsts
+
+# Old/local-only files that shouldn't be tracked
+.config/kitty/kitty.conf.bak
