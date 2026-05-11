@@ -150,6 +150,8 @@ ShellRoot {
             property bool keybindsPanelVisible: false
             property bool toolsMenuVisible: false
             property int toolsMenuMarginRight: 0
+            property bool claudeUsageVisible: false
+            property int claudeUsageMarginRight: 0
 
             function closeAllPanels() {
                 calendarVisible = false
@@ -161,6 +163,7 @@ ShellRoot {
                 clipboardPanelVisible = false
                 keybindsPanelVisible = false
                 toolsMenuVisible = false
+                claudeUsageVisible = false
             }
             property var screenshotWidgetRef: null
             property int screenshotMenuMarginLeft: 0
@@ -600,6 +603,22 @@ ShellRoot {
                                     Component.onCompleted: screenDelegate.screenshotWidgetRef = screenshotWidget
                                 }
 
+                                ClaudeUsageWidget {
+                                    id: claudeUsageWidget
+                                    colors: shellRoot.shellColors
+                                    Layout.alignment: Qt.AlignVCenter
+                                    onToggleRequested: {
+                                        var wasOpen = screenDelegate.claudeUsageVisible
+                                        screenDelegate.closeAllPanels()
+                                        if (!wasOpen) {
+                                            var pt = claudeUsageWidget.mapToItem(root, 0, 0)
+                                            var screenW = root.width || 1920
+                                            screenDelegate.claudeUsageMarginRight = Math.max(0, Math.floor(screenW - pt.x - claudeUsageWidget.width / 2 - 140))
+                                            screenDelegate.claudeUsageVisible = true
+                                        }
+                                    }
+                                }
+
                                 ToolsMenuWidget {
                                     id: toolsMenuWidget
                                     colors: shellRoot.shellColors
@@ -862,6 +881,74 @@ ShellRoot {
                         }
                     }
                 }
+                }
+            }
+
+            PanelWindow {
+                id: claudeUsagePanel
+                screen: screenDelegate.modelData
+                visible: screenDelegate.claudeUsageVisible && bar.panelsVisible
+                color: "transparent"
+                exclusiveZone: -1
+                anchors { top: true; bottom: true; left: true; right: true }
+
+                focusable: true
+                onVisibleChanged: {
+                    if (visible) {
+                        cuContainer.opacity = 0
+                        cuContainer.y = bar.implicitHeight + 5 - 8
+                        cuOpenAnim.restart()
+                        cuEscScope.forceActiveFocus()
+                    }
+                }
+                Item { id: cuEscScope; focus: true; Keys.onEscapePressed: screenDelegate.closeAllPanels() }
+                ParallelAnimation {
+                    id: cuOpenAnim
+                    NumberAnimation { target: cuContainer; property: "opacity"; from: 0; to: 1; duration: 200; easing.type: Easing.OutCubic }
+                    NumberAnimation { target: cuContainer; property: "y"; from: bar.implicitHeight + 5 - 8; to: bar.implicitHeight + 5; duration: 200; easing.type: Easing.OutCubic }
+                }
+
+                Component.onCompleted: {
+                    if (this.WlrLayershell != null) {
+                        this.WlrLayershell.layer = WlrLayer.Overlay
+                        this.WlrLayershell.keyboardFocus = WlrKeyboardFocus.Exclusive
+                        this.WlrLayershell.namespace = "quickshell-claude-usage"
+                    }
+                }
+
+                MouseArea { anchors.fill: parent; onClicked: screenDelegate.closeAllPanels() }
+
+                Item {
+                    id: cuContainer
+                    x: parent.width - 300 - screenDelegate.claudeUsageMarginRight
+                    y: bar.implicitHeight + 5
+                    width: 300
+                    height: cuContentItem.implicitHeight + 8
+                    MouseArea { anchors.fill: parent }
+                    Rectangle {
+                        id: cuShadow
+                        anchors.fill: parent
+                        anchors.leftMargin: 2
+                        anchors.topMargin: 3
+                        z: -1
+                        radius: 14
+                        color: shellRoot.shellColors.panelShadow
+                    }
+                    Rectangle {
+                        id: cuBg
+                        anchors.fill: parent
+                        radius: 12
+                        color: shellRoot.shellColors.surfaceContainer
+                        border.width: 1
+                        border.color: shellRoot.shellColors.borderSubtle
+                        ClaudeUsageContent {
+                            id: cuContentItem
+                            anchors.fill: parent
+                            anchors.margins: 4
+                            colors: shellRoot.shellColors
+                            onClose: function() { screenDelegate.claudeUsageVisible = false }
+                        }
+                    }
                 }
             }
 
