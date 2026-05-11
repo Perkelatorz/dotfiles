@@ -409,7 +409,6 @@ setup_hyprland_plugins() {
     # Default plugins list - can be extended
     local -a plugins=(
         "https://github.com/Duckonaut/split-monitor-workspaces"
-        "https://github.com/cpiber/hyprscroller"
     )
     
     # Check if hyprpm is available
