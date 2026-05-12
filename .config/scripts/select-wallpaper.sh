@@ -476,10 +476,6 @@ else
   if [ "$VERBOSE" = "true" ] && [ -n "$MATUGEN_OUTPUT" ]; then
     log "VERBOSE" "Matugen output: $MATUGEN_OUTPUT"
   fi
-
-  # Extract and log the source color for debugging
-  SOURCE_COLOR=$(matugen image "$WALLPAPER_FOR_MATUGEN" --mode "$MATUGEN_MODE" --type "$MATUGEN_TYPE" --resize-filter "$MATUGEN_RESIZE_FILTER" --prefer "$MATUGEN_PREFER" --json hex 2>/dev/null | grep -o '"source_color"[^}]*' | head -1 || echo "unknown")
-  log "INFO" "Extracted source color: $SOURCE_COLOR"
 fi
 
 # --- GENERATE HIGH CONTRAST TEXT COLORS ---

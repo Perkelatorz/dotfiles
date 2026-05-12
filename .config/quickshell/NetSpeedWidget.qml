@@ -11,12 +11,9 @@ Item {
     readonly property color pillColor: (colors.widgetPillColors && pillIndex >= 0 && pillIndex < colors.widgetPillColors.length) ? colors.widgetPillColors[pillIndex] : colors.primary
     readonly property color pillTextColor: (colors.widgetTextOnPillColors && pillIndex >= 0 && pillIndex < colors.widgetTextOnPillColors.length) ? colors.widgetTextOnPillColors[pillIndex] : colors.textMain
 
-    property string iface: ""
-    property real rxRate: 0
-    property real txRate: 0
-    property real lastRx: 0
-    property real lastTx: 0
-    property bool hasData: false
+    readonly property string iface: SystemServices.netIface
+    readonly property real rxRate: SystemServices.rxRate
+    readonly property real txRate: SystemServices.txRate
 
     implicitWidth: pill.width
     implicitHeight: 28
@@ -28,55 +25,10 @@ Item {
     }
 
     Process {
-        id: ifaceProc
-        command: ["sh", "-c", "ip -o link show up 2>/dev/null | awk -F': ' '{print $2}' | grep -vE '^(lo|docker|br-|veth)' | head -1"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                var s = (ifaceProc.stdout.text || "").trim()
-                if (s) netWidget.iface = s
-                ifaceProc.running = false
-            }
-        }
-        Component.onCompleted: running = true
-    }
-
-    Process {
-        id: statsProc
-        command: ["sh", "-c", "cat /sys/class/net/" + netWidget.iface + "/statistics/rx_bytes /sys/class/net/" + netWidget.iface + "/statistics/tx_bytes 2>/dev/null"]
-        running: false
-        stdout: StdioCollector {
-            onStreamFinished: {
-                var lines = (statsProc.stdout.text || "").trim().split("\n")
-                if (lines.length >= 2) {
-                    var rx = parseFloat(lines[0]) || 0
-                    var tx = parseFloat(lines[1]) || 0
-                    if (netWidget.hasData) {
-                        netWidget.rxRate = Math.max(0, (rx - netWidget.lastRx) / 2)
-                        netWidget.txRate = Math.max(0, (tx - netWidget.lastTx) / 2)
-                    }
-                    netWidget.lastRx = rx
-                    netWidget.lastTx = tx
-                    netWidget.hasData = true
-                }
-                statsProc.running = false
-            }
-        }
-    }
-
-    Process {
         id: runConnectionEditor
         command: ["nm-connection-editor"]
         running: false
     }
-
-    Timer {
-        interval: 2000
-        repeat: true
-        running: netWidget.visible && netWidget.iface !== ""
-        onTriggered: if (!statsProc.running) statsProc.running = true
-    }
-
-    onIfaceChanged: if (iface !== "") statsProc.running = true
 
     Rectangle {
         id: pill
@@ -106,7 +58,7 @@ Item {
             Row {
                 spacing: 2
                 Text {
-                    text: "\uF063"
+                    text: ""
                     color: netWidget.pillTextColor
                     font.pixelSize: colors.cpuFontSize - 1
                     font.family: colors.widgetIconFont
@@ -120,7 +72,7 @@ Item {
             Row {
                 spacing: 2
                 Text {
-                    text: "\uF062"
+                    text: ""
                     color: netWidget.pillTextColor
                     font.pixelSize: colors.cpuFontSize - 1
                     font.family: colors.widgetIconFont

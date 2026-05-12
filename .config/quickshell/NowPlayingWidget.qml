@@ -20,6 +20,8 @@ Item {
     property bool hasPlayer: false
     property var playerList: []
     property string selectedPlayer: ""
+    property bool shuffleOn: false
+    property string loopMode: "None"  // None, Track, Playlist
 
     implicitWidth: hasPlayer ? pill.width : 0
     implicitHeight: hasPlayer ? 28 : 0
@@ -48,6 +50,32 @@ Item {
         nextProc.running = true
     }
 
+    function toggleShuffle() {
+        shuffleProc.command = ["playerctl"].concat(nowPlayingWidget.playerArg()).concat(["shuffle", "Toggle"])
+        shuffleProc.running = true
+    }
+
+    function cycleLoop() {
+        var order = ["None", "Track", "Playlist"]
+        var idx = order.indexOf(nowPlayingWidget.loopMode)
+        var next = order[(idx + 1) % order.length]
+        loopProc.command = ["playerctl"].concat(nowPlayingWidget.playerArg()).concat(["loop", next])
+        loopProc.running = true
+    }
+
+    Process {
+        id: shuffleProc
+        command: ["playerctl", "shuffle", "Toggle"]
+        running: false
+        onRunningChanged: if (!running) nowPlayingWidget.startMetaProc()
+    }
+    Process {
+        id: loopProc
+        command: ["playerctl", "loop", "None"]
+        running: false
+        onRunningChanged: if (!running) nowPlayingWidget.startMetaProc()
+    }
+
     function setSelectedPlayer(name) {
         nowPlayingWidget.selectedPlayer = name || ""
         if (!metaProc.running) nowPlayingWidget.startMetaProc()
@@ -60,7 +88,12 @@ Item {
     function startMetaProc() {
         var p = nowPlayingWidget.playerArg()
         var pre = p.length ? (p.join(" ") + " ") : ""
-        metaProc.command = ["sh", "-c", "playerctl " + pre + "metadata --format '{{ artist }}|||{{ title }}' 2>/dev/null; echo 'STATUS'; playerctl " + pre + "status 2>/dev/null; echo 'ARTURL'; playerctl " + pre + "metadata mpris:artUrl 2>/dev/null"]
+        metaProc.command = ["sh", "-c",
+            "playerctl " + pre + "metadata --format '{{ artist }}|||{{ title }}' 2>/dev/null; " +
+            "echo 'STATUS'; playerctl " + pre + "status 2>/dev/null; " +
+            "echo 'ARTURL'; playerctl " + pre + "metadata mpris:artUrl 2>/dev/null; " +
+            "echo 'SHUF'; playerctl " + pre + "shuffle 2>/dev/null; " +
+            "echo 'LOOP'; playerctl " + pre + "loop 2>/dev/null"]
         metaProc.running = true
     }
 
@@ -88,7 +121,16 @@ Item {
         stdout: StdioCollector {
             onStreamFinished: {
                 var out = (metaProc.stdout.text || "").trim()
-                var artParts = out.split("ARTURL")
+                var loopParts = out.split("LOOP")
+                if (loopParts.length >= 2) nowPlayingWidget.loopMode = String(loopParts[1]).trim() || "None"
+                var head = loopParts[0]
+                var shufParts = head.split("SHUF")
+                if (shufParts.length >= 2) {
+                    var sv = String(shufParts[1]).trim()
+                    nowPlayingWidget.shuffleOn = (sv === "On")
+                }
+                head = shufParts[0]
+                var artParts = head.split("ARTURL")
                 var main = artParts.length >= 1 ? artParts[0].trim() : ""
                 nowPlayingWidget.artUrl = artParts.length >= 2 ? String(artParts[1]).trim() : ""
                 var parts = main.split("STATUS")

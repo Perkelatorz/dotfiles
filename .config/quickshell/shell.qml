@@ -82,26 +82,13 @@ ShellRoot {
 
     // Compositor detected once at startup by compositorDetectProc (running: true)
 
-    Process {
-        id: overviewTriggerProc
-        command: ["sh", "-c", "f=\"${XDG_RUNTIME_DIR:-/tmp}/quickshell-open-overview\"; if [ -f \"$f\" ]; then rm -f \"$f\"; echo 1; fi"]
-        running: false
-        stdout: StdioCollector {
-            onStreamFinished: {
-                if ((overviewTriggerProc.stdout.text || "").trim() !== "") {
-                    shellRoot.workspaceOverviewTriggered = true
-                }
-                overviewTriggerProc.running = false
-            }
-        }
-    }
-    Timer {
-        interval: 400
-        repeat: true
-        running: true
-        onTriggered: {
-            if (!shellRoot.workspaceOverviewTriggered && !overviewTriggerProc.running)
-                overviewTriggerProc.running = true
+    // Workspace overview trigger via Quickshell IPC.
+    // Invoked by ~/.config/scripts/open-workspace-overview.sh (`qs ipc call shell openOverview`).
+    // Replaces a previous 400ms file-poll on $XDG_RUNTIME_DIR/quickshell-open-overview.
+    IpcHandler {
+        target: "shell"
+        function openOverview(): void {
+            shellRoot.workspaceOverviewTriggered = true
         }
     }
 
@@ -134,6 +121,8 @@ ShellRoot {
                 netSpeedWidgetVisible = false
                 notificationsWidgetVisible = false
                 powerProfileWidgetVisible = false
+                idleInhibitorWidgetVisible = false
+                tailscaleWidgetVisible = false
             }
             onIsVerticalScreenChanged: {
                 if (screenDelegate.isVerticalScreen) {
@@ -152,6 +141,8 @@ ShellRoot {
             property int toolsMenuMarginRight: 0
             property bool claudeUsageVisible: false
             property int claudeUsageMarginRight: 0
+            property bool weatherForecastVisible: false
+            property int weatherForecastMarginRight: 0
 
             function closeAllPanels() {
                 calendarVisible = false
@@ -164,10 +155,12 @@ ShellRoot {
                 keybindsPanelVisible = false
                 toolsMenuVisible = false
                 claudeUsageVisible = false
+                weatherForecastVisible = false
             }
             property var screenshotWidgetRef: null
             property int screenshotMenuMarginLeft: 0
             property int calendarMarginLeft: 0
+            property int nowPlayingMarginLeft: 0
             // Widget visibility (toggle from settings menu)
             property bool volumeWidgetVisible: true
             property bool nowPlayingWidgetVisible: true
@@ -183,11 +176,9 @@ ShellRoot {
             property bool netSpeedWidgetVisible: true
             property bool notificationsWidgetVisible: true
             property bool powerProfileWidgetVisible: false
-            property bool quickNotesWidgetVisible: true
-            property bool colorPickerWidgetVisible: true
-            property bool clipboardWidgetVisible: true
-            property bool keybindsWidgetVisible: true
             property bool workspaceOverviewWidgetVisible: true
+            property bool idleInhibitorWidgetVisible: true
+            property bool tailscaleWidgetVisible: true
 
             function loadBarWidgets() {
                 loadBarWidgetsProc.running = true
@@ -207,7 +198,9 @@ ShellRoot {
                     "updates=" + (updatesWidgetVisible ? "true" : "false"),
                     "netSpeed=" + (netSpeedWidgetVisible ? "true" : "false"),
                     "notifications=" + (notificationsWidgetVisible ? "true" : "false"),
-                    "powerProfile=" + (powerProfileWidgetVisible ? "true" : "false")
+                    "powerProfile=" + (powerProfileWidgetVisible ? "true" : "false"),
+                    "idleInhibitor=" + (idleInhibitorWidgetVisible ? "true" : "false"),
+                    "tailscale=" + (tailscaleWidgetVisible ? "true" : "false")
                 ]
                 saveBarWidgetsProc.command = ["sh", "-c", "SCRIPT=\"${XDG_CONFIG_HOME:-$HOME/.config}/scripts/write-bar-widgets.sh\"; exec \"$SCRIPT\" " + args.join(" ")]
                 saveBarWidgetsProc.running = true
@@ -234,6 +227,8 @@ ShellRoot {
                             if (typeof o.netSpeed === "boolean") screenDelegate.netSpeedWidgetVisible = o.netSpeed
                             if (typeof o.notifications === "boolean") screenDelegate.notificationsWidgetVisible = o.notifications
                             if (typeof o.powerProfile === "boolean") screenDelegate.powerProfileWidgetVisible = o.powerProfile
+                            if (typeof o.idleInhibitor === "boolean") screenDelegate.idleInhibitorWidgetVisible = o.idleInhibitor
+                            if (typeof o.tailscale === "boolean") screenDelegate.tailscaleWidgetVisible = o.tailscale
                             if (screenDelegate.isVerticalScreen) {
                                 screenDelegate.resetWidgetVisibility()
                             }
@@ -497,6 +492,8 @@ ShellRoot {
                                         screenDelegate.clipboardPanelVisible = false
                                         screenDelegate.keybindsPanelVisible = false
                                         screenDelegate.toolsMenuVisible = false
+                                        var pt = nowPlayingWidget.mapToItem(root, 0, 0)
+                                        screenDelegate.nowPlayingMarginLeft = Math.max(8, Math.floor(pt.x))
                                         screenDelegate.nowPlayingPopupVisible = !screenDelegate.nowPlayingPopupVisible
                                     }
                         }
@@ -531,9 +528,18 @@ ShellRoot {
                                 layoutDirection: Qt.LeftToRight
 
                                 WeatherWidget {
+                                    id: weatherWidget
                                     colors: shellRoot.shellColors
                                     Layout.alignment: Qt.AlignVCenter
                                     visible: screenDelegate.weatherWidgetVisible
+                                    onOpenForecastRequested: {
+                                        var screenW = (screenDelegate.modelData && screenDelegate.modelData.geometry) ? screenDelegate.modelData.geometry.width : root.width
+                                        var pt = weatherWidget.mapToItem(root, 0, 0)
+                                        screenDelegate.weatherForecastMarginRight = Math.max(8, Math.floor(screenW - pt.x - weatherWidget.width / 2 - 160))
+                                        var wasOpen = screenDelegate.weatherForecastVisible
+                                        screenDelegate.closeAllPanels()
+                                        screenDelegate.weatherForecastVisible = !wasOpen
+                                    }
                                 }
 
                                 UpdateWidget {
@@ -552,6 +558,18 @@ ShellRoot {
                                     colors: shellRoot.shellColors
                                     Layout.alignment: Qt.AlignVCenter
                                     visible: screenDelegate.powerProfileWidgetVisible
+                                }
+
+                                IdleInhibitorWidget {
+                                    colors: shellRoot.shellColors
+                                    Layout.alignment: Qt.AlignVCenter
+                                    visible: screenDelegate.idleInhibitorWidgetVisible
+                                }
+
+                                TailscaleWidget {
+                                    colors: shellRoot.shellColors
+                                    Layout.alignment: Qt.AlignVCenter
+                                    visible: screenDelegate.tailscaleWidgetVisible
                                 }
 
                                 PerformanceWidget {
@@ -706,760 +724,360 @@ ShellRoot {
                 }
             }
 
-            PanelWindow {
+            PopupPanel {
                 id: quickSettingsPanel
                 screen: screenDelegate.modelData
                 visible: screenDelegate.quickSettingsMenuVisible && bar.panelsVisible
-                color: "transparent"
-                exclusiveZone: -1
-                anchors { top: true; bottom: true; left: true; right: true }
-
-                readonly property int _qsH: screenDelegate.quickSettingsSubView === "settings"
+                colors: shellRoot.shellColors
+                layershellNamespace: "quickshell-quick-settings"
+                barHeight: bar.implicitHeight
+                containerWidth: 440
+                containerHeight: screenDelegate.quickSettingsSubView === "settings"
                     ? Math.min(qsSettingsContent.implicitHeight + 60, 500)
                     : (screenDelegate.quickSettingsSubView === "power"
                         ? Math.min(qsPowerContent.implicitHeight + 60, 400)
                         : Math.min(qsContent.implicitHeight + 40, 700))
+                onCloseRequested: screenDelegate.closeAllPanels()
 
-                focusable: true
-                onVisibleChanged: {
-                    if (visible) {
-                        qsContainer.opacity = 0
-                        qsContainer.y = bar.implicitHeight + 5 - 8
-                        qsPanelOpenAnim.restart()
-                        qsEscScope.forceActiveFocus()
-                    }
-                }
-                Item { id: qsEscScope; focus: true; Keys.onEscapePressed: screenDelegate.closeAllPanels() }
-                ParallelAnimation {
-                    id: qsPanelOpenAnim
-                    NumberAnimation { target: qsContainer; property: "opacity"; from: 0; to: 1; duration: 200; easing.type: Easing.OutCubic }
-                    NumberAnimation { target: qsContainer; property: "y"; from: bar.implicitHeight + 5 - 8; to: bar.implicitHeight + 5; duration: 200; easing.type: Easing.OutCubic }
-                }
-
-                Component.onCompleted: {
-                    if (this.WlrLayershell != null) {
-                        this.WlrLayershell.layer = WlrLayer.Overlay
-                        this.WlrLayershell.keyboardFocus = WlrKeyboardFocus.Exclusive
-                        this.WlrLayershell.namespace = "quickshell-quick-settings"
-                    }
-                }
-
-                MouseArea { anchors.fill: parent; onClicked: screenDelegate.closeAllPanels() }
-
-                Item {
-                    id: qsContainer
-                    x: parent.width - 440 - 8
-                    y: bar.implicitHeight + 5
-                    width: 440
-                    height: quickSettingsPanel._qsH
-                    MouseArea { anchors.fill: parent }
-                    Rectangle {
-                        id: qsPanelShadow
-                        anchors.fill: parent
-                        anchors.leftMargin: 2
-                        anchors.topMargin: 3
-                        z: -1
-                        radius: 14
-                        color: shellRoot.shellColors.panelShadow
-                    }
-                    Rectangle {
-                        id: qsPanelBg
-                        anchors.fill: parent
-                        radius: 12
-                        color: shellRoot.shellColors.surfaceContainer
-                        border.width: 1
-                        border.color: shellRoot.shellColors.borderSubtle
-                        Column {
-                            anchors.fill: parent
-                        spacing: 0
-                        Row {
-                            visible: screenDelegate.quickSettingsSubView !== "main"
-                            width: parent.width - 40
-                            height: 40
-                            leftPadding: 12
-                            rightPadding: 12
-                            spacing: 8
-                            MouseArea {
-                                id: backButtonMa
-                                width: 32
-                                height: 32
-                                anchors.verticalCenter: parent.verticalCenter
-                                hoverEnabled: true
-                                onClicked: screenDelegate.quickSettingsSubView = "main"
-                                Rectangle {
-                                    anchors.fill: parent
-                                    radius: 6
-                                    color: backButtonMa.containsMouse ? shellRoot.shellColors.surfaceBright : "transparent"
-                                }
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: "\uF060"
-                                    color: shellRoot.shellColors.textMain
-                                    font.pixelSize: 14
-                                    font.family: shellRoot.shellColors.widgetIconFont
-                                }
+                Column {
+                    anchors.fill: parent
+                    spacing: 0
+                    Row {
+                        visible: screenDelegate.quickSettingsSubView !== "main"
+                        width: parent.width - 40
+                        height: 40
+                        leftPadding: 12
+                        rightPadding: 12
+                        spacing: 8
+                        MouseArea {
+                            id: backButtonMa
+                            width: 32
+                            height: 32
+                            anchors.verticalCenter: parent.verticalCenter
+                            hoverEnabled: true
+                            onClicked: screenDelegate.quickSettingsSubView = "main"
+                            Rectangle {
+                                anchors.fill: parent
+                                radius: 6
+                                color: backButtonMa.containsMouse ? shellRoot.shellColors.surfaceBright : "transparent"
                             }
-                            Item { width: 1; height: 1 }
                             Text {
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: screenDelegate.quickSettingsSubView === "power" ? "Power" : "Widgets & settings"
-                                color: shellRoot.shellColors.primary
+                                anchors.centerIn: parent
+                                text: "\uF060"
+                                color: shellRoot.shellColors.textMain
                                 font.pixelSize: 14
-                                font.bold: true
+                                font.family: shellRoot.shellColors.widgetIconFont
                             }
                         }
-                        Rectangle {
-                            visible: screenDelegate.quickSettingsSubView !== "main"
-                            width: parent.width - 40
-                            height: 1
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            color: shellRoot.shellColors.borderSubtle
-                        }
-                        Item {
-                            width: parent.width - 40
-                            height: parent.height - (screenDelegate.quickSettingsSubView !== "main" ? 41 : 0)
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            clip: true
-                            Flickable {
-                                id: qsFlick
-                                visible: screenDelegate.quickSettingsSubView === "main"
-                                anchors.fill: parent
-                                anchors.margins: 20
-                                contentWidth: width
-                                contentHeight: qsContent.implicitHeight
-                                flickableDirection: Flickable.VerticalFlick
-                                boundsBehavior: Flickable.StopAtBounds
-                                QuickSettingsContent {
-                                    id: qsContent
-                                    width: parent.width
-                                    colors: shellRoot.shellColors
-                                    compositorName: shellRoot.compositorName
-                                    screenIndex: bar.screenIndex
-                                    onClose: function() { screenDelegate.quickSettingsMenuVisible = false }
-                                    onOpenPowerRequested: screenDelegate.quickSettingsSubView = "power"
-                                    onOpenSettingsRequested: screenDelegate.quickSettingsSubView = "settings"
-                                }
-                            }
-                            MouseArea {
-                                anchors.fill: parent
-                                anchors.margins: 20
-                                visible: screenDelegate.quickSettingsSubView === "main"
-                                acceptedButtons: Qt.MiddleButton
-                                onWheel: function(wheel) {
-                                    var step = (wheel.angleDelta.y / 120) * 80
-                                    qsFlick.contentY = Math.max(0, Math.min(qsFlick.contentY - step, Math.max(0, qsFlick.contentHeight - qsFlick.height)))
-                                }
-                            }
-                            Item {
-                                visible: screenDelegate.quickSettingsSubView === "power"
-                                anchors.fill: parent
-                                PowerMenuContent {
-                                    id: qsPowerContent
-                                    anchors.centerIn: parent
-                                    width: Math.min(180, parent.width - 24)
-                                    colors: shellRoot.shellColors
-                                    compositorName: shellRoot.compositorName
-                                    onClose: function() {
-                                        screenDelegate.quickSettingsMenuVisible = false
-                                    }
-                                }
-                            }
-                            Item {
-                                visible: screenDelegate.quickSettingsSubView === "settings"
-                                anchors.fill: parent
-                                SettingsMenuContent {
-                                    id: qsSettingsContent
-                                    anchors.fill: parent
-                                    anchors.margins: 8
-                                    colors: shellRoot.shellColors
-                                    settingsState: screenDelegate
-                                    onClose: function() {
-                                        screenDelegate.quickSettingsSubView = "main"
-                                    }
-                                }
-                            }
+                        Item { width: 1; height: 1 }
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: screenDelegate.quickSettingsSubView === "power" ? "Power" : "Widgets & settings"
+                            color: shellRoot.shellColors.primary
+                            font.pixelSize: 14
+                            font.bold: true
                         }
                     }
-                }
-                }
-            }
-
-            PanelWindow {
-                id: claudeUsagePanel
-                screen: screenDelegate.modelData
-                visible: screenDelegate.claudeUsageVisible && bar.panelsVisible
-                color: "transparent"
-                exclusiveZone: -1
-                anchors { top: true; bottom: true; left: true; right: true }
-
-                focusable: true
-                onVisibleChanged: {
-                    if (visible) {
-                        cuContainer.opacity = 0
-                        cuContainer.y = bar.implicitHeight + 5 - 8
-                        cuOpenAnim.restart()
-                        cuEscScope.forceActiveFocus()
-                    }
-                }
-                Item { id: cuEscScope; focus: true; Keys.onEscapePressed: screenDelegate.closeAllPanels() }
-                ParallelAnimation {
-                    id: cuOpenAnim
-                    NumberAnimation { target: cuContainer; property: "opacity"; from: 0; to: 1; duration: 200; easing.type: Easing.OutCubic }
-                    NumberAnimation { target: cuContainer; property: "y"; from: bar.implicitHeight + 5 - 8; to: bar.implicitHeight + 5; duration: 200; easing.type: Easing.OutCubic }
-                }
-
-                Component.onCompleted: {
-                    if (this.WlrLayershell != null) {
-                        this.WlrLayershell.layer = WlrLayer.Overlay
-                        this.WlrLayershell.keyboardFocus = WlrKeyboardFocus.Exclusive
-                        this.WlrLayershell.namespace = "quickshell-claude-usage"
-                    }
-                }
-
-                MouseArea { anchors.fill: parent; onClicked: screenDelegate.closeAllPanels() }
-
-                Item {
-                    id: cuContainer
-                    x: parent.width - 300 - screenDelegate.claudeUsageMarginRight
-                    y: bar.implicitHeight + 5
-                    width: 300
-                    height: cuContentItem.implicitHeight + 8
-                    MouseArea { anchors.fill: parent }
                     Rectangle {
-                        id: cuShadow
-                        anchors.fill: parent
-                        anchors.leftMargin: 2
-                        anchors.topMargin: 3
-                        z: -1
-                        radius: 14
-                        color: shellRoot.shellColors.panelShadow
+                        visible: screenDelegate.quickSettingsSubView !== "main"
+                        width: parent.width - 40
+                        height: 1
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        color: shellRoot.shellColors.borderSubtle
                     }
-                    Rectangle {
-                        id: cuBg
-                        anchors.fill: parent
-                        radius: 12
-                        color: shellRoot.shellColors.surfaceContainer
-                        border.width: 1
-                        border.color: shellRoot.shellColors.borderSubtle
-                        ClaudeUsageContent {
-                            id: cuContentItem
-                            anchors.fill: parent
-                            anchors.margins: 4
-                            colors: shellRoot.shellColors
-                            onClose: function() { screenDelegate.claudeUsageVisible = false }
-                        }
-                    }
-                }
-            }
-
-            PanelWindow {
-                id: toolsMenuPanel
-                screen: screenDelegate.modelData
-                visible: screenDelegate.toolsMenuVisible && bar.panelsVisible
-                color: "transparent"
-                exclusiveZone: -1
-                anchors { top: true; bottom: true; left: true; right: true }
-
-                focusable: true
-                onVisibleChanged: {
-                    if (visible) {
-                        toolsContainer.opacity = 0
-                        toolsContainer.y = bar.implicitHeight + 5 - 8
-                        toolsOpenAnim.restart()
-                        toolsEscScope.forceActiveFocus()
-                    }
-                }
-                Item { id: toolsEscScope; focus: true; Keys.onEscapePressed: screenDelegate.closeAllPanels() }
-                ParallelAnimation {
-                    id: toolsOpenAnim
-                    NumberAnimation { target: toolsContainer; property: "opacity"; from: 0; to: 1; duration: 200; easing.type: Easing.OutCubic }
-                    NumberAnimation { target: toolsContainer; property: "y"; from: bar.implicitHeight + 5 - 8; to: bar.implicitHeight + 5; duration: 200; easing.type: Easing.OutCubic }
-                }
-
-                Component.onCompleted: {
-                    if (this.WlrLayershell != null) {
-                        this.WlrLayershell.layer = WlrLayer.Overlay
-                        this.WlrLayershell.keyboardFocus = WlrKeyboardFocus.Exclusive
-                        this.WlrLayershell.namespace = "quickshell-tools-menu"
-                    }
-                }
-
-                MouseArea { anchors.fill: parent; onClicked: screenDelegate.closeAllPanels() }
-
-                Item {
-                    id: toolsContainer
-                    x: parent.width - 188 - screenDelegate.toolsMenuMarginRight
-                    y: bar.implicitHeight + 5
-                    width: 188
-                    height: 168
-                    MouseArea { anchors.fill: parent }
-                    Rectangle {
-                        id: toolsShadow
-                        anchors.fill: parent
-                        anchors.leftMargin: 2
-                        anchors.topMargin: 3
-                        z: -1
-                        radius: 14
-                        color: shellRoot.shellColors.panelShadow
-                    }
-                    Rectangle {
-                        id: toolsBg
-                        anchors.fill: parent
-                        radius: 12
-                        color: shellRoot.shellColors.surfaceContainer
-                        border.width: 1
-                        border.color: shellRoot.shellColors.borderSubtle
-                        ToolsMenuContent {
-                            anchors.fill: parent
-                            anchors.margins: 4
-                            colors: shellRoot.shellColors
-                            compositorName: shellRoot.compositorName
-                            screenshotWidget: screenDelegate.screenshotWidgetRef
-                            onClose: function() { screenDelegate.toolsMenuVisible = false }
-                            onClipboardRequested: {
-                                screenDelegate.clipboardPanelVisible = !screenDelegate.clipboardPanelVisible
-                            }
-                            onKeybindsRequested: {
-                                screenDelegate.keybindsPanelVisible = !screenDelegate.keybindsPanelVisible
-                            }
-                            onScreenshotMenuRequested: {
-                                if (!screenDelegate.screenshotMenuVisible) {
-                                    var pt = toolsMenuWidget.mapToItem(root, 0, 0)
-                                    var screenW = root.width || 1920
-                                    screenDelegate.screenshotMenuMarginLeft = Math.max(0, Math.floor(screenW - screenDelegate.toolsMenuMarginRight - 168))
-                                }
-                                screenDelegate.screenshotMenuVisible = !screenDelegate.screenshotMenuVisible
-                            }
-                        }
-                    }
-                }
-            }
-
-            PanelWindow {
-                id: screenshotMenuPanel
-                screen: screenDelegate.modelData
-                visible: screenDelegate.screenshotMenuVisible && bar.panelsVisible
-                color: "transparent"
-                exclusiveZone: -1
-                anchors { top: true; bottom: true; left: true; right: true }
-
-                focusable: true
-                onVisibleChanged: {
-                    if (visible) {
-                        ssContainer.opacity = 0
-                        ssContainer.y = bar.implicitHeight + 5 - 8
-                        ssMenuOpenAnim.restart()
-                        ssEscScope.forceActiveFocus()
-                    }
-                }
-                Item { id: ssEscScope; focus: true; Keys.onEscapePressed: screenDelegate.closeAllPanels() }
-                ParallelAnimation {
-                    id: ssMenuOpenAnim
-                    NumberAnimation { target: ssContainer; property: "opacity"; from: 0; to: 1; duration: 200; easing.type: Easing.OutCubic }
-                    NumberAnimation { target: ssContainer; property: "y"; from: bar.implicitHeight + 5 - 8; to: bar.implicitHeight + 5; duration: 200; easing.type: Easing.OutCubic }
-                }
-
-                Component.onCompleted: {
-                    if (this.WlrLayershell != null) {
-                        this.WlrLayershell.layer = WlrLayer.Overlay
-                        this.WlrLayershell.keyboardFocus = WlrKeyboardFocus.Exclusive
-                        this.WlrLayershell.namespace = "quickshell-screenshot-menu"
-                    }
-                }
-
-                MouseArea { anchors.fill: parent; onClicked: screenDelegate.closeAllPanels() }
-
-                Item {
-                    id: ssContainer
-                    x: screenDelegate.screenshotMenuMarginLeft
-                    y: bar.implicitHeight + 5
-                    width: 168
-                    height: 128
-                    MouseArea { anchors.fill: parent }
-                    Rectangle {
-                        id: ssMenuShadow
-                        anchors.fill: parent
-                        anchors.leftMargin: 2
-                        anchors.topMargin: 3
-                        z: -1
-                        radius: 14
-                        color: shellRoot.shellColors.panelShadow
-                    }
-                    Rectangle {
-                        id: ssMenuBg
-                        anchors.fill: parent
-                        radius: 12
-                        color: shellRoot.shellColors.surfaceContainer
-                        border.width: 1
-                        border.color: shellRoot.shellColors.borderSubtle
-                        ScreenshotMenuContent {
-                            id: ssMenuContentItem
-                            anchors.fill: parent
-                            anchors.margins: 4
-                            colors: shellRoot.shellColors
-                            screenshotWidget: screenDelegate.screenshotWidgetRef
-                            onClose: function() { screenDelegate.screenshotMenuVisible = false }
-                        }
-                    }
-                }
-            }
-
-            PanelWindow {
-                id: workspaceOverviewPanel
-                screen: screenDelegate.modelData
-                visible: (screenDelegate.workspaceOverviewVisible || shellRoot.workspaceOverviewTriggered) && bar.panelsVisible && bar.compositorName === "hyprland"
-                color: "transparent"
-                exclusiveZone: -1
-                anchors { top: true; bottom: true; left: true; right: true }
-
-                focusable: true
-                onVisibleChanged: {
-                    if (visible) {
-                        wsContainer.opacity = 0
-                        wsContainer.y = bar.implicitHeight + 5 - 8
-                        wsOverviewOpenAnim.restart()
-                        wsEscScope.forceActiveFocus()
-                    }
-                }
-                Item { id: wsEscScope; focus: true; Keys.onEscapePressed: screenDelegate.closeAllPanels() }
-                ParallelAnimation {
-                    id: wsOverviewOpenAnim
-                    NumberAnimation { target: wsContainer; property: "opacity"; from: 0; to: 1; duration: 200; easing.type: Easing.OutCubic }
-                    NumberAnimation { target: wsContainer; property: "y"; from: bar.implicitHeight + 5 - 8; to: bar.implicitHeight + 5; duration: 200; easing.type: Easing.OutCubic }
-                }
-
-                Component.onCompleted: {
-                    if (this.WlrLayershell != null) {
-                        this.WlrLayershell.layer = WlrLayer.Overlay
-                        this.WlrLayershell.keyboardFocus = WlrKeyboardFocus.Exclusive
-                        this.WlrLayershell.namespace = "quickshell-workspace-overview"
-                    }
-                }
-
-                MouseArea { anchors.fill: parent; onClicked: screenDelegate.closeAllPanels() }
-
-                Item {
-                    id: wsContainer
-                    x: 12
-                    y: bar.implicitHeight + 5
-                    width: 320
-                    height: Math.min(overviewContent.implicitHeight + 24, 600)
-                    MouseArea { anchors.fill: parent }
-                    Rectangle {
-                        id: wsOverviewShadow
-                        anchors.fill: parent
-                        anchors.leftMargin: 2
-                        anchors.topMargin: 3
-                        z: -1
-                        radius: 14
-                        color: shellRoot.shellColors.panelShadow
-                    }
-                    Rectangle {
-                        id: wsOverviewBg
-                        anchors.fill: parent
-                        radius: 12
-                        color: shellRoot.shellColors.surfaceContainer
-                        border.width: 1
-                        border.color: shellRoot.shellColors.borderSubtle
+                    Item {
+                        width: parent.width - 40
+                        height: parent.height - (screenDelegate.quickSettingsSubView !== "main" ? 41 : 0)
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        clip: true
                         Flickable {
-                            id: wsOverviewFlick
+                            id: qsFlick
+                            visible: screenDelegate.quickSettingsSubView === "main"
                             anchors.fill: parent
-                            anchors.margins: 12
-                            contentWidth: overviewContent.width
-                            contentHeight: overviewContent.implicitHeight
-                            clip: true
+                            anchors.margins: 20
+                            contentWidth: width
+                            contentHeight: qsContent.implicitHeight
                             flickableDirection: Flickable.VerticalFlick
                             boundsBehavior: Flickable.StopAtBounds
-                            WorkspaceOverviewContent {
-                                id: overviewContent
-                                width: 320 - 24
+                            QuickSettingsContent {
+                                id: qsContent
+                                width: parent.width
                                 colors: shellRoot.shellColors
-                                hyprMonitor: root.hyprMonitor
-                                clientsByWorkspace: root.clientsByWorkspace
-                                activeWindowAddress: root.activeWindowAddress
-                                onClose: function() {
-                                    screenDelegate.workspaceOverviewVisible = false
-                                    shellRoot.workspaceOverviewTriggered = false
-                                }
+                                compositorName: shellRoot.compositorName
+                                screenIndex: bar.screenIndex
+                                onClose: function() { screenDelegate.quickSettingsMenuVisible = false }
+                                onOpenPowerRequested: screenDelegate.quickSettingsSubView = "power"
+                                onOpenSettingsRequested: screenDelegate.quickSettingsSubView = "settings"
                             }
                         }
                         MouseArea {
                             anchors.fill: parent
-                            anchors.margins: 12
+                            anchors.margins: 20
+                            visible: screenDelegate.quickSettingsSubView === "main"
                             acceptedButtons: Qt.MiddleButton
                             onWheel: function(wheel) {
                                 var step = (wheel.angleDelta.y / 120) * 80
-                                wsOverviewFlick.contentY = Math.max(0, Math.min(wsOverviewFlick.contentY - step, Math.max(0, wsOverviewFlick.contentHeight - wsOverviewFlick.height)))
+                                qsFlick.contentY = Math.max(0, Math.min(qsFlick.contentY - step, Math.max(0, qsFlick.contentHeight - qsFlick.height)))
+                            }
+                        }
+                        Item {
+                            visible: screenDelegate.quickSettingsSubView === "power"
+                            anchors.fill: parent
+                            PowerMenuContent {
+                                id: qsPowerContent
+                                anchors.centerIn: parent
+                                width: Math.min(180, parent.width - 24)
+                                colors: shellRoot.shellColors
+                                compositorName: shellRoot.compositorName
+                                onClose: function() {
+                                    screenDelegate.quickSettingsMenuVisible = false
+                                }
+                            }
+                        }
+                        Item {
+                            visible: screenDelegate.quickSettingsSubView === "settings"
+                            anchors.fill: parent
+                            SettingsMenuContent {
+                                id: qsSettingsContent
+                                anchors.fill: parent
+                                anchors.margins: 8
+                                colors: shellRoot.shellColors
+                                settingsState: screenDelegate
+                                onClose: function() {
+                                    screenDelegate.quickSettingsSubView = "main"
+                                }
                             }
                         }
                     }
                 }
             }
 
-            PanelWindow {
+            PopupPanel {
+                id: weatherForecastPanel
+                screen: screenDelegate.modelData
+                visible: screenDelegate.weatherForecastVisible && bar.panelsVisible
+                colors: shellRoot.shellColors
+                layershellNamespace: "quickshell-weather-forecast"
+                barHeight: bar.implicitHeight
+                containerX: weatherForecastPanel.width - 320 - screenDelegate.weatherForecastMarginRight
+                containerWidth: 320
+                containerHeight: weatherForecastContent.implicitHeight
+                showBackground: false
+                onCloseRequested: screenDelegate.closeAllPanels()
+
+                WeatherForecastContent {
+                    id: weatherForecastContent
+                    anchors.fill: parent
+                    colors: shellRoot.shellColors
+                    onClose: function() { screenDelegate.weatherForecastVisible = false }
+                }
+            }
+
+            PopupPanel {
+                id: claudeUsagePanel
+                screen: screenDelegate.modelData
+                visible: screenDelegate.claudeUsageVisible && bar.panelsVisible
+                colors: shellRoot.shellColors
+                layershellNamespace: "quickshell-claude-usage"
+                barHeight: bar.implicitHeight
+                containerX: claudeUsagePanel.width - 300 - screenDelegate.claudeUsageMarginRight
+                containerWidth: 300
+                containerHeight: cuContentItem.implicitHeight + 8
+                onCloseRequested: screenDelegate.closeAllPanels()
+
+                ClaudeUsageContent {
+                    id: cuContentItem
+                    anchors.fill: parent
+                    anchors.margins: 4
+                    colors: shellRoot.shellColors
+                    onClose: function() { screenDelegate.claudeUsageVisible = false }
+                }
+            }
+
+            PopupPanel {
+                id: toolsMenuPanel
+                screen: screenDelegate.modelData
+                visible: screenDelegate.toolsMenuVisible && bar.panelsVisible
+                colors: shellRoot.shellColors
+                layershellNamespace: "quickshell-tools-menu"
+                barHeight: bar.implicitHeight
+                containerX: toolsMenuPanel.width - 188 - screenDelegate.toolsMenuMarginRight
+                containerWidth: 188
+                containerHeight: 168
+                onCloseRequested: screenDelegate.closeAllPanels()
+
+                ToolsMenuContent {
+                    anchors.fill: parent
+                    anchors.margins: 4
+                    colors: shellRoot.shellColors
+                    compositorName: shellRoot.compositorName
+                    screenshotWidget: screenDelegate.screenshotWidgetRef
+                    onClose: function() { screenDelegate.toolsMenuVisible = false }
+                    onClipboardRequested: {
+                        screenDelegate.clipboardPanelVisible = !screenDelegate.clipboardPanelVisible
+                    }
+                    onKeybindsRequested: {
+                        screenDelegate.keybindsPanelVisible = !screenDelegate.keybindsPanelVisible
+                    }
+                    onScreenshotMenuRequested: {
+                        if (!screenDelegate.screenshotMenuVisible) {
+                            var pt = toolsMenuWidget.mapToItem(root, 0, 0)
+                            var screenW = root.width || 1920
+                            screenDelegate.screenshotMenuMarginLeft = Math.max(0, Math.floor(screenW - screenDelegate.toolsMenuMarginRight - 168))
+                        }
+                        screenDelegate.screenshotMenuVisible = !screenDelegate.screenshotMenuVisible
+                    }
+                }
+            }
+
+            PopupPanel {
+                id: screenshotMenuPanel
+                screen: screenDelegate.modelData
+                visible: screenDelegate.screenshotMenuVisible && bar.panelsVisible
+                colors: shellRoot.shellColors
+                layershellNamespace: "quickshell-screenshot-menu"
+                barHeight: bar.implicitHeight
+                containerX: screenDelegate.screenshotMenuMarginLeft
+                containerWidth: 168
+                containerHeight: 128
+                onCloseRequested: screenDelegate.closeAllPanels()
+
+                ScreenshotMenuContent {
+                    anchors.fill: parent
+                    anchors.margins: 4
+                    colors: shellRoot.shellColors
+                    screenshotWidget: screenDelegate.screenshotWidgetRef
+                    onClose: function() { screenDelegate.screenshotMenuVisible = false }
+                }
+            }
+
+            PopupPanel {
+                id: workspaceOverviewPanel
+                screen: screenDelegate.modelData
+                visible: (screenDelegate.workspaceOverviewVisible || shellRoot.workspaceOverviewTriggered) && bar.panelsVisible && bar.compositorName === "hyprland"
+                colors: shellRoot.shellColors
+                layershellNamespace: "quickshell-workspace-overview"
+                barHeight: bar.implicitHeight
+                containerX: 12
+                containerWidth: 320
+                containerHeight: Math.min(overviewContent.implicitHeight + 24, 600)
+                onCloseRequested: screenDelegate.closeAllPanels()
+
+                Flickable {
+                    id: wsOverviewFlick
+                    anchors.fill: parent
+                    anchors.margins: 12
+                    contentWidth: overviewContent.width
+                    contentHeight: overviewContent.implicitHeight
+                    clip: true
+                    flickableDirection: Flickable.VerticalFlick
+                    boundsBehavior: Flickable.StopAtBounds
+                    WorkspaceOverviewContent {
+                        id: overviewContent
+                        width: 320 - 24
+                        colors: shellRoot.shellColors
+                        hyprMonitor: root.hyprMonitor
+                        clientsByWorkspace: root.clientsByWorkspace
+                        activeWindowAddress: root.activeWindowAddress
+                        onClose: function() {
+                            screenDelegate.workspaceOverviewVisible = false
+                            shellRoot.workspaceOverviewTriggered = false
+                        }
+                    }
+                }
+                MouseArea {
+                    anchors.fill: parent
+                    anchors.margins: 12
+                    acceptedButtons: Qt.MiddleButton
+                    onWheel: function(wheel) {
+                        var step = (wheel.angleDelta.y / 120) * 80
+                        wsOverviewFlick.contentY = Math.max(0, Math.min(wsOverviewFlick.contentY - step, Math.max(0, wsOverviewFlick.contentHeight - wsOverviewFlick.height)))
+                    }
+                }
+            }
+
+            PopupPanel {
                 id: clipboardPanel
                 screen: screenDelegate.modelData
                 visible: screenDelegate.clipboardPanelVisible && bar.panelsVisible
-                color: "transparent"
-                exclusiveZone: -1
-                anchors { top: true; bottom: true; left: true; right: true }
+                colors: shellRoot.shellColors
+                layershellNamespace: "quickshell-clipboard"
+                barHeight: bar.implicitHeight
+                containerWidth: 560
+                containerHeight: Math.min(Math.max(300, clipContent.desiredHeight + 24), 600)
+                onCloseRequested: screenDelegate.closeAllPanels()
+                onOpened: clipContent.refresh()
 
-                focusable: true
-                onVisibleChanged: {
-                    if (visible) {
-                        clipContainer.opacity = 0
-                        clipContainer.y = bar.implicitHeight + 5 - 8
-                        clipOpenAnim.restart()
-                        clipContent.refresh()
-                        clipEscScope.forceActiveFocus()
-                    }
-                }
-                Item { id: clipEscScope; focus: true; Keys.onEscapePressed: screenDelegate.closeAllPanels() }
-                ParallelAnimation {
-                    id: clipOpenAnim
-                    NumberAnimation { target: clipContainer; property: "opacity"; from: 0; to: 1; duration: 200; easing.type: Easing.OutCubic }
-                    NumberAnimation { target: clipContainer; property: "y"; from: bar.implicitHeight + 5 - 8; to: bar.implicitHeight + 5; duration: 200; easing.type: Easing.OutCubic }
-                }
-
-                Component.onCompleted: {
-                    if (this.WlrLayershell != null) {
-                        this.WlrLayershell.layer = WlrLayer.Overlay
-                        this.WlrLayershell.keyboardFocus = WlrKeyboardFocus.Exclusive
-                        this.WlrLayershell.namespace = "quickshell-clipboard"
-                    }
-                }
-
-                MouseArea { anchors.fill: parent; onClicked: screenDelegate.closeAllPanels() }
-
-                Item {
-                    id: clipContainer
-                    x: parent.width - 560 - 8
-                    y: bar.implicitHeight + 5
-                    width: 560
-                    height: Math.min(Math.max(300, clipContent.desiredHeight + 24), 600)
-                    MouseArea { anchors.fill: parent }
-                    Rectangle {
-                        id: clipShadow
-                        anchors.fill: parent
-                        anchors.leftMargin: 2
-                        anchors.topMargin: 3
-                        z: -1
-                        radius: 14
-                        color: shellRoot.shellColors.panelShadow
-                    }
-                    Rectangle {
-                        id: clipBg
-                        anchors.fill: parent
-                        radius: 12
-                        color: shellRoot.shellColors.surfaceContainer
-                        border.width: 1
-                        border.color: shellRoot.shellColors.borderSubtle
-                        ClipboardContent {
-                            id: clipContent
-                            anchors.fill: parent
-                            anchors.margins: 12
-                            colors: shellRoot.shellColors
-                            onClose: function() { screenDelegate.clipboardPanelVisible = false }
-                        }
-                    }
+                ClipboardContent {
+                    id: clipContent
+                    anchors.fill: parent
+                    anchors.margins: 12
+                    colors: shellRoot.shellColors
+                    onClose: function() { screenDelegate.clipboardPanelVisible = false }
                 }
             }
 
-            PanelWindow {
+            PopupPanel {
                 id: keybindsPanel
                 screen: screenDelegate.modelData
                 visible: screenDelegate.keybindsPanelVisible && bar.panelsVisible
-                color: "transparent"
-                exclusiveZone: -1
-                anchors { top: true; bottom: true; left: true; right: true }
+                colors: shellRoot.shellColors
+                layershellNamespace: "quickshell-keybinds"
+                barHeight: bar.implicitHeight
+                containerWidth: 420
+                containerHeight: Math.min(Math.max(300, kbContent.desiredHeight + 24), 600)
+                onCloseRequested: screenDelegate.closeAllPanels()
+                onOpened: kbContent.refresh()
 
-                focusable: true
-                onVisibleChanged: {
-                    if (visible) {
-                        kbContainer.opacity = 0
-                        kbContainer.y = bar.implicitHeight + 5 - 8
-                        kbOpenAnim.restart()
-                        kbContent.refresh()
-                        kbEscScope.forceActiveFocus()
-                    }
-                }
-                Item { id: kbEscScope; focus: true; Keys.onEscapePressed: screenDelegate.closeAllPanels() }
-                ParallelAnimation {
-                    id: kbOpenAnim
-                    NumberAnimation { target: kbContainer; property: "opacity"; from: 0; to: 1; duration: 200; easing.type: Easing.OutCubic }
-                    NumberAnimation { target: kbContainer; property: "y"; from: bar.implicitHeight + 5 - 8; to: bar.implicitHeight + 5; duration: 200; easing.type: Easing.OutCubic }
-                }
-
-                Component.onCompleted: {
-                    if (this.WlrLayershell != null) {
-                        this.WlrLayershell.layer = WlrLayer.Overlay
-                        this.WlrLayershell.keyboardFocus = WlrKeyboardFocus.Exclusive
-                        this.WlrLayershell.namespace = "quickshell-keybinds"
-                    }
-                }
-
-                MouseArea { anchors.fill: parent; onClicked: screenDelegate.closeAllPanels() }
-
-                Item {
-                    id: kbContainer
-                    x: parent.width - 420 - 8
-                    y: bar.implicitHeight + 5
-                    width: 420
-                    height: Math.min(Math.max(300, kbContent.desiredHeight + 24), 600)
-                    MouseArea { anchors.fill: parent }
-                    Rectangle {
-                        id: kbShadow
-                        anchors.fill: parent
-                        anchors.leftMargin: 2
-                        anchors.topMargin: 3
-                        z: -1
-                        radius: 14
-                        color: shellRoot.shellColors.panelShadow
-                    }
-                    Rectangle {
-                        id: kbBg
-                        anchors.fill: parent
-                        radius: 12
-                        color: shellRoot.shellColors.surfaceContainer
-                        border.width: 1
-                        border.color: shellRoot.shellColors.borderSubtle
-                        KeybindsContent {
-                            id: kbContent
-                            anchors.fill: parent
-                            anchors.margins: 12
-                            colors: shellRoot.shellColors
-                            onClose: function() { screenDelegate.keybindsPanelVisible = false }
-                        }
-                    }
+                KeybindsContent {
+                    id: kbContent
+                    anchors.fill: parent
+                    anchors.margins: 12
+                    colors: shellRoot.shellColors
+                    onClose: function() { screenDelegate.keybindsPanelVisible = false }
                 }
             }
 
-            PanelWindow {
+            PopupPanel {
                 id: calendarPanel
                 screen: screenDelegate.modelData
                 visible: screenDelegate.calendarVisible && bar.panelsVisible
-                color: "transparent"
-                exclusiveZone: -1
-                anchors { top: true; bottom: true; left: true; right: true }
+                colors: shellRoot.shellColors
+                layershellNamespace: "quickshell-calendar"
+                barHeight: bar.implicitHeight
+                containerX: screenDelegate.calendarMarginLeft
+                containerWidth: 200
+                containerHeight: 200
+                onCloseRequested: screenDelegate.closeAllPanels()
 
-                focusable: true
-                onVisibleChanged: {
-                    if (visible) {
-                        calContainer.opacity = 0
-                        calContainer.y = bar.implicitHeight + 5 - 8
-                        calOpenAnim.restart()
-                        calEscScope.forceActiveFocus()
-                    }
-                }
-                Item { id: calEscScope; focus: true; Keys.onEscapePressed: screenDelegate.closeAllPanels() }
-                ParallelAnimation {
-                    id: calOpenAnim
-                    NumberAnimation { target: calContainer; property: "opacity"; from: 0; to: 1; duration: 200; easing.type: Easing.OutCubic }
-                    NumberAnimation { target: calContainer; property: "y"; from: bar.implicitHeight + 5 - 8; to: bar.implicitHeight + 5; duration: 200; easing.type: Easing.OutCubic }
-                }
-
-                Component.onCompleted: {
-                    if (this.WlrLayershell != null) {
-                        this.WlrLayershell.layer = WlrLayer.Overlay
-                        this.WlrLayershell.keyboardFocus = WlrKeyboardFocus.Exclusive
-                        this.WlrLayershell.namespace = "quickshell-calendar"
-                    }
-                }
-
-                MouseArea { anchors.fill: parent; onClicked: screenDelegate.closeAllPanels() }
-
-                Item {
-                    id: calContainer
-                    x: screenDelegate.calendarMarginLeft
-                    y: bar.implicitHeight + 5
-                    width: 200
-                    height: 200
-                    MouseArea { anchors.fill: parent }
-                    Rectangle {
-                        id: calShadow
-                        anchors.fill: parent
-                        anchors.leftMargin: 2
-                        anchors.topMargin: 3
-                        z: -1
-                        radius: 14
-                        color: shellRoot.shellColors.panelShadow
-                    }
-                    Rectangle {
-                        id: calBg
-                        anchors.fill: parent
-                        radius: 12
-                        color: shellRoot.shellColors.surfaceContainer
-                        border.width: 1
-                        border.color: shellRoot.shellColors.borderSubtle
-                        CalendarContent {
-                            id: calContentItem
-                            anchors.fill: parent
-                            anchors.margins: 1
-                            colors: shellRoot.shellColors
-                            calendarState: screenDelegate
-                        }
-                    }
+                CalendarContent {
+                    anchors.fill: parent
+                    anchors.margins: 1
+                    colors: shellRoot.shellColors
+                    calendarState: screenDelegate
                 }
             }
 
-            PanelWindow {
+            PopupPanel {
                 id: nowPlayingPanel
                 screen: screenDelegate.modelData
                 visible: screenDelegate.nowPlayingPopupVisible && nowPlayingWidget.hasPlayer && bar.panelsVisible
-                color: "transparent"
-                exclusiveZone: -1
-                anchors { top: true; bottom: true; left: true; right: true }
+                colors: shellRoot.shellColors
+                layershellNamespace: "quickshell-now-playing"
+                barHeight: bar.implicitHeight
+                containerX: screenDelegate.nowPlayingMarginLeft
+                containerWidth: nowPlayingPanelContent.implicitWidth
+                containerHeight: nowPlayingPanelContent.implicitHeight
+                showBackground: false
+                onCloseRequested: screenDelegate.closeAllPanels()
 
-                focusable: true
-                onVisibleChanged: {
-                    if (visible) {
-                        npContainer.opacity = 0
-                        npContainer.y = bar.implicitHeight + 5 - 8
-                        npOpenAnim.restart()
-                        npEscScope.forceActiveFocus()
-                    }
-                }
-                Item { id: npEscScope; focus: true; Keys.onEscapePressed: screenDelegate.closeAllPanels() }
-                ParallelAnimation {
-                    id: npOpenAnim
-                    NumberAnimation { target: npContainer; property: "opacity"; from: 0; to: 1; duration: 200; easing.type: Easing.OutCubic }
-                    NumberAnimation { target: npContainer; property: "y"; from: bar.implicitHeight + 5 - 8; to: bar.implicitHeight + 5; duration: 200; easing.type: Easing.OutCubic }
-                }
-
-                Component.onCompleted: {
-                    if (this.WlrLayershell != null) {
-                        this.WlrLayershell.layer = WlrLayer.Overlay
-                        this.WlrLayershell.keyboardFocus = WlrKeyboardFocus.Exclusive
-                        this.WlrLayershell.namespace = "quickshell-now-playing"
-                    }
-                }
-
-                MouseArea { anchors.fill: parent; onClicked: screenDelegate.closeAllPanels() }
-
-                Item {
-                    id: npContainer
-                    x: 8
-                    y: bar.implicitHeight + 5
-                    width: nowPlayingPanelContent.implicitWidth
-                    height: nowPlayingPanelContent.implicitHeight
-                    MouseArea { anchors.fill: parent }
-                    Rectangle {
-                        id: npShadow
-                        anchors.fill: parent
-                        anchors.leftMargin: 2
-                        anchors.topMargin: 3
-                        z: -1
-                        radius: 14
-                        color: shellRoot.shellColors.panelShadow
-                    }
-                    MiniPlayerContent {
-                        id: nowPlayingPanelContent
-                        anchors.fill: parent
-                        colors: shellRoot.shellColors
-                        player: nowPlayingWidget
-                        isOpen: screenDelegate.nowPlayingPopupVisible
-                        onClose: function() { screenDelegate.nowPlayingPopupVisible = false }
-                    }
+                MiniPlayerContent {
+                    id: nowPlayingPanelContent
+                    anchors.fill: parent
+                    colors: shellRoot.shellColors
+                    player: nowPlayingWidget
+                    isOpen: screenDelegate.nowPlayingPopupVisible
+                    onClose: function() { screenDelegate.nowPlayingPopupVisible = false }
                 }
             }
 

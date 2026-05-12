@@ -16,7 +16,7 @@ Item {
         }
     }
 
-    implicitWidth: 280
+    implicitWidth: 340
     implicitHeight: 140
 
     function friendlyName(pid) {
@@ -195,6 +195,47 @@ Item {
                                 text: "\uF050"
                                 color: colors.textMain
                                 font.pixelSize: 14
+                                font.family: colors.widgetIconFont
+                            }
+                        }
+                    }
+                    Item { width: 8; height: 1 }
+                    MouseArea {
+                        id: shufBtn
+                        width: 26
+                        height: 28
+                        hoverEnabled: true
+                        readonly property bool on: miniPlayerContent.player && miniPlayerContent.player.shuffleOn
+                        onClicked: if (miniPlayerContent.player) miniPlayerContent.player.toggleShuffle()
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: 4
+                            color: shufBtn.containsMouse ? colors.surfaceBright : "transparent"
+                            Text {
+                                anchors.centerIn: parent
+                                text: "\uF074"
+                                color: shufBtn.on ? colors.primary : colors.textDim
+                                font.pixelSize: 13
+                                font.family: colors.widgetIconFont
+                            }
+                        }
+                    }
+                    MouseArea {
+                        id: loopBtn
+                        width: 26
+                        height: 28
+                        hoverEnabled: true
+                        readonly property string mode: miniPlayerContent.player ? miniPlayerContent.player.loopMode : "None"
+                        onClicked: if (miniPlayerContent.player) miniPlayerContent.player.cycleLoop()
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: 4
+                            color: loopBtn.containsMouse ? colors.surfaceBright : "transparent"
+                            Text {
+                                anchors.centerIn: parent
+                                text: loopBtn.mode === "Track" ? "\uF366" : "\uF363"
+                                color: loopBtn.mode === "None" ? colors.textDim : colors.primary
+                                font.pixelSize: 13
                                 font.family: colors.widgetIconFont
                             }
                         }

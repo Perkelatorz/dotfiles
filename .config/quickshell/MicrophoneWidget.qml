@@ -18,6 +18,8 @@ Item {
     }
 
     property bool muted: micWidget.source && micWidget.source.audio ? micWidget.source.audio.muted : false
+    property real level: micWidget.source && micWidget.source.audio ? micWidget.source.audio.volume : 0
+    readonly property int levelPct: Math.round(level * 100)
 
     implicitWidth: pill.width
     implicitHeight: 28
@@ -59,7 +61,7 @@ Item {
                     font.family: colors.widgetIconFont
                 }
                 Text {
-                    text: micWidget.muted ? "Muted" : "Mic"
+                    text: micWidget.muted ? "Muted" : (micWidget.levelPct + "%")
                     color: micWidget.pillTextColor
                     font.pixelSize: colors.cpuFontSize
                 }
@@ -82,7 +84,7 @@ Item {
             Text {
                 id: micTip
                 anchors.centerIn: parent
-                text: micWidget.muted ? "Mic muted" : "Mic active"
+                text: micWidget.muted ? "Mic muted" : ("Mic " + micWidget.levelPct + "%")
                 color: colors.textMain
                 font.pixelSize: colors.fontSize - 1
             }

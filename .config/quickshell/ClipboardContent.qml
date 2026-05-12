@@ -80,12 +80,8 @@ ColumnLayout {
         pasteProc.running = true
     }
 
-    function thumbPath(idx) {
-        return "file:///run/user/" + Qt.application.pid.toString().replace(/.*/, "") + "/../cliphist-thumbs/qml_" + idx + ".png"
-    }
-
     function runtimeThumbPath(idx) {
-        return "file://" + "/tmp/cliphist-thumbs/qml_" + idx + ".png"
+        return "file://" + runtimeDirProc.dir + "/cliphist-thumbs/qml_" + idx + ".png"
     }
 
     Process {

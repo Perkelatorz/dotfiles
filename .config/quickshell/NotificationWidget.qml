@@ -17,79 +17,43 @@ Item {
     implicitWidth: pill.width
     implicitHeight: 28
 
-    Process {
-        id: countProc
+    PollingProcess {
+        id: countPoll
         command: ["swaync-client", "-c"]
-        running: false
-        stdout: StdioCollector {
-            onStreamFinished: {
-                var s = (countProc.stdout.text || "").trim()
-                var n = parseInt(s, 10)
-                notifWidget.notifCount = isNaN(n) ? 0 : Math.max(0, n)
-                countProc.running = false
-            }
+        interval: 3000
+        active: notifWidget.visible
+        onOutput: (text) => {
+            var n = parseInt((text || "").trim(), 10)
+            notifWidget.notifCount = isNaN(n) ? 0 : Math.max(0, n)
         }
     }
 
-    Process {
-        id: dndProc
+    PollingProcess {
+        id: dndPoll
         command: ["swaync-client", "-D"]
-        running: false
-        stdout: StdioCollector {
-            onStreamFinished: {
-                var s = (dndProc.stdout.text || "").trim().toLowerCase()
-                notifWidget.dndActive = (s === "true")
-                dndProc.running = false
-            }
-        }
+        interval: 3000
+        active: notifWidget.visible
+        onOutput: (text) => notifWidget.dndActive = ((text || "").trim().toLowerCase() === "true")
     }
 
     Process {
         id: togglePanelProc
         command: ["swaync-client", "-t"]
         running: false
-        stdout: StdioCollector {
-            onStreamFinished: togglePanelProc.running = false
-        }
     }
 
     Process {
         id: dismissAllProc
         command: ["swaync-client", "-C"]
         running: false
-        stdout: StdioCollector {
-            onStreamFinished: {
-                dismissAllProc.running = false
-                countProc.running = true
-            }
-        }
+        onRunningChanged: if (!running) countPoll.refresh()
     }
 
     Process {
         id: toggleDndProc
         command: ["swaync-client", "-d"]
         running: false
-        stdout: StdioCollector {
-            onStreamFinished: {
-                toggleDndProc.running = false
-                dndProc.running = true
-            }
-        }
-    }
-
-    Timer {
-        interval: 3000
-        repeat: true
-        running: notifWidget.visible
-        onTriggered: {
-            if (!countProc.running) countProc.running = true
-            if (!dndProc.running) dndProc.running = true
-        }
-    }
-
-    Component.onCompleted: {
-        countProc.running = true
-        dndProc.running = true
+        onRunningChanged: if (!running) dndPoll.refresh()
     }
 
     Rectangle {
