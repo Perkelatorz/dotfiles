@@ -1,20 +1,13 @@
 #!/usr/bin/env bash
-# Capture current/focused monitor only. Set OUTPUT=name to override, or OUTPUT=all for full span.
+# Capture focused monitor (Hyprland). Set OUTPUT=name to override, OUTPUT=all for full span.
 set -e
-if [ -z "${WAYLAND_DISPLAY}" ]; then
-  for pid in $(pgrep -n kitty 2>/dev/null) $(pgrep -n foot 2>/dev/null) $(pgrep -n Hyprland 2>/dev/null | head -1) $(pgrep -n mango 2>/dev/null | head -1); do
-    [ -z "$pid" ] || [ ! -r "/proc/$pid/environ" ] && continue
-    while IFS= read -r -d '' line; do
-      case "$line" in WAYLAND_DISPLAY=*|XDG_RUNTIME_DIR=*) export "$line" ;; esac
-    done < "/proc/$pid/environ" 2>/dev/null && [ -n "$WAYLAND_DISPLAY" ] && break
-  done
-fi
-if [ "$OUTPUT" = "all" ]; then
+. "$(dirname "$0")/_wayland-env.sh"
+
+if [ "${OUTPUT:-}" = "all" ]; then
   grim - | wl-copy -t image/png
-elif [ -n "$OUTPUT" ]; then
+elif [ -n "${OUTPUT:-}" ]; then
   grim -o "$OUTPUT" - | wl-copy -t image/png
 else
-  # Use focused monitor (Hyprland, or fall through to full capture on other compositors)
   out=""
   if command -v hyprctl &>/dev/null && command -v jq &>/dev/null && pgrep -x Hyprland &>/dev/null; then
     out=$(hyprctl -j monitors 2>/dev/null | jq -r '.[] | select(.focused == true) | .name' | head -1)

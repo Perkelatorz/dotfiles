@@ -21,64 +21,44 @@ Item {
     implicitWidth: pill.width
     implicitHeight: 28
 
-    Process {
-        id: cpuProc
+    PollingProcess {
         command: ["sh", "-c", "head -1 /proc/stat"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                var data = this.text
-                if (!data) return
-                var p = data.trim().split(/\s+/)
-                if (p.length < 9) return
-                var idle = parseInt(p[4]) + parseInt(p[5])
-                var total = 0
-                for (var i = 1; i <= 8; i++)
-                    total += parseInt(p[i])
-                if (perfWidget.lastCpuTotal > 0) {
-                    var dTotal = total - perfWidget.lastCpuTotal
-                    var dIdle = idle - perfWidget.lastCpuIdle
-                    if (dTotal > 0) {
-                        var u = Math.round(100 * (1 - dIdle / dTotal))
-                        perfWidget.cpuUsage = Math.max(0, Math.min(100, u))
-                    }
-                }
-                perfWidget.lastCpuTotal = total
-                perfWidget.lastCpuIdle = idle
-                cpuProc.running = false
-            }
-        }
-        Component.onCompleted: running = true
-    }
-
-    Process {
-        id: ramProc
-        command: ["sh", "-c", "awk '/MemTotal/ {t=$2} /MemAvailable/ {a=$2} END {if(t>0) {u=t-a; printf \"%d %d %d\", int(100*u/t), int(u/1024), int(t/1024)}}' /proc/meminfo"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                var data = this.text
-                if (!data) return
-                var parts = data.trim().split(/\s+/)
-                if (parts.length >= 3) {
-                    var pct = parseInt(parts[0])
-                    if (!isNaN(pct)) perfWidget.ramPercent = Math.max(0, Math.min(100, pct))
-                    var usedMB = parseInt(parts[1])
-                    var totalMB = parseInt(parts[2])
-                    if (!isNaN(usedMB)) perfWidget.ramUsed = usedMB >= 1024 ? (usedMB / 1024).toFixed(1) + "G" : usedMB + "M"
-                    if (!isNaN(totalMB)) perfWidget.ramTotal = totalMB >= 1024 ? (totalMB / 1024).toFixed(1) + "G" : totalMB + "M"
-                }
-                ramProc.running = false
-            }
-        }
-        Component.onCompleted: running = true
-    }
-
-    Timer {
         interval: 2000
-        repeat: true
-        running: perfWidget.visible
-        onTriggered: {
-            if (!cpuProc.running) cpuProc.running = true
-            if (!ramProc.running) ramProc.running = true
+        active: perfWidget.visible
+        onOutput: (text) => {
+            if (!text) return
+            var p = text.trim().split(/\s+/)
+            if (p.length < 9) return
+            var idle = parseInt(p[4]) + parseInt(p[5])
+            var total = 0
+            for (var i = 1; i <= 8; i++) total += parseInt(p[i])
+            if (perfWidget.lastCpuTotal > 0) {
+                var dTotal = total - perfWidget.lastCpuTotal
+                var dIdle = idle - perfWidget.lastCpuIdle
+                if (dTotal > 0) {
+                    var u = Math.round(100 * (1 - dIdle / dTotal))
+                    perfWidget.cpuUsage = Math.max(0, Math.min(100, u))
+                }
+            }
+            perfWidget.lastCpuTotal = total
+            perfWidget.lastCpuIdle = idle
+        }
+    }
+
+    PollingProcess {
+        command: ["sh", "-c", "awk '/MemTotal/ {t=$2} /MemAvailable/ {a=$2} END {if(t>0) {u=t-a; printf \"%d %d %d\", int(100*u/t), int(u/1024), int(t/1024)}}' /proc/meminfo"]
+        interval: 2000
+        active: perfWidget.visible
+        onOutput: (text) => {
+            if (!text) return
+            var parts = text.trim().split(/\s+/)
+            if (parts.length < 3) return
+            var pct = parseInt(parts[0])
+            if (!isNaN(pct)) perfWidget.ramPercent = Math.max(0, Math.min(100, pct))
+            var usedMB = parseInt(parts[1])
+            var totalMB = parseInt(parts[2])
+            if (!isNaN(usedMB)) perfWidget.ramUsed = usedMB >= 1024 ? (usedMB / 1024).toFixed(1) + "G" : usedMB + "M"
+            if (!isNaN(totalMB)) perfWidget.ramTotal = totalMB >= 1024 ? (totalMB / 1024).toFixed(1) + "G" : totalMB + "M"
         }
     }
 

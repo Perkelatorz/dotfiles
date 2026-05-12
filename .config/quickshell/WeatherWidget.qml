@@ -8,123 +8,65 @@ Item {
     required property var colors
     property int pillIndex: 0
 
+    signal openForecastRequested()
+
     readonly property color pillColor: (colors.widgetPillColors && pillIndex >= 0 && pillIndex < colors.widgetPillColors.length) ? colors.widgetPillColors[pillIndex] : colors.primary
     readonly property color pillTextColor: (colors.widgetTextOnPillColors && pillIndex >= 0 && pillIndex < colors.widgetTextOnPillColors.length) ? colors.widgetTextOnPillColors[pillIndex] : colors.textMain
 
-    property string temperature: ""
-    property string condition: ""
-    property string location: ""
-    property bool hasData: false
+    readonly property string temperature: SystemServices.weatherTemp
+    readonly property string condition: SystemServices.weatherCondition
+    readonly property string location: SystemServices.weatherLocationName
+    readonly property bool hasData: SystemServices.weatherHasData
 
     implicitWidth: hasData ? pill.width : 0
     implicitHeight: hasData ? 28 : 0
     visible: hasData
 
     readonly property var conditionIcons: ({
-        "Clear": "\uF185",
-        "Sunny": "\uF185",
-        "Partly cloudy": "\uF6C4",
-        "Partly Cloudy": "\uF6C4",
-        "Cloudy": "\uF0C2",
-        "Overcast": "\uF0C2",
-        "Mist": "\uF75F",
-        "Fog": "\uF75F",
-        "Patchy rain possible": "\uF73D",
-        "Patchy rain nearby": "\uF73D",
-        "Light rain": "\uF73D",
-        "Light Rain": "\uF73D",
-        "Moderate rain": "\uF740",
-        "Heavy rain": "\uF740",
-        "Rain": "\uF740",
-        "Light drizzle": "\uF73D",
-        "Drizzle": "\uF73D",
-        "Patchy snow possible": "\uF2DC",
-        "Light snow": "\uF2DC",
-        "Snow": "\uF2DC",
-        "Heavy snow": "\uF2DC",
-        "Blizzard": "\uF2DC",
-        "Thunderstorm": "\uF0E7",
-        "Thunder": "\uF0E7",
-        "Patchy light rain with thunder": "\uF0E7"
+        "Clear": "",
+        "Sunny": "",
+        "Partly cloudy": "",
+        "Partly Cloudy": "",
+        "Cloudy": "",
+        "Overcast": "",
+        "Mist": "",
+        "Fog": "",
+        "Patchy rain possible": "",
+        "Patchy rain nearby": "",
+        "Light rain": "",
+        "Light Rain": "",
+        "Moderate rain": "",
+        "Heavy rain": "",
+        "Rain": "",
+        "Light drizzle": "",
+        "Drizzle": "",
+        "Patchy snow possible": "",
+        "Light snow": "",
+        "Snow": "",
+        "Heavy snow": "",
+        "Blizzard": "",
+        "Thunderstorm": "",
+        "Thunder": "",
+        "Patchy light rain with thunder": ""
     })
 
     function weatherIcon(cond) {
-        if (!cond) return "\uF0C2"
+        if (!cond) return ""
         if (conditionIcons[cond]) return conditionIcons[cond]
         var c = cond.toLowerCase()
-        if (c.indexOf("sun") >= 0 || c.indexOf("clear") >= 0) return "\uF185"
-        if (c.indexOf("thunder") >= 0 || c.indexOf("storm") >= 0) return "\uF0E7"
-        if (c.indexOf("snow") >= 0 || c.indexOf("sleet") >= 0 || c.indexOf("ice") >= 0 || c.indexOf("blizzard") >= 0) return "\uF2DC"
-        if (c.indexOf("rain") >= 0 || c.indexOf("drizzle") >= 0 || c.indexOf("shower") >= 0) return "\uF73D"
-        if (c.indexOf("fog") >= 0 || c.indexOf("mist") >= 0 || c.indexOf("haze") >= 0) return "\uF75F"
-        if (c.indexOf("cloud") >= 0 || c.indexOf("overcast") >= 0) return "\uF0C2"
-        return "\uF0C2"
-    }
-
-    property string weatherLocation: ""
-    readonly property string _weatherUrl: weatherLocation ? ("wttr.in/" + weatherLocation) : "wttr.in"
-
-    Process {
-        id: loadLocProc
-        command: ["sh", "-c", "cat \"${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/weather-location.txt\" 2>/dev/null || echo ''"]
-        running: true
-        stdout: StdioCollector {
-            onStreamFinished: {
-                weatherWidget.weatherLocation = (loadLocProc.stdout.text || "").trim()
-                loadLocProc.running = false
-            }
-        }
-    }
-
-    Process {
-        id: weatherProc
-        command: ["sh", "-c", "curl -s '" + weatherWidget._weatherUrl + "?format=%C|%t' 2>/dev/null"]
-        running: false
-        stdout: StdioCollector {
-            onStreamFinished: {
-                var s = (weatherProc.stdout.text || "").trim()
-                if (s && s.indexOf("|") >= 0) {
-                    var parts = s.split("|")
-                    weatherWidget.condition = (parts[0] || "").trim()
-                    var t = (parts[1] || "").trim()
-                    weatherWidget.temperature = t.replace(/^\+/, "")
-                    weatherWidget.hasData = true
-                } else {
-                    weatherWidget.hasData = false
-                }
-                weatherProc.running = false
-            }
-        }
-    }
-
-    Process {
-        id: locationProc
-        command: ["sh", "-c", "curl -s '" + weatherWidget._weatherUrl + "?format=%l' 2>/dev/null"]
-        running: false
-        stdout: StdioCollector {
-            onStreamFinished: {
-                weatherWidget.location = (locationProc.stdout.text || "").trim()
-                locationProc.running = false
-            }
-        }
+        if (c.indexOf("sun") >= 0 || c.indexOf("clear") >= 0) return ""
+        if (c.indexOf("thunder") >= 0 || c.indexOf("storm") >= 0) return ""
+        if (c.indexOf("snow") >= 0 || c.indexOf("sleet") >= 0 || c.indexOf("ice") >= 0 || c.indexOf("blizzard") >= 0) return ""
+        if (c.indexOf("rain") >= 0 || c.indexOf("drizzle") >= 0 || c.indexOf("shower") >= 0) return ""
+        if (c.indexOf("fog") >= 0 || c.indexOf("mist") >= 0 || c.indexOf("haze") >= 0) return ""
+        if (c.indexOf("cloud") >= 0 || c.indexOf("overcast") >= 0) return ""
+        return ""
     }
 
     Process {
         id: openBrowser
-        command: ["xdg-open", "https://" + weatherWidget._weatherUrl]
+        command: ["xdg-open", SystemServices.weatherLocation ? ("https://wttr.in/" + SystemServices.weatherLocation) : "https://wttr.in"]
         running: false
-    }
-
-    Timer {
-        interval: 900000
-        repeat: true
-        running: weatherWidget.visible
-        onTriggered: if (!weatherProc.running) weatherProc.running = true
-    }
-
-    Component.onCompleted: {
-        weatherProc.running = true
-        locationProc.running = true
     }
 
     Rectangle {
@@ -147,7 +89,11 @@ Item {
             anchors.fill: parent
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
-            onClicked: openBrowser.running = true
+            acceptedButtons: Qt.LeftButton | Qt.MiddleButton
+            onClicked: function(mouse) {
+                if (mouse.button === Qt.MiddleButton) openBrowser.running = true
+                else weatherWidget.openForecastRequested()
+            }
         }
         Row {
             id: row

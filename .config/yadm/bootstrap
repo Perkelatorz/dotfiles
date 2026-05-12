@@ -1,633 +1,451 @@
 #!/bin/bash
 set -euo pipefail
 
-# YADM Bootstrap Script
-# Automates Arch Linux package installation and system setup (Arch Linux only).
-# Requires: bash 4+, GNU find. Run after: yadm clone <repo> && yadm bootstrap
-# Options: --core-only  skip interactive extra-package selection and Hyprland plugin prompt
-#          CLAUDE_CODE_SKIP=1  skip Claude Code CLI install (official curl | bash installer)
-#          BOOTSTRAP_FULL_SYSTEM_UPGRADE=1  run pacman -Syu after -Sy (recommended on fresh machines)
+# YADM bootstrap for fresh Arch install.
+# Run: yadm clone <repo> && yadm bootstrap
+# Options:
+#   --core-only                       Skip extra-package fzf and Hyprland plugin prompt.
+#   CLAUDE_CODE_SKIP=1                Skip Claude Code CLI install.
+#   BOOTSTRAP_FULL_SYSTEM_UPGRADE=1   Run pacman -Syu (not just -Sy) before installs.
+#   BOOTSTRAP_SKIP_RDP=1              Skip xrdp/XFCE session config (desktop-only machines).
 
-# Configuration
 PKG_DIR="$HOME/.config/yadm/packages"
 SECRETS_FILE="$HOME/.config/nvim/secrets.lua"
 MATUGEN_THEMES_DIR="$HOME/.config/matugen-themes"
 SCRIPTS_DIR="$HOME/.config/scripts"
 CORE_ONLY=false
-tmp_pkg_file=""
-tmp_aur_file=""
 
-# Clean up temp files on exit (used in Phase 3)
-cleanup_temp_files() {
-    [[ -n "$tmp_pkg_file" && -f "$tmp_pkg_file" ]] && rm -f "$tmp_pkg_file"
-    [[ -n "$tmp_aur_file" && -f "$tmp_aur_file" ]] && rm -f "$tmp_aur_file"
-}
-trap cleanup_temp_files EXIT
+# Counters (referenced by nameref in process_packages)
+core_pacman_installed=0;  core_pacman_skipped=0
+core_aur_installed=0;     core_aur_skipped=0
+extra_pacman_installed=0; extra_pacman_skipped=0
+extra_aur_installed=0;    extra_aur_skipped=0
 
-# Track installation stats
-core_pacman_installed=0
-core_pacman_skipped=0
-core_aur_installed=0
-core_aur_skipped=0
-extra_pacman_installed=0
-extra_pacman_skipped=0
-extra_aur_installed=0
-extra_aur_skipped=0
+tmp_files=()
+cleanup() { for f in "${tmp_files[@]}"; do [[ -f "$f" ]] && rm -f "$f"; done; }
+trap cleanup EXIT
 
-# --- Utility Functions ---
+# --- helpers ---
 
 ensure_base_devel() {
-    if ! pacman -Q base-devel &>/dev/null; then
-        echo "🔧 Installing base-devel (required for AUR builds)..."
-        sudo pacman -S --needed --noconfirm base-devel
-    fi
+    pacman -Q base-devel &>/dev/null && return
+    echo "🔧 Installing base-devel..."
+    sudo pacman -S --needed --noconfirm base-devel
 }
 
 ensure_paru() {
-    if ! command -v paru &>/dev/null; then
-        ensure_base_devel
-        echo "🔧 Installing 'paru' AUR helper..."
-        # Subshell so we do not replace the global EXIT trap (cleanup_temp_files).
-        (
-            tmpdir="$(mktemp -d)"
-            trap 'rm -rf "$tmpdir"' EXIT
-            git clone https://aur.archlinux.org/paru.git "$tmpdir/paru"
-            (cd "$tmpdir/paru" && makepkg -si --noconfirm)
-        )
-    fi
+    command -v paru &>/dev/null && return
+    ensure_base_devel
+    echo "🔧 Building paru from AUR..."
+    # Subshell to keep our EXIT trap intact.
+    (
+        tmpdir=$(mktemp -d)
+        trap 'rm -rf "$tmpdir"' EXIT
+        git clone https://aur.archlinux.org/paru.git "$tmpdir/paru"
+        (cd "$tmpdir/paru" && makepkg -si --noconfirm)
+    )
 }
 
 read_pkg_file() {
-    # Read non-empty, non-comment lines from a file into stdout
+    # Emit non-empty, non-comment lines.
     local file="$1"
-    if [[ ! -f "$file" ]]; then
-        echo "⚠️  Warning: Package file '$file' not found" >&2
-        return 1
-    fi
-    grep -v '^[[:space:]]*#' "$file" | grep -v '^[[:space:]]*$' || true
+    [[ -f "$file" ]] || { echo "⚠️  $file not found" >&2; return 1; }
+    grep -Ev '^[[:space:]]*(#|$)' "$file" || true
 }
 
-dedupe_array() {
-    # Usage: dedupe_array "${arr[@]}"
-    awk '!seen[$0]++'
-}
-
-filter_installed_packages_bulk() {
-    # Check multiple packages at once (much faster than one-by-one)
-    # Uses bulk queries: pacman -Q and paru -Q can check multiple packages at once
-    # args: package manager type, package array
-    local pkgmgr="$1"
-    shift
+# Split given packages into installed vs missing using one bulk -Q query.
+# Echoes "installed <pkg>" / "missing <pkg>" lines.
+classify_packages() {
+    local pkgmgr="$1"; shift
     local -a pkgs=("$@")
-    
-    if [ ${#pkgs[@]} -eq 0 ]; then
-        return 0
-    fi
-    
-    # Filter out empty packages
-    local -a valid_pkgs=()
-    for pkg in "${pkgs[@]}"; do
-        [[ -n "$pkg" ]] && valid_pkgs+=("$pkg")
-    done
-    
-    if [ ${#valid_pkgs[@]} -eq 0 ]; then
-        return 0
-    fi
-    
-    # Query all packages at once - only installed ones will be in output
-    local installed_output
+    [[ ${#pkgs[@]} -eq 0 ]] && return 0
+
+    local installed
     if [[ "$pkgmgr" == "pacman" ]]; then
-        installed_output=$(pacman -Q "${valid_pkgs[@]}" 2>/dev/null | awk '{print $1}' || true)
+        installed=$(pacman -Q "${pkgs[@]}" 2>/dev/null | awk '{print $1}' || true)
     else
-        installed_output=$(paru -Q "${valid_pkgs[@]}" 2>/dev/null | awk '{print $1}' || true)
+        installed=$(paru -Q "${pkgs[@]}" 2>/dev/null | awk '{print $1}' || true)
     fi
-    
-    # Check each package - if it's in the installed output, it's installed
-    for pkg in "${valid_pkgs[@]}"; do
-        if echo "$installed_output" | grep -Fxq "$pkg" 2>/dev/null; then
-            echo "installed $pkg"
+    for p in "${pkgs[@]}"; do
+        if grep -Fxq "$p" <<<"$installed"; then
+            echo "installed $p"
         else
-            echo "missing $pkg"
+            echo "missing $p"
         fi
     done
 }
 
-install_packages_batch() {
-    # Install packages in a single bulk operation (much faster than one-by-one)
-    # args: package manager type, package list
-    local pkgmgr="$1"
-    shift
+# Install missing packages in one transaction. pacman/paru already log per-package failures.
+install_packages() {
+    local pkgmgr="$1"; shift
     local -a pkgs=("$@")
-    
-    if [ ${#pkgs[@]} -eq 0 ]; then
-        return 0
-    fi
-    
-    local pkgmgr_name
+    [[ ${#pkgs[@]} -eq 0 ]] && return 0
+
     if [[ "$pkgmgr" == "pacman" ]]; then
-        pkgmgr_name="pacman"
-        echo "   → Installing ${#pkgs[@]} pacman packages in bulk..."
-        # --needed skips already installed packages, --noconfirm is non-interactive
-        # This installs all packages in a single transaction (fastest method)
-        if sudo pacman -S --needed --noconfirm "${pkgs[@]}"; then
-            echo "   ✓ Successfully installed ${#pkgs[@]} packages"
-            return 0
-        else
-            echo "   ⚠️  Bulk pacman install had issues. Attempting per-package fallback..."
-            local failed=0
-            for p in "${pkgs[@]}"; do
-                if sudo pacman -S --needed --noconfirm "$p" >/dev/null 2>&1; then
-                    : # Success
-                else
-                    echo "   ⚠️  Failed to install $p"
-                    failed=$((failed + 1))
-                fi
-            done
-            if [ $failed -eq 0 ]; then
-                echo "   ✓ All packages installed successfully via fallback"
-                return 0
-            else
-                echo "   ⚠️  $failed package(s) failed to install"
-                return 1
-            fi
-        fi
+        echo "   → Installing ${#pkgs[@]} pacman package(s)..."
+        sudo pacman -S --needed --noconfirm "${pkgs[@]}"
     else
-        pkgmgr_name="AUR"
-        echo "   → Installing ${#pkgs[@]} AUR packages in bulk..."
-        # paru handles bulk AUR installations efficiently
-        set +e
-        if paru -S --needed --noconfirm "${pkgs[@]}"; then
-            set -e
-            echo "   ✓ Successfully installed ${#pkgs[@]} packages"
-            return 0
-        else
-            set -e
-            echo "   ⚠️  Bulk AUR install had issues. Attempting per-package fallback..."
-            local failed=0
-            for p in "${pkgs[@]}"; do
-                set +e
-                if paru -S --needed --noconfirm "$p" >/dev/null 2>&1; then
-                    : # Success
-                else
-                    echo "   ⚠️  Failed to install $p"
-                    failed=$((failed + 1))
-                fi
-                set -e
-            done
-            if [ $failed -eq 0 ]; then
-                echo "   ✓ All packages installed successfully via fallback"
-                return 0
-            else
-                echo "   ⚠️  $failed package(s) failed to install"
-                return 1
-            fi
-        fi
+        echo "   → Installing ${#pkgs[@]} AUR package(s)..."
+        paru -S --needed --noconfirm "${pkgs[@]}"
     fi
 }
 
 process_packages() {
-    # Unified function to process packages (pacman or AUR)
-    # args: pkgmgr_type, package_file, installed_counter_var, skipped_counter_var
-    local pkgmgr="$1"
-    local pkg_file="$2"
-    local installed_var="$3"
-    local skipped_var="$4"
-    
-    if [[ ! -f "$pkg_file" ]]; then
-        echo "⚠️  $pkg_file not found. Skipping."
-        return 0
-    fi
-    
-    local pkgmgr_name
-    local pkgmgr_icon
-    if [[ "$pkgmgr" == "pacman" ]]; then
-        pkgmgr_name="pacman"
-        pkgmgr_icon="📦"
-    else
-        pkgmgr_name="AUR"
-        pkgmgr_icon="🔧"
-    fi
-    
-    mapfile -t packages < <(read_pkg_file "$pkg_file" | dedupe_array)
-    
-    if [ ${#packages[@]} -eq 0 ]; then
-        return 0
-    fi
-    
-    echo "$pkgmgr_icon Processing ${#packages[@]} $pkgmgr_name packages..."
-    
-    if [[ "$pkgmgr" == "aur" ]]; then
-        ensure_paru
-    fi
-    
-    # Split into installed vs missing (using bulk checking)
-    local installed_list=()
-    local missing_list=()
+    # args: pkgmgr_type pkg_file installed_counter_name skipped_counter_name
+    local pkgmgr="$1" pkg_file="$2"
+    local -n installed_ref="$3"
+    local -n skipped_ref="$4"
+
+    [[ -f "$pkg_file" ]] || { echo "⚠️  $pkg_file not found. Skipping."; return 0; }
+
+    local icon="📦"; [[ "$pkgmgr" == "aur" ]] && icon="🔧"
+    mapfile -t packages < <(read_pkg_file "$pkg_file" | awk '!seen[$0]++')
+    [[ ${#packages[@]} -eq 0 ]] && return 0
+
+    echo "$icon Processing ${#packages[@]} $pkgmgr package(s) from $(basename "$pkg_file")..."
+    [[ "$pkgmgr" == "aur" ]] && ensure_paru
+
+    local -a installed_list=() missing_list=()
     while read -r status pkg; do
-        if [[ "$status" == "installed" ]]; then
-            installed_list+=("$pkg")
-        else
-            missing_list+=("$pkg")
-        fi
-    done < <(
-        filter_installed_packages_bulk "$pkgmgr" "${packages[@]}"
-    )
-    
-    for p in "${installed_list[@]}"; do
-        echo "   ✓ $p (already installed)"
-    done
-    
-    # Update counters
-    eval "$skipped_var=\$((\$$skipped_var + \${#installed_list[@]}))"
-    
-    if [ ${#missing_list[@]} -gt 0 ]; then
-        if install_packages_batch "$pkgmgr" "${missing_list[@]}"; then
-            eval "$installed_var=\$((\$$installed_var + \${#missing_list[@]}))"
-        fi
+        [[ "$status" == "installed" ]] && installed_list+=("$pkg") || missing_list+=("$pkg")
+    done < <(classify_packages "$pkgmgr" "${packages[@]}")
+
+    for p in "${installed_list[@]}"; do echo "   ✓ $p (already installed)"; done
+    skipped_ref=$((skipped_ref + ${#installed_list[@]}))
+
+    if [[ ${#missing_list[@]} -gt 0 ]] && install_packages "$pkgmgr" "${missing_list[@]}"; then
+        installed_ref=$((installed_ref + ${#missing_list[@]}))
     fi
 }
 
-# --- Setup Functions ---
-
-setup_matugen_themes() {
-    if [[ -d "$MATUGEN_THEMES_DIR/.git" ]]; then
-        echo "   ✓ matugen-themes already cloned"
-        return 0
-    fi
-    if [[ -d "$MATUGEN_THEMES_DIR" ]]; then
-        echo "   ⚠️  $MATUGEN_THEMES_DIR exists but is not a git repo; skipping clone."
-        echo "      Remove it or run: git clone https://github.com/InioX/matugen-themes.git $MATUGEN_THEMES_DIR"
-        return 0
-    fi
-    echo "🎨 Cloning matugen-themes (for Quickshell/Hyprland theming)..."
-    mkdir -p "$(dirname "$MATUGEN_THEMES_DIR")"
-    if git clone --depth 1 https://github.com/InioX/matugen-themes.git "$MATUGEN_THEMES_DIR"; then
-        echo "   ✓ Cloned to $MATUGEN_THEMES_DIR"
-    else
-        echo "   ⚠️  Failed to clone matugen-themes (select-wallpaper.sh will need it)"
-    fi
-}
-
-setup_scripts_executable() {
-    local count=0
-    if [[ -d "$SCRIPTS_DIR" ]]; then
-        for f in "$SCRIPTS_DIR"/*.sh; do
-            if [[ -f "$f" ]]; then
-                chmod +x "$f"
-                count=$((count + 1))
-            fi
-        done
-        if [[ $count -gt 0 ]]; then
-            echo "   ✓ $count script(s) in $SCRIPTS_DIR made executable"
-        else
-            echo "   (no .sh scripts in $SCRIPTS_DIR)"
-        fi
-    else
-        echo "   (scripts dir not found: $SCRIPTS_DIR)"
-    fi
-}
-
-# HTTP/HTTPS default handler (xdg-open, Codeium Chat, many GUIs). Complements ~/.config/environment.d/browser.conf + $BROWSER in .zprofile.
-setup_default_browser_firefox() {
-    echo "🌐 Default browser (http/https) → Firefox (xdg-mime)..."
-    if ! command -v xdg-mime &>/dev/null; then
-        echo "   ⚠️  xdg-mime not found; install xdg-utils"
-        return 0
-    fi
-    local desk=""
-    local appdir="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
-    for d in firefox.desktop org.mozilla.firefox.desktop; do
-        if [[ -f "/usr/share/applications/$d" ]] || [[ -f "$appdir/$d" ]]; then
-            desk="$d"
-            break
-        fi
-    done
-    if [[ -z "$desk" ]]; then
-        echo "   ⚠️  No Firefox .desktop found; install firefox or set xdg-mime default manually"
-        return 0
-    fi
-    if xdg-mime default "$desk" x-scheme-handler/http 2>/dev/null &&
-        xdg-mime default "$desk" x-scheme-handler/https 2>/dev/null; then
-        echo "   ✓ xdg-mime default: $desk (http, https)"
-    else
-        echo "   ⚠️  xdg-mime default failed"
-    fi
-}
-
-# After pacman installs `neovim`, clone vim.pack plugins once (Mason/LSP still finish in :Mason).
-warm_neovim_plugins() {
-    if ! command -v nvim &>/dev/null; then
-        echo "   (Neovim not on PATH yet; skipping vim.pack warm)"
-        return 0
-    fi
-    if [[ ! -f "$HOME/.config/nvim/init.lua" ]]; then
-        echo "   (No ~/.config/nvim/init.lua; skipping vim.pack warm)"
-        return 0
-    fi
-    echo "📝 Neovim: running headless startup to install vim.pack plugins (from nvim-pack-lock.json)..."
-    local log
-    log=$(mktemp)
-    set +e
-    nvim --headless -u "$HOME/.config/nvim/init.lua" -c 'qa' >"$log" 2>&1
-    local ec=$?
-    set -e
-    tail -n 8 "$log" 2>/dev/null || true
-    rm -f "$log"
-    if [[ $ec -eq 0 ]]; then
-        echo "   ✓ vim.pack step done — open Neovim and :Mason for LSP/formatter binaries"
-    else
-        echo "   ⚠️  Headless Neovim exited with $ec (network?); run nvim once manually."
-    fi
-}
-
-# Official installer: https://docs.claude.com/en/docs/claude-code (binary is typically `claude`).
-install_claude_code_cli() {
-    if [[ "${CLAUDE_CODE_SKIP:-}" == "1" ]]; then
-        echo "⏭️  CLAUDE_CODE_SKIP=1 — skipping Claude Code CLI install"
-        return 0
-    fi
-    if command -v claude &>/dev/null; then
-        echo "   ✓ Claude Code CLI already on PATH ($(command -v claude))"
-        return 0
-    fi
-    if [[ -x "$HOME/.local/bin/claude" ]]; then
-        echo "   ✓ Claude Code CLI already at ~/.local/bin/claude (ensure ~/.local/bin is on your PATH)"
-        return 0
-    fi
-    if ! command -v curl &>/dev/null; then
-        echo "   ⚠️  curl not on PATH; skipping Claude Code install"
-        return 0
-    fi
-    echo "🤖 Installing Claude Code CLI (https://claude.ai/install.sh)..."
-    mkdir -p "$HOME/.local/bin"
-    local inst
-    inst=$(mktemp "${TMPDIR:-/tmp}/claude-install.XXXXXX")
-    if ! curl -fsSL https://claude.ai/install.sh -o "$inst"; then
-        echo "   ⚠️  Failed to download install.sh (network?)"
-        rm -f "$inst"
-        return 0
-    fi
-    set +e
-    bash "$inst"
-    local ec=$?
-    set -e
-    rm -f "$inst"
-    if [[ $ec -ne 0 ]]; then
-        echo "   ⚠️  Claude Code install exited $ec — install manually: curl -fsSL https://claude.ai/install.sh | bash"
-        return 0
-    fi
-    if command -v claude &>/dev/null || [[ -x "$HOME/.local/bin/claude" ]]; then
-        echo "   ✓ Claude Code CLI install step finished"
-    else
-        echo "   ⚠️  Install ran but \`claude\` not found; check script output and your PATH (~/.local/bin)"
-    fi
-}
+# --- setup steps ---
 
 setup_neovim_secrets() {
-    echo "🔐 Setting up Neovim API keys..."
-    
-    if [[ ! -d "$(dirname "$SECRETS_FILE")" ]]; then
-        mkdir -p "$(dirname "$SECRETS_FILE")"
+    echo "🔐 Neovim secrets..."
+    mkdir -p "$(dirname "$SECRETS_FILE")"
+    if [[ -f "$SECRETS_FILE" ]]; then
+        echo "   ✓ secrets.lua already present"
+        return
     fi
-    
-    if [ -f "$SECRETS_FILE" ]; then
-        echo "   ✓ secrets.lua already exists, skipping..."
-    else
-        echo "   Creating secrets.lua template..."
-        cat > "$SECRETS_FILE" << 'EOF'
+    cat > "$SECRETS_FILE" <<'EOF'
 return {
   ANTHROPIC_API_KEY = "your-anthropic-key-here",
   OPENAI_API_KEY = "your-openai-key-here",
 }
 EOF
-        echo "   ✓ Created $SECRETS_FILE"
-        echo "   ⚠️  Please edit this file and add your actual API keys!"
+    echo "   ✓ Created $SECRETS_FILE — edit and add real keys"
+}
+
+setup_matugen_themes() {
+    if [[ -d "$MATUGEN_THEMES_DIR/.git" ]]; then
+        echo "   ✓ matugen-themes already cloned"; return
+    fi
+    if [[ -d "$MATUGEN_THEMES_DIR" ]]; then
+        echo "   ⚠️  $MATUGEN_THEMES_DIR exists but is not a git repo; skipping"
+        return
+    fi
+    echo "🎨 Cloning matugen-themes..."
+    mkdir -p "$(dirname "$MATUGEN_THEMES_DIR")"
+    git clone --depth 1 https://github.com/InioX/matugen-themes.git "$MATUGEN_THEMES_DIR" \
+        || echo "   ⚠️  Clone failed (select-wallpaper.sh needs this)"
+}
+
+setup_scripts_executable() {
+    [[ -d "$SCRIPTS_DIR" ]] || { echo "   (no $SCRIPTS_DIR)"; return; }
+    local count=0
+    for f in "$SCRIPTS_DIR"/*.sh; do
+        [[ -f "$f" ]] && { chmod +x "$f"; count=$((count+1)); }
+    done
+    echo "   ✓ $count script(s) in $SCRIPTS_DIR made executable"
+}
+
+# Default http/https → Firefox (complements BROWSER env in environment.d/zprofile).
+setup_default_browser_firefox() {
+    echo "🌐 Default browser → Firefox..."
+    if ! command -v xdg-mime &>/dev/null; then
+        echo "   ⚠️  xdg-mime missing (install xdg-utils)"; return
+    fi
+    local desk="" appdir="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
+    for d in firefox.desktop org.mozilla.firefox.desktop; do
+        if [[ -f "/usr/share/applications/$d" || -f "$appdir/$d" ]]; then desk="$d"; break; fi
+    done
+    [[ -z "$desk" ]] && { echo "   ⚠️  No Firefox .desktop found"; return; }
+    if xdg-mime default "$desk" x-scheme-handler/http x-scheme-handler/https 2>/dev/null; then
+        echo "   ✓ xdg-mime default set: $desk"
+    else
+        echo "   ⚠️  xdg-mime default failed"
+    fi
+}
+
+# Thunar as default file manager (shared between Hyprland local + XFCE/RDP session).
+setup_default_file_manager_thunar() {
+    echo "🗂  Default file manager → Thunar..."
+    if ! command -v xdg-mime &>/dev/null; then
+        echo "   ⚠️  xdg-mime missing"; return
+    fi
+    local desk="thunar.desktop"
+    if [[ ! -f "/usr/share/applications/$desk" ]]; then
+        echo "   ⚠️  $desk not found; install thunar"; return
+    fi
+    if xdg-mime default "$desk" inode/directory application/x-gnome-saved-search 2>/dev/null; then
+        echo "   ✓ xdg-mime default set: $desk"
+    else
+        echo "   ⚠️  xdg-mime default failed"
+    fi
+}
+
+# Tailscale daemon — enables tailscaled. User runs `sudo tailscale up` interactively.
+setup_tailscale() {
+    echo "🔐 Tailscale daemon..."
+    if ! command -v tailscale &>/dev/null; then
+        echo "   (tailscale not installed; skipping)"
+        return
+    fi
+    if ! systemctl list-unit-files tailscaled.service &>/dev/null; then
+        echo "   ⚠️  tailscaled.service not present"
+        return
+    fi
+    if sudo systemctl enable --now tailscaled 2>/dev/null; then
+        echo "   ✓ tailscaled running"
+    else
+        echo "   ⚠️  Failed — run: sudo systemctl enable --now tailscaled"
+    fi
+    if tailscale status &>/dev/null; then
+        echo "   ✓ Already authed: $(tailscale ip -4 2>/dev/null | head -1)"
+    else
+        echo "   ℹ️  Auth next: sudo tailscale up   (opens browser/login URL)"
+    fi
+}
+
+# RDP via xrdp → XFCE session. Wayland/Hyprland cannot serve over RDP.
+# Stock /etc/xrdp/startwm.sh reads ~/.xinitrc (NOT ~/.xsession), so write .xinitrc.
+# Strips Wayland/Hyprland env so XFCE/dbus start clean; kills stale xfconfd from
+# the local Hyprland session sharing $HOME.
+setup_rdp_xfce_session() {
+    if [[ "${BOOTSTRAP_SKIP_RDP:-}" == "1" ]]; then
+        echo "⏭️  Skipping RDP setup (BOOTSTRAP_SKIP_RDP=1)"
+        return
+    fi
+    echo "🔌 RDP session setup (xrdp → XFCE)..."
+    if ! command -v xrdp &>/dev/null; then
+        echo "   (xrdp not installed yet; skipping — re-run bootstrap after AUR phase)"
+        return
+    fi
+    if ! command -v startxfce4 &>/dev/null; then
+        echo "   ⚠️  startxfce4 missing — install xfce4 group (profile_xfce.pkgs) or CachyOS XFCE edition"
+        return
+    fi
+
+    local xi="$HOME/.xinitrc"
+    local marker="# managed by yadm bootstrap (rdp-xfce)"
+    if [[ -f "$xi" ]] && ! grep -qF "$marker" "$xi"; then
+        cp "$xi" "$xi.bak.$(date +%s)"
+        echo "   → Backed up existing $xi"
+    fi
+    cat >"$xi" <<EOF
+#!/bin/sh
+$marker
+# Sourced by /etc/xrdp/startwm.sh on RDP login. Stock startwm.sh sources this
+# (not exec'd), so we exec startxfce4 to take over the process.
+
+# Strip Wayland/Hyprland env leaked from local session profile/bashrc.
+unset WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE HYPRLAND_CMD
+export XDG_SESSION_TYPE=x11
+export XDG_CURRENT_DESKTOP=XFCE
+
+# Kill stale xfconfd from local session (same \$HOME = same xfconf cache).
+killall xfconfd 2>/dev/null || true
+
+exec dbus-run-session -- startxfce4
+EOF
+    chmod +x "$xi"
+    echo "   ✓ Wrote $xi (xrdp startwm.sh sources this)"
+
+    # Verify stock startwm.sh hasn't been replaced by a version that ignores ~/.xinitrc.
+    if [[ -f /etc/xrdp/startwm.sh ]] && ! grep -q '~/.xinitrc' /etc/xrdp/startwm.sh; then
+        echo "   ⚠️  /etc/xrdp/startwm.sh does not reference ~/.xinitrc — patch needed:"
+        echo "      Add at top of wm_start(): exec ~/.xinitrc if XRDP_SESSION set"
+    fi
+
+    if systemctl list-unit-files xrdp.service &>/dev/null; then
+        echo "   → Enabling xrdp + xrdp-sesman..."
+        if sudo systemctl enable --now xrdp xrdp-sesman 2>/dev/null; then
+            echo "   ✓ xrdp running (port 3389)"
+        else
+            echo "   ⚠️  Failed — run: sudo systemctl enable --now xrdp xrdp-sesman"
+        fi
+    fi
+
+    cat <<'EOF'
+   ℹ️  RDP next steps:
+       • Open port 3389 if firewall active:
+           sudo ufw allow 3389/tcp                                                            (ufw)
+           sudo firewall-cmd --permanent --add-port=3389/tcp && sudo firewall-cmd --reload    (firewalld)
+       • Connect from Windows: mstsc → <this-host>:3389 → Linux user creds → pick "Xorg"
+       • IMPORTANT: log out of local Hyprland before RDP-ing as same user, OR create
+         dedicated `remote` user (different $HOME avoids xfconfd/Thunar conflicts).
+EOF
+}
+
+# Headless nvim run so vim.pack pulls plugins (Mason finishes interactively in :Mason).
+warm_neovim_plugins() {
+    if ! command -v nvim &>/dev/null; then echo "   (nvim not on PATH)"; return; fi
+    if [[ ! -f "$HOME/.config/nvim/init.lua" ]]; then echo "   (no init.lua)"; return; fi
+    echo "📝 Warming Neovim plugins (headless)..."
+    local log; log=$(mktemp); tmp_files+=("$log")
+    if nvim --headless -u "$HOME/.config/nvim/init.lua" -c 'qa' >"$log" 2>&1; then
+        echo "   ✓ vim.pack done — open nvim and :Mason for LSP binaries"
+    else
+        echo "   ⚠️  Headless nvim exited non-zero — see $log"
+    fi
+}
+
+# Anthropic install script — installs `claude` to ~/.local/bin.
+install_claude_code_cli() {
+    if [[ "${CLAUDE_CODE_SKIP:-}" == "1" ]]; then
+        echo "⏭️  Skipping Claude Code CLI (CLAUDE_CODE_SKIP=1)"; return
+    fi
+    if command -v claude &>/dev/null || [[ -x "$HOME/.local/bin/claude" ]]; then
+        echo "   ✓ Claude Code CLI already installed"; return
+    fi
+    if ! command -v curl &>/dev/null; then
+        echo "   ⚠️  curl missing; skipping Claude Code install"; return
+    fi
+    echo "🤖 Installing Claude Code CLI..."
+    mkdir -p "$HOME/.local/bin"
+    if curl -fsSL https://claude.ai/install.sh | bash; then
+        echo "   ✓ Claude Code install finished (ensure ~/.local/bin on PATH)"
+    else
+        echo "   ⚠️  Install failed — try manually: curl -fsSL https://claude.ai/install.sh | bash"
     fi
 }
 
 setup_hyprland_plugins() {
-    # Default plugins list - can be extended
-    local -a plugins=(
-        "https://github.com/Duckonaut/split-monitor-workspaces"
-    )
-    
-    # Check if hyprpm is available
-    if ! command -v hyprpm &> /dev/null; then
-        echo "⚠️  hyprpm command not found. Skipping Hyprland plugin setup."
-        echo "   (Please ensure Hyprland is properly installed)"
-        return 1
+    local -a plugins=(https://github.com/Duckonaut/split-monitor-workspaces)
+    if ! command -v hyprpm &>/dev/null; then
+        echo "⚠️  hyprpm not found; skipping plugin setup"; return 1
     fi
-    
     echo "🪟 Setting up Hyprland plugins..."
-    
-    # Update Hyprland repos
-    echo "   → Updating Hyprland repos..."
-    if ! hyprpm update; then
-        echo "   ⚠️  Failed to update Hyprland repos"
-        return 1
-    fi
-    echo "   ✓ Hyprland repos updated"
-    
-    # Add and enable each plugin
-    for plugin_url in "${plugins[@]}"; do
-        local plugin_name=$(basename "$plugin_url" .git)
-        
-        echo "   → Adding $plugin_name plugin..."
-        if ! hyprpm add "$plugin_url"; then
-            echo "   ⚠️  Failed to add $plugin_name plugin repository"
-            continue
-        fi
-        echo "   ✓ Plugin repository added"
-        
-        echo "   → Enabling $plugin_name plugin..."
-        if ! hyprpm enable "$plugin_name"; then
-            echo "   ⚠️  Failed to enable $plugin_name plugin"
-            continue
-        fi
-        echo "   ✓ Plugin enabled"
+    hyprpm update || { echo "   ⚠️  hyprpm update failed"; return 1; }
+    for url in "${plugins[@]}"; do
+        local name; name=$(basename "$url" .git)
+        hyprpm add "$url"     || { echo "   ⚠️  add $name failed"; continue; }
+        hyprpm enable "$name" || { echo "   ⚠️  enable $name failed"; continue; }
     done
-    
-    # Reload the plugins
-    echo "   → Reloading plugins..."
-    if ! hyprpm reload; then
-        echo "   ⚠️  Failed to reload plugins"
-        return 1
-    fi
-    echo "   ✓ Plugins reloaded"
-    
-    echo "✅ Hyprland plugin setup complete!"
+    hyprpm reload && echo "✅ Hyprland plugin setup complete"
 }
 
-# --- Parse options ---
+# --- args ---
 for arg in "$@"; do
     case "$arg" in
         --core-only) CORE_ONLY=true ;;
     esac
 done
 
-# --- PHASE 1: Install Core Dependencies (Non-Interactive) ---
+# --- preflight ---
+echo "🚀 Starting Arch Linux setup..."
+sudo -n true 2>/dev/null || echo "⚠️  sudo required — you may be prompted"
+[[ -d "$PKG_DIR" ]] || { echo "❌ $PKG_DIR not found"; exit 1; }
+[[ -f "$PKG_DIR/core.pkgs" ]] || { echo "❌ $PKG_DIR/core.pkgs missing"; exit 1; }
 
-echo "🚀 Starting Arch Linux Setup..."
-echo
-
-# Pre-flight: sudo and package list dir
-if ! sudo -n true 2>/dev/null; then
-    echo "⚠️  This script needs sudo. You may be prompted for your password."
-fi
-if [[ ! -d "$PKG_DIR" ]]; then
-    echo "❌ Package directory not found: $PKG_DIR"
-    echo "   Ensure you have run 'yadm clone <repo>' so dotfiles (including .config/yadm/packages) are present."
-    exit 1
-fi
-if [[ ! -f "$PKG_DIR/core.pkgs" ]]; then
-    echo "❌ Core package list not found: $PKG_DIR/core.pkgs"
-    exit 1
-fi
-# core.aur is optional; if missing, AUR step is skipped
-
-# Setup Neovim secrets (creates template; safe if nvim not installed yet)
 setup_neovim_secrets
 echo
 
-echo "🔄 Installing core system tools..."
-
-# Update package database (see Arch wiki "System maintenance" — avoid isolated -Sy without upgrade).
+# --- phase 1: core ---
+echo "🔄 Syncing pacman database..."
 sudo pacman -Sy --noconfirm
 if [[ "${BOOTSTRAP_FULL_SYSTEM_UPGRADE:-}" == "1" ]]; then
-    echo "   → BOOTSTRAP_FULL_SYSTEM_UPGRADE=1: running pacman -Syu ..."
+    echo "   → Running full system upgrade (pacman -Syu)..."
     sudo pacman -Syu --noconfirm
 else
-    echo "   ℹ️  DB synced only. For a full system upgrade run: sudo pacman -Syu"
-    echo "      (Or re-run bootstrap with BOOTSTRAP_FULL_SYSTEM_UPGRADE=1 to upgrade during install.)"
+    echo "   ℹ️  DB synced only. For full upgrade: sudo pacman -Syu  (or rerun with BOOTSTRAP_FULL_SYSTEM_UPGRADE=1)"
 fi
 
-# Core pacman packages
-process_packages "pacman" "$PKG_DIR/core.pkgs" "core_pacman_installed" "core_pacman_skipped"
-
-# Core AUR packages (ensure_paru will install base-devel if needed for paru build)
-process_packages "aur" "$PKG_DIR/core.aur" "core_aur_installed" "core_aur_skipped"
+process_packages pacman "$PKG_DIR/core.pkgs" core_pacman_installed core_pacman_skipped
+process_packages aur    "$PKG_DIR/core.aur"  core_aur_installed    core_aur_skipped
 
 setup_default_browser_firefox
-
+setup_default_file_manager_thunar
+setup_tailscale
+setup_rdp_xfce_session
 warm_neovim_plugins
-
 install_claude_code_cli
-
-# Post-install: matugen-themes for select-wallpaper.sh / Quickshell theme
 setup_matugen_themes
-
-# Ensure all dotfile scripts are executable (yadm may not preserve +x)
 setup_scripts_executable
 
-echo "✅ Core tools done."
+echo "✅ Core done."
 echo
 
-# --- Hyprland plugin setup (optional, runs after core so hyprpm may be available) ---
-if [[ "$CORE_ONLY" != "true" ]] && [[ -t 0 ]] && (command -v hyprpm &>/dev/null || command -v Hyprland &>/dev/null); then
-    read -p "Do you want to set up Hyprland plugins? (y/N): " choice
-    choice=${choice,,}
-    if [[ "$choice" == "y" || "$choice" == "yes" ]]; then
-        setup_hyprland_plugins
-    else
-        echo "⏭️  Skipping Hyprland plugin setup."
-    fi
-elif [[ "$CORE_ONLY" == "true" ]]; then
-    echo "⏭️  (--core-only: skipping Hyprland plugin prompt)"
+# --- Hyprland plugins (interactive) ---
+if [[ "$CORE_ONLY" != "true" ]] && [[ -t 0 ]] && command -v hyprpm &>/dev/null; then
+    read -p "Set up Hyprland plugins? (y/N): " choice
+    [[ "${choice,,}" == y* ]] && setup_hyprland_plugins || echo "⏭️  Skipped Hyprland plugins"
 fi
 echo
 
-# --- PHASE 2: Interactive Package Selection ---
+# --- phase 2: interactive extras ---
+final_packages=(); final_aur=()
+selections=""
 
-final_packages=()
-final_aur=()
-
-# Find all .pkgs and .aur files EXCEPT core.*, then let user pick (or skip if --core-only / non-interactive)
 if [[ "$CORE_ONLY" == "true" ]]; then
-    selections=""
-    echo "⏭️  (--core-only: skipping extra package selection)"
-elif [[ -t 0 ]] && command -v fzf >/dev/null 2>&1; then
-    selections=$(find "$PKG_DIR" \( -name "*.pkgs" -o -name "*.aur" \) \
-        ! -name 'core.pkgs' ! -name 'core.aur' \
-        -printf "%f\n" | \
-        fzf -m --prompt="Select package lists (TAB to mark, ENTER to confirm) > " \
-            --header="Core packages already installed. Choose the rest." \
-            --preview="echo 'Contents of {}:'; echo '---'; cat \"$PKG_DIR/{}\"" || true)
+    echo "⏭️  --core-only: skipping extras"
+elif [[ -t 0 ]] && command -v fzf &>/dev/null; then
+    selections=$(find "$PKG_DIR" \( -name '*.pkgs' -o -name '*.aur' \) \
+        ! -name 'core.pkgs' ! -name 'core.aur' -printf "%f\n" |
+        fzf -m --prompt="Select package lists (TAB mark, ENTER confirm) > " \
+            --header="Core already installed. Choose extras." \
+            --preview="cat \"$PKG_DIR/{}\"" || true)
+elif [[ ! -t 0 ]]; then
+    echo "⚠️  Not a TTY; skipping extras"
 else
-    if [[ ! -t 0 ]]; then
-        echo "⚠️  Not a TTY; skipping extra package selection (use --core-only to suppress, or run interactively)."
-        selections=""
-    else
-        echo "⚠️  fzf not found. Selecting all non-core lists."
-        selections=$(find "$PKG_DIR" \( -name "*.pkgs" -o -name "*.aur" \) ! -name 'core.pkgs' ! -name 'core.aur' -printf "%f\n" 2>/dev/null || true)
-    fi
+    echo "⚠️  fzf missing; selecting all non-core lists"
+    selections=$(find "$PKG_DIR" \( -name '*.pkgs' -o -name '*.aur' \) \
+        ! -name 'core.pkgs' ! -name 'core.aur' -printf "%f\n")
 fi
 
-if [[ -z "${selections:-}" ]]; then
-    echo "No extra packages selected. Setup complete!"
+print_summary() {
     echo
     echo "📋 Installation Summary:"
-    echo "   • Core pacman: $core_pacman_installed installed, $core_pacman_skipped skipped"
-    echo "   • Core AUR: $core_aur_installed installed, $core_aur_skipped skipped"
-    echo "   • Extra pacman: 0 installed, 0 skipped"
-    echo "   • Extra AUR: 0 installed, 0 skipped"
+    echo "   • Core pacman:  $core_pacman_installed installed, $core_pacman_skipped skipped"
+    echo "   • Core AUR:     $core_aur_installed installed, $core_aur_skipped skipped"
+    echo "   • Extra pacman: $extra_pacman_installed installed, $extra_pacman_skipped skipped"
+    echo "   • Extra AUR:    $extra_aur_installed installed, $extra_aur_skipped skipped"
+    local total=$((core_pacman_installed + core_aur_installed + extra_pacman_installed + extra_aur_installed))
+    local skip=$((core_pacman_skipped + core_aur_skipped + extra_pacman_skipped + extra_aur_skipped))
+    echo "🎯 Total: $total installed, $skip skipped"
+}
+
+if [[ -z "$selections" ]]; then
+    echo "No extras selected. Setup complete!"
+    print_summary
     exit 0
 fi
 
-echo "✅ Selections confirmed. Building remaining package lists..."
-
-while IFS= read -r selection; do
-    file="$PKG_DIR/$selection"
-    case "$selection" in
-        *.pkgs)
-            echo " -> Loading pacman packages from $file"
-            mapfile -t temp_packages < <(read_pkg_file "$file")
-            final_packages+=("${temp_packages[@]}")
-            ;;
-        *.aur)
-            echo " -> Loading AUR packages from $file"
-            mapfile -t temp_aur < <(read_pkg_file "$file")
-            final_aur+=("${temp_aur[@]}")
-            ;;
+echo "✅ Building extra package lists..."
+while IFS= read -r sel; do
+    [[ -z "$sel" ]] && continue
+    case "$sel" in
+        *.pkgs) mapfile -t tmp < <(read_pkg_file "$PKG_DIR/$sel"); final_packages+=("${tmp[@]}") ;;
+        *.aur)  mapfile -t tmp < <(read_pkg_file "$PKG_DIR/$sel"); final_aur+=("${tmp[@]}") ;;
     esac
-done <<< "$selections"
+done <<<"$selections"
 
-# Dedupe extras
-mapfile -t final_packages < <(printf "%s\n" "${final_packages[@]}" | dedupe_array)
-mapfile -t final_aur < <(printf "%s\n" "${final_aur[@]}" | dedupe_array)
+mapfile -t final_packages < <(printf '%s\n' "${final_packages[@]}" | awk '!seen[$0]++')
+mapfile -t final_aur      < <(printf '%s\n' "${final_aur[@]}"      | awk '!seen[$0]++')
 
-# --- PHASE 3: Install extras (batched) ---
+# --- phase 3: install extras ---
+process_extras() {
+    local pkgmgr="$1" installed_ref="$2" skipped_ref="$3"; shift 3
+    local -a pkgs=("$@")
+    [[ ${#pkgs[@]} -eq 0 ]] && return 0
+    local tmp; tmp=$(mktemp); tmp_files+=("$tmp")
+    printf '%s\n' "${pkgs[@]}" >"$tmp"
+    process_packages "$pkgmgr" "$tmp" "$installed_ref" "$skipped_ref"
+}
 
-# Process extra pacman packages
-if [ ${#final_packages[@]} -gt 0 ]; then
-    tmp_pkg_file=$(mktemp)
-    printf "%s\n" "${final_packages[@]}" > "$tmp_pkg_file"
-    process_packages "pacman" "$tmp_pkg_file" "extra_pacman_installed" "extra_pacman_skipped"
-    rm -f "$tmp_pkg_file"
-    tmp_pkg_file=""
-fi
+process_extras pacman extra_pacman_installed extra_pacman_skipped "${final_packages[@]}"
+process_extras aur    extra_aur_installed    extra_aur_skipped    "${final_aur[@]}"
 
-# Process extra AUR packages
-if [ ${#final_aur[@]} -gt 0 ]; then
-    tmp_aur_file=$(mktemp)
-    printf "%s\n" "${final_aur[@]}" > "$tmp_aur_file"
-    process_packages "aur" "$tmp_aur_file" "extra_aur_installed" "extra_aur_skipped"
-    rm -f "$tmp_aur_file"
-    tmp_aur_file=""
-fi
-
-# --- SUMMARY ---
-
-echo
-echo "✨ Setup finished successfully!"
-echo
-echo "📋 Installation Summary:"
-echo "   • Core pacman: $core_pacman_installed installed, $core_pacman_skipped skipped"
-echo "   • Core AUR: $core_aur_installed installed, $core_aur_skipped skipped"
-echo "   • Extra pacman: $extra_pacman_installed installed, $extra_pacman_skipped skipped"
-echo "   • Extra AUR: $extra_aur_installed installed, $extra_aur_skipped skipped"
-echo
-total_installed=$((core_pacman_installed + core_aur_installed + extra_pacman_installed + extra_aur_installed))
-total_skipped=$((core_pacman_skipped + core_aur_skipped + extra_pacman_skipped + extra_aur_skipped))
-echo "🎯 Total: $total_installed installed, $total_skipped skipped"
 echo
 echo "✨ Bootstrap complete!"
+print_summary

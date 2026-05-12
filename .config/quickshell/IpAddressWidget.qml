@@ -16,16 +16,11 @@ Item {
     implicitWidth: pill.width
     implicitHeight: 28
 
-    Process {
-        id: ipProc
+    PollingProcess {
         command: ["sh", "-c", "ip -4 addr show scope global 2>/dev/null | grep -oE 'inet [0-9.]+/[0-9]+' | head -1 | awk '{print $2}'"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                var s = (ipProc.stdout.text || "").trim()
-                ipWidget.ipAddress = s || "--"
-                ipProc.running = false
-            }
-        }
+        interval: 60000
+        active: ipWidget.visible
+        onOutput: (text) => ipWidget.ipAddress = (text || "").trim() || "--"
     }
 
     Process {
@@ -40,17 +35,8 @@ Item {
         running: false
     }
 
-    Timer {
-        interval: 60000
-        repeat: true
-        running: ipWidget.visible
-        onTriggered: ipProc.running = true
-    }
-
     property bool _copied: false
     Timer { id: copiedTimer; interval: 1500; onTriggered: ipWidget._copied = false }
-
-    Component.onCompleted: ipProc.running = true
 
     Rectangle {
         id: pill

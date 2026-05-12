@@ -91,6 +91,13 @@ QtObject {
     property int spacing: 8
     property int fontSize: 12
     property int iconSize: 20
+
+    // --- TYPOGRAPHY SCALE (use these instead of literal pixelSize) ---
+    property int fontXs: fontSize - 3
+    property int fontSm: fontSize - 1
+    property int fontMd: fontSize
+    property int fontLg: fontSize + 2
+    property int fontXl: fontSize + 4
     property string fontMain: "JetBrainsMono Nerd Font"
     property int trayIconSize: iconSize
     property int clockFontSize: fontSize

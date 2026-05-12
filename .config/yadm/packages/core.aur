@@ -1,1 +1,13 @@
-# Qu
+# Wallpaper daemon (select-wallpaper.sh: awww img ...)
+awww-git
+
+# Freeze screen during slurp region select (screenshot-region.sh)
+wayfreeze-git
+
+# RDP server (xrdp + xorgxrdp X11 module). XFCE session served on connect.
+# Hyprland is Wayland-only and cannot serve over RDP.
+xrdp
+xorgxrdp
+
+# Audio over RDP (works with pipewire-pulse PA emulation)
+pulseaudio-module-xrdp

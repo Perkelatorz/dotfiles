@@ -1,4 +1,5 @@
 import QtQuick
+import QtCore
 
 import "."
 
@@ -24,7 +25,8 @@ Item {
         compositorName: screenshotWidget.compositorName
     }
 
-    readonly property string _scriptDir: "$HOME/.config/scripts"
+    // Resolve absolute path so the command works even if exec'd outside a shell.
+    readonly property string _scriptDir: StandardPaths.writableLocation(StandardPaths.HomeLocation).toString().replace(/^file:\/\//, "") + "/.config/scripts"
     function runScript(scriptName, envPrefix) {
         var ex = (envPrefix && envPrefix.length) ? (envPrefix + " ") : ""
         var path = screenshotWidget._scriptDir + "/" + scriptName

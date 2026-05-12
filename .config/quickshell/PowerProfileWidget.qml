@@ -19,31 +19,22 @@ Item {
     implicitWidth: pill.width
     implicitHeight: 28
 
-    Process {
-        id: getProc
+    PollingProcess {
+        id: getPoll
         command: ["powerprofilesctl", "get"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                var s = (getProc.stdout.text || "").trim()
-                if (s) powerWidget.profile = s
-                getProc.running = false
-            }
+        interval: 10000
+        active: powerWidget.visible
+        onOutput: (text) => {
+            var s = (text || "").trim()
+            if (s) powerWidget.profile = s
         }
-        Component.onCompleted: running = true
     }
 
     Process {
         id: setProc
         command: ["powerprofilesctl", "set", "balanced"]
         running: false
-        onRunningChanged: if (!running) getProc.running = true
-    }
-
-    Timer {
-        interval: 10000
-        repeat: true
-        running: powerWidget.visible
-        onTriggered: if (!getProc.running) getProc.running = true
+        onRunningChanged: if (!running) getPoll.refresh()
     }
 
     function cycleProfile() {

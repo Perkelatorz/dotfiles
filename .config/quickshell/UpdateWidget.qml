@@ -11,9 +11,7 @@ Item {
     readonly property color pillColor: (colors.widgetPillColors && pillIndex >= 0 && pillIndex < colors.widgetPillColors.length) ? colors.widgetPillColors[pillIndex] : colors.primary
     readonly property color pillTextColor: (colors.widgetTextOnPillColors && pillIndex >= 0 && pillIndex < colors.widgetTextOnPillColors.length) ? colors.widgetTextOnPillColors[pillIndex] : colors.textMain
 
-    property int repoCount: 0
-    property int aurCount: 0
-    readonly property int totalCount: repoCount + aurCount
+    readonly property int totalCount: SystemServices.repoUpdates + SystemServices.aurUpdates
     readonly property bool hasUpdates: totalCount > 0
 
     implicitWidth: hasUpdates ? pill.width : 0
@@ -21,50 +19,9 @@ Item {
     visible: hasUpdates
 
     Process {
-        id: repoProc
-        command: ["sh", "-c", "checkupdates 2>/dev/null | wc -l"]
-        running: false
-        stdout: StdioCollector {
-            onStreamFinished: {
-                var n = parseInt((repoProc.stdout.text || "").trim(), 10)
-                updateWidget.repoCount = isNaN(n) ? 0 : Math.max(0, n)
-                repoProc.running = false
-            }
-        }
-    }
-
-    Process {
-        id: aurProc
-        command: ["sh", "-c", "paru -Qua 2>/dev/null | wc -l"]
-        running: false
-        stdout: StdioCollector {
-            onStreamFinished: {
-                var n = parseInt((aurProc.stdout.text || "").trim(), 10)
-                updateWidget.aurCount = isNaN(n) ? 0 : Math.max(0, n)
-                aurProc.running = false
-            }
-        }
-    }
-
-    Process {
         id: runUpdate
         command: ["kitty", "-e", "paru"]
         running: false
-    }
-
-    Timer {
-        interval: 1800000
-        repeat: true
-        running: updateWidget.visible || updateWidget.totalCount === 0
-        onTriggered: {
-            if (!repoProc.running) repoProc.running = true
-            if (!aurProc.running) aurProc.running = true
-        }
-    }
-
-    Component.onCompleted: {
-        repoProc.running = true
-        aurProc.running = true
     }
 
     Rectangle {
@@ -94,7 +51,7 @@ Item {
             anchors.centerIn: parent
             spacing: 4
             Text {
-                text: "\uF49E"
+                text: ""
                 color: updateWidget.pillTextColor
                 font.pixelSize: colors.cpuFontSize
                 font.family: colors.widgetIconFont
@@ -122,7 +79,7 @@ Item {
             Text {
                 id: updateTip
                 anchors.centerIn: parent
-                text: updateWidget.repoCount + " repo + " + updateWidget.aurCount + " AUR updates"
+                text: SystemServices.repoUpdates + " repo + " + SystemServices.aurUpdates + " AUR updates"
                 color: colors.textMain
                 font.pixelSize: colors.fontSize - 1
             }
