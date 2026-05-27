@@ -143,6 +143,8 @@ ShellRoot {
             property int claudeUsageMarginRight: 0
             property bool weatherForecastVisible: false
             property int weatherForecastMarginRight: 0
+            property bool performancePanelVisible: false
+            property int performancePanelMarginRight: 0
 
             function closeAllPanels() {
                 calendarVisible = false
@@ -156,6 +158,7 @@ ShellRoot {
                 toolsMenuVisible = false
                 claudeUsageVisible = false
                 weatherForecastVisible = false
+                performancePanelVisible = false
             }
             property var screenshotWidgetRef: null
             property int screenshotMenuMarginLeft: 0
@@ -573,9 +576,20 @@ ShellRoot {
                                 }
 
                                 PerformanceWidget {
+                                    id: performanceWidget
                                     colors: shellRoot.shellColors
                                     Layout.alignment: Qt.AlignVCenter
                                     visible: screenDelegate.performanceWidgetVisible
+                                    onToggleRequested: {
+                                        var wasOpen = screenDelegate.performancePanelVisible
+                                        screenDelegate.closeAllPanels()
+                                        if (!wasOpen) {
+                                            var pt = performanceWidget.mapToItem(root, 0, 0)
+                                            var screenW = root.width || 1920
+                                            screenDelegate.performancePanelMarginRight = Math.max(0, Math.floor(screenW - pt.x - performanceWidget.width / 2 - 160))
+                                            screenDelegate.performancePanelVisible = true
+                                        }
+                                    }
                                 }
 
                                 BatteryWidget {
@@ -870,6 +884,27 @@ ShellRoot {
                     anchors.fill: parent
                     colors: shellRoot.shellColors
                     onClose: function() { screenDelegate.weatherForecastVisible = false }
+                }
+            }
+
+            PopupPanel {
+                id: performancePanel
+                screen: screenDelegate.modelData
+                visible: screenDelegate.performancePanelVisible && bar.panelsVisible
+                colors: shellRoot.shellColors
+                layershellNamespace: "quickshell-performance"
+                barHeight: bar.implicitHeight
+                containerX: performancePanel.width - 320 - screenDelegate.performancePanelMarginRight
+                containerWidth: 320
+                containerHeight: perfContentItem.implicitHeight + 8
+                onCloseRequested: screenDelegate.closeAllPanels()
+
+                PerformanceContent {
+                    id: perfContentItem
+                    anchors.fill: parent
+                    anchors.margins: 4
+                    colors: shellRoot.shellColors
+                    onClose: function() { screenDelegate.performancePanelVisible = false }
                 }
             }
 
