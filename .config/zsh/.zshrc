@@ -99,6 +99,7 @@ ZVM_SYSTEM_CLIPBOARD_ENABLED=true
 
 
 
+
 # ------------------------------------------------------------------
 # Aliases
 # ------------------------------------------------------------------
@@ -112,3 +113,8 @@ alias fgrep='fgrep --color=auto'
 alias ssh='kitten ssh'
 alias rvim='edit-in-kitty'
 alias wget='wget --hsts-file="$XDG_CACHE_HOME/wget-hsts"'
+
+# Bitwarden SSH agent
+if [ -S "$XDG_RUNTIME_DIR/.bitwarden-ssh-agent.sock" ]; then
+    export SSH_AUTH_SOCK="$XDG_RUNTIME_DIR/.bitwarden-ssh-agent.sock"
+fi

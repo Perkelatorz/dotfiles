@@ -44,3 +44,4 @@ ToolsMenuWidget 1.0 ToolsMenuWidget.qml
 ToolsMenuContent 1.0 ToolsMenuContent.qml
 ClaudeUsageWidget 1.0 ClaudeUsageWidget.qml
 ClaudeUsageContent 1.0 ClaudeUsageContent.qml
+PerformanceContent 1.0 PerformanceContent.qml

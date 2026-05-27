@@ -17,6 +17,9 @@ Item {
     property int ramPercent: 0
     property string ramUsed: ""
     property string ramTotal: ""
+    property int cpuTempC: 0
+
+    signal toggleRequested()
 
     implicitWidth: pill.width
     implicitHeight: 28
@@ -62,6 +65,17 @@ Item {
         }
     }
 
+    PollingProcess {
+        command: ["sh", "-c", "for h in /sys/class/hwmon/hwmon*; do n=$(cat \"$h/name\" 2>/dev/null); if [ \"$n\" = \"k10temp\" ] || [ \"$n\" = \"coretemp\" ] || [ \"$n\" = \"zenpower\" ]; then awk '{print int($1/1000)}' \"$h/temp1_input\" 2>/dev/null; exit; fi; done"]
+        interval: 2000
+        active: perfWidget.visible
+        onOutput: (text) => {
+            if (!text) return
+            var t = parseInt(text.trim())
+            if (!isNaN(t)) perfWidget.cpuTempC = t
+        }
+    }
+
     property string systemMonitorCommand: "kitty -e btop"
 
     Process {
@@ -89,7 +103,14 @@ Item {
             anchors.fill: parent
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
-            onClicked: runMonitor.running = true
+            acceptedButtons: Qt.LeftButton | Qt.MiddleButton
+            onClicked: (mouse) => {
+                if (mouse.button === Qt.MiddleButton) {
+                    runMonitor.running = true
+                } else {
+                    perfWidget.toggleRequested()
+                }
+            }
         }
         Row {
             id: row
@@ -128,6 +149,27 @@ Item {
                     font.pixelSize: colors.cpuFontSize
                 }
             }
+            Text {
+                text: "\u2502"
+                color: Qt.rgba(perfWidget.pillTextColor.r, perfWidget.pillTextColor.g, perfWidget.pillTextColor.b, 0.4)
+                font.pixelSize: colors.cpuFontSize
+                visible: perfWidget.cpuTempC > 0
+            }
+            Row {
+                spacing: 3
+                visible: perfWidget.cpuTempC > 0
+                Text {
+                    text: "\uF2C7"
+                    color: perfWidget.pillTextColor
+                    font.pixelSize: colors.cpuFontSize
+                    font.family: colors.widgetIconFont
+                }
+                Text {
+                    text: perfWidget.cpuTempC + "\u00B0"
+                    color: perfWidget.pillTextColor
+                    font.pixelSize: colors.cpuFontSize
+                }
+            }
         }
         Rectangle {
             opacity: mouseArea.containsMouse ? 1 : 0
@@ -146,7 +188,7 @@ Item {
             Text {
                 id: perfTip
                 anchors.centerIn: parent
-                text: "CPU " + perfWidget.cpuUsage + "%  •  RAM " + (perfWidget.ramUsed || "?") + " / " + (perfWidget.ramTotal || "?") + " (" + perfWidget.ramPercent + "%)"
+                text: "CPU " + perfWidget.cpuUsage + "%  •  RAM " + (perfWidget.ramUsed || "?") + " / " + (perfWidget.ramTotal || "?") + " (" + perfWidget.ramPercent + "%)" + (perfWidget.cpuTempC > 0 ? "  •  TEMP " + perfWidget.cpuTempC + "°C" : "")
                 color: colors.textMain
                 font.pixelSize: colors.fontSize - 1
             }

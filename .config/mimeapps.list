@@ -1,0 +1,10 @@
+[Default Applications]
+x-scheme-handler/discord=vesktop.desktop
+application/octet-stream=org.gnome.FileRoller.desktop
+inode/directory=thunar.desktop
+x-scheme-handler/http=firefox.desktop
+x-scheme-handler/https=firefox.desktop
+x-scheme-handler/claude-cli=claude-code-url-handler.desktop
+
+[Added Associations]
+application/octet-stream=org.gnome.FileRoller.desktop;
