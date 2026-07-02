@@ -165,6 +165,15 @@ setup_services() {
             enable_system_service xrdp --now
             enable_system_service xrdp-sesman --now
             ;;
+        *)
+            # Converge: only work machines serve RDP. Disable leftovers from a
+            # previous life (packages can be removed with: pacman -Rns xrdp xorgxrdp).
+            if systemctl is-enabled xrdp &>/dev/null; then
+                warn "xrdp enabled but class=$CLASS — disabling"
+                sudo systemctl disable --now xrdp xrdp-sesman &>/dev/null || true
+                rm -f "$HOME/startwm.sh"
+            fi
+            ;;
     esac
 
     if command -v tailscale &>/dev/null && ! tailscale status &>/dev/null; then
@@ -231,26 +240,32 @@ warm_neovim_plugins() {
 }
 
 # --- work-only: RDP session (xrdp → XFCE) ---
-# Stock /etc/xrdp/startwm.sh reads ~/.xinitrc (NOT ~/.xsession). Strips
-# Wayland/Hyprland env so XFCE/dbus start clean; kills stale xfconfd left by a
-# local Hyprland session sharing $HOME.
+# Uses xrdp's per-user hook: sesman.ini ships EnableUserWindowManager=true /
+# UserWindowManager=startwm.sh, so ~/startwm.sh is exec'd directly when present
+# — no /etc patching, and it takes precedence over the distro-sniffing
+# /etc/xrdp/startwm.sh. Strips Wayland/Hyprland env so XFCE/dbus start clean;
+# kills stale xfconfd left by a local Hyprland session sharing $HOME.
 setup_rdp_session() {
     info "RDP session (xrdp → XFCE)..."
     if ! command -v startxfce4 &>/dev/null; then
         warn "startxfce4 missing — xfce4 group failed to install?"
         return
     fi
-    local xi="$HOME/.xinitrc"
-    local marker="# managed by yadm bootstrap (rdp-xfce)"
-    if [[ -f "$xi" ]] && ! grep -qF "$marker" "$xi"; then
-        cp "$xi" "$xi.bak.$(date +%s)"
-        warn "backed up existing $xi"
+    if [[ -f /etc/xrdp/sesman.ini ]] \
+        && ! grep -q '^EnableUserWindowManager=true' /etc/xrdp/sesman.ini; then
+        warn "sesman.ini has EnableUserWindowManager disabled — ~/startwm.sh will be ignored"
     fi
-    cat >"$xi" <<EOF
+
+    local wm="$HOME/startwm.sh"
+    local marker="# managed by yadm bootstrap (rdp-xfce)"
+    if [[ -f "$wm" ]] && ! grep -qF "$marker" "$wm"; then
+        cp "$wm" "$wm.bak.$(date +%s)"
+        warn "backed up existing $wm"
+    fi
+    cat >"$wm" <<EOF
 #!/bin/sh
 $marker
-# Sourced by /etc/xrdp/startwm.sh on RDP login (sourced, not exec'd), so we
-# exec startxfce4 to take over the process.
+# Executed by xrdp-sesman on RDP login (sesman.ini: UserWindowManager).
 
 # Strip Wayland/Hyprland env leaked from local session profile.
 unset WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE HYPRLAND_CMD
@@ -262,12 +277,8 @@ killall xfconfd 2>/dev/null || true
 
 exec dbus-run-session -- startxfce4
 EOF
-    chmod +x "$xi"
-    ok "wrote $xi"
-
-    if [[ -f /etc/xrdp/startwm.sh ]] && ! grep -q '~/.xinitrc' /etc/xrdp/startwm.sh; then
-        warn "/etc/xrdp/startwm.sh does not reference ~/.xinitrc — patch needed"
-    fi
+    chmod +x "$wm"
+    ok "wrote $wm"
     cat <<'EOF'
    ℹ️  RDP notes:
       • Firewall: open 3389/tcp if one is active.

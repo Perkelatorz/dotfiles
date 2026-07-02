@@ -5,5 +5,7 @@ xrdp
 xorgxrdp
 
 # NOTE: pulseaudio-module-xrdp is deliberately absent — its PKGBUILD conflicts
-# with pipewire-pulse and would rip out the PipeWire stack. If RDP audio is ever
-# needed, find a PipeWire-native path instead.
+# with pipewire-pulse and would rip out the PipeWire stack. If RDP-session
+# audio is ever needed, pipewire-module-xrdp (AUR) is the PipeWire-native
+# path — uncomment below.
+# pipewire-module-xrdp
