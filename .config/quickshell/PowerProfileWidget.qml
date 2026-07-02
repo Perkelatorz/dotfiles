@@ -11,38 +11,16 @@ Item {
     readonly property color pillColor: (colors.widgetPillColors && pillIndex >= 0 && pillIndex < colors.widgetPillColors.length) ? colors.widgetPillColors[pillIndex] : colors.primary
     readonly property color pillTextColor: (colors.widgetTextOnPillColors && pillIndex >= 0 && pillIndex < colors.widgetTextOnPillColors.length) ? colors.widgetTextOnPillColors[pillIndex] : colors.textMain
 
-    property string profile: "balanced"
-    readonly property var profiles: ["balanced", "performance", "power-saver"]
+    // Single source of truth: SystemServices' event-driven PowerProfiles \u2014 no
+    // second poller, and the bar pill and QuickSettings card can't disagree.
+    readonly property string profile: SystemServices.powerProfile.toLowerCase()
     readonly property var profileLabels: ({ "balanced": "Bal", "performance": "Perf", "power-saver": "Save" })
     readonly property var profileIcons: ({ "balanced": "\uF24E", "performance": "\uF0E4", "power-saver": "\uF06C" })
 
     implicitWidth: pill.width
     implicitHeight: 28
 
-    PollingProcess {
-        id: getPoll
-        command: ["powerprofilesctl", "get"]
-        interval: 10000
-        active: powerWidget.visible
-        onOutput: (text) => {
-            var s = (text || "").trim()
-            if (s) powerWidget.profile = s
-        }
-    }
-
-    Process {
-        id: setProc
-        command: ["powerprofilesctl", "set", "balanced"]
-        running: false
-        onRunningChanged: if (!running) getPoll.refresh()
-    }
-
-    function cycleProfile() {
-        var idx = profiles.indexOf(profile)
-        var next = profiles[(idx + 1) % profiles.length]
-        setProc.command = ["powerprofilesctl", "set", next]
-        setProc.running = true
-    }
+    function cycleProfile() { SystemServices.cyclePowerProfile() }
 
     Rectangle {
         id: pill

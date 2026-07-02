@@ -22,11 +22,6 @@ ColumnLayout {
     property real volumeLevel: defaultSink && defaultSink.audio ? defaultSink.audio.volume : 0
     property bool volumeMuted: defaultSink && defaultSink.audio ? defaultSink.audio.muted : false
 
-    Process {
-        id: setVolumeProc
-        command: []
-        running: false
-    }
 
     RowLayout {
         Layout.fillWidth: true
@@ -75,8 +70,11 @@ ColumnLayout {
                     var w = parent.width
                     var p = Math.min(1, Math.max(0, (x - 9) / w))
                     parent.dragVal = p
-                    setVolumeProc.command = ["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", Math.round(p * 100) + "%"]
-                    setVolumeProc.running = true
+                    // Direct Pipewire set — the wpctl-per-mousemove version
+                    // spawned a process per event and could drop the final
+                    // release position (command writes while running are no-ops).
+                    if (sliders.defaultSink && sliders.defaultSink.audio)
+                        sliders.defaultSink.audio.volume = p
                 }
                 onPressed: setVal(mouse.x)
                 onPositionChanged: if (pressed) setVal(mouse.x)

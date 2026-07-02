@@ -17,23 +17,24 @@ Item {
     implicitWidth: pill.width
     implicitHeight: 28
 
-    PollingProcess {
-        id: countPoll
-        command: ["swaync-client", "-c"]
-        interval: 3000
-        active: notifWidget.visible
-        onOutput: (text) => {
-            var n = parseInt((text || "").trim(), 10)
-            notifWidget.notifCount = isNaN(n) ? 0 : Math.max(0, n)
+    // One long-lived subscription instead of two 3s pollers — swaync pushes a
+    // JSON line on every state change (and the current state on connect), so
+    // count/dnd update instantly and no refresh-chaining is needed after
+    // dismiss/toggle. If swaync isn't running the spawn fails once and stays
+    // quiet (count stays 0) instead of retrying forever.
+    Process {
+        id: subscribeProc
+        command: ["swaync-client", "--subscribe"]
+        running: notifWidget.visible
+        stdout: SplitParser {
+            onRead: line => {
+                try {
+                    var o = JSON.parse(line)
+                    if (typeof o.count === "number") notifWidget.notifCount = Math.max(0, o.count)
+                    if (typeof o.dnd === "boolean") notifWidget.dndActive = o.dnd
+                } catch (_) { }
+            }
         }
-    }
-
-    PollingProcess {
-        id: dndPoll
-        command: ["swaync-client", "-D"]
-        interval: 3000
-        active: notifWidget.visible
-        onOutput: (text) => notifWidget.dndActive = ((text || "").trim().toLowerCase() === "true")
     }
 
     Process {
@@ -46,14 +47,12 @@ Item {
         id: dismissAllProc
         command: ["swaync-client", "-C"]
         running: false
-        onRunningChanged: if (!running) countPoll.refresh()
     }
 
     Process {
         id: toggleDndProc
         command: ["swaync-client", "-d"]
         running: false
-        onRunningChanged: if (!running) dndPoll.refresh()
     }
 
     Rectangle {

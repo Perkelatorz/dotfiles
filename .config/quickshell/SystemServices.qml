@@ -2,6 +2,8 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import Quickshell.Bluetooth
+import Quickshell.Services.UPower
 
 // Single source of truth for system state polled via shell.
 // Bar widgets and QuickSettings panel both bind to these properties.
@@ -11,56 +13,40 @@ Singleton {
 
     // ===== consumer-gate flags (set by bars/panel; widgets bind their visibility here) =====
     property bool qsOpen: false
+    // Fresh brightness the moment quick settings opens (poll below is slow).
+    onQsOpenChanged: if (qsOpen && _brightnessHas) _refreshBrightness()
 
-    // ===== BATTERY =====
-    readonly property bool batteryHas: _batteryHas
-    readonly property int batteryCapacity: _batteryCapacity
-    readonly property string batteryStatus: _batteryStatus
-    readonly property int batteryTimeMinutes: _batteryTimeMinutes
+    // ===== BATTERY (UPower — event-driven, replaces the 60s sysfs pipeline) =====
+    // Property names/strings preserved for BatteryWidget/QuickSettingsGrid.
+    readonly property var _bat: UPower.displayDevice
+    readonly property bool batteryHas: _bat !== null && _bat.isLaptopBattery
+    readonly property int batteryCapacity: batteryHas ? Math.round(_bat.percentage * 100) : 0
+    readonly property string batteryStatus: {
+        if (!batteryHas) return ""
+        switch (_bat.state) {
+        case UPowerDeviceState.Charging:
+        case UPowerDeviceState.PendingCharge:
+            return "Charging"
+        case UPowerDeviceState.FullyCharged:
+            return "Full"
+        case UPowerDeviceState.Discharging:
+        case UPowerDeviceState.PendingDischarge:
+            return "Discharging"
+        default:
+            return "Unknown"
+        }
+    }
+    readonly property int batteryTimeMinutes: {
+        if (!batteryHas) return 0
+        var secs = batteryStatus === "Charging" ? _bat.timeToFull : _bat.timeToEmpty
+        return secs > 0 ? Math.round(secs / 60) : 0
+    }
     readonly property string batteryTimeText: {
-        if (!_batteryHas || _batteryTimeMinutes <= 0) return ""
-        var h = Math.floor(_batteryTimeMinutes / 60)
-        var m = _batteryTimeMinutes % 60
+        if (!batteryHas || batteryTimeMinutes <= 0) return ""
+        var h = Math.floor(batteryTimeMinutes / 60)
+        var m = batteryTimeMinutes % 60
         if (h > 0) return h + "h " + m + "m"
         return m + "m"
-    }
-    property bool _batteryHas: false
-    property int _batteryCapacity: 0
-    property string _batteryStatus: ""
-    property int _batteryTimeMinutes: 0
-    PollingProcess {
-        interval: 60000
-        command: ["sh", "-c",
-            "d=$(ls -d /sys/class/power_supply/BAT* 2>/dev/null | head -1); " +
-            "if [ -n \"$d\" ] && [ -r \"$d/capacity\" ]; then " +
-            "  echo 1; " +
-            "  cat \"$d/capacity\" 2>/dev/null; " +
-            "  cat \"$d/status\" 2>/dev/null; " +
-            "  if [ -r \"$d/energy_now\" ] && [ -r \"$d/power_now\" ]; then " +
-            "    echo \"E\"; cat \"$d/energy_now\"; cat \"$d/energy_full\" 2>/dev/null; cat \"$d/power_now\"; " +
-            "  elif [ -r \"$d/charge_now\" ] && [ -r \"$d/current_now\" ]; then " +
-            "    echo \"C\"; cat \"$d/charge_now\"; cat \"$d/charge_full\" 2>/dev/null; cat \"$d/current_now\"; " +
-            "  fi; " +
-            "else echo 0; fi"]
-        onOutput: text => {
-            var lines = text.trim().split("\n")
-            root._batteryHas = lines.length >= 1 && lines[0] === "1"
-            if (root._batteryHas && lines.length >= 2) {
-                var p = parseInt(lines[1], 10)
-                root._batteryCapacity = isNaN(p) ? 0 : Math.max(0, Math.min(100, p))
-                root._batteryStatus = lines.length >= 3 ? String(lines[2]).trim() : ""
-                root._batteryTimeMinutes = 0
-                if (lines.length >= 7 && (lines[3] === "E" || lines[3] === "C")) {
-                    var now = parseFloat(lines[4]) || 0
-                    var full = parseFloat(lines[5]) || 0
-                    var rate = parseFloat(lines[6]) || 0
-                    if (rate > 0) {
-                        var hours = (root._batteryStatus === "Charging") ? (full - now) / rate : now / rate
-                        if (hours > 0 && hours < 48) root._batteryTimeMinutes = Math.round(hours * 60)
-                    }
-                }
-            }
-        }
     }
 
     // ===== BRIGHTNESS =====
@@ -75,7 +61,9 @@ Singleton {
     function setBrightness(percent) {
         var p = Math.max(0, Math.min(100, percent))
         if (_backlightPath) {
-            _setBrightProc.command = ["sh", "-c", "m=$(cat \"" + _backlightPath + "/max_brightness\"); v=$((m * " + p + " / 100)); echo $v > \"" + _backlightPath + "/brightness\""]
+            // brightnessctl goes through logind — a raw sysfs echo needs root
+            // and fails silently as a regular user.
+            _setBrightProc.command = ["brightnessctl", "set", p + "%"]
             _setBrightProc.running = true
         } else if (_brightnessctlDevices.length > 0) {
             var dev = _brightnessctlDevices[Math.min(brightnessScreenIndex, _brightnessctlDevices.length - 1)]
@@ -89,7 +77,7 @@ Singleton {
             _readBrightProc.running = true
         } else if (_brightnessctlDevices.length > 0) {
             var dev = _brightnessctlDevices[Math.min(brightnessScreenIndex, _brightnessctlDevices.length - 1)]
-            _readBrightProc.command = dev ? ["sh", "-c", "brightnessctl -d " + JSON.stringify(dev) + " -m 2>/dev/null"] : ["sh", "-c", "brightnessctl -m 2>/dev/null"]
+            _readBrightProc.command = dev ? ["brightnessctl", "-d", dev, "-m"] : ["brightnessctl", "-m"]
             _readBrightProc.running = true
         }
     }
@@ -159,8 +147,10 @@ Singleton {
         running: false
         onRunningChanged: if (!running && root._brightnessHas) root._refreshBrightness()
     }
+    // Slow background poll (catches hardware-key changes made outside the
+    // shell); refresh-after-set and the qsOpen hook cover the fast paths.
     Timer {
-        interval: 2000
+        interval: 10000
         repeat: true
         running: root._brightnessHas
         onTriggered: root._refreshBrightness()
@@ -190,11 +180,18 @@ Singleton {
         command: ["sh", "-c", "nmcli -t -f active,ssid,signal dev wifi 2>/dev/null | grep '^yes' | head -1 | cut -d: -f2-"]
         onOutput: text => {
             var s = text.trim()
-            if (s) {
-                var parts = s.split(":")
-                root._wifiStatus = parts.length >= 2 ? (parts[0] + " " + parts[1] + "%") : s
-            } else {
+            if (!s) {
                 root._wifiStatus = "Disconnected"
+                return
+            }
+            // Split on the LAST colon: nmcli -t escapes colons in SSIDs as \:
+            // and the trailing field (signal) is always numeric.
+            var i = s.lastIndexOf(":")
+            if (i > 0) {
+                var ssid = s.slice(0, i).replace(/\\:/g, ":")
+                root._wifiStatus = ssid + " " + s.slice(i + 1) + "%"
+            } else {
+                root._wifiStatus = s
             }
         }
     }
@@ -205,34 +202,21 @@ Singleton {
         onOutput: text => { root._wifiEnabled = text.trim() === "enabled" }
     }
 
-    // ===== BLUETOOTH =====
-    readonly property string btStatus: _btStatus
-    readonly property bool btPowered: _btPowered
-    property string _btStatus: "N/A"
-    property bool _btPowered: false
-    function toggleBluetooth() { _toggleBtProc.running = true }
-    Process {
-        id: _toggleBtProc
-        command: ["sh", "-c", "if bluetoothctl show 2>/dev/null | grep -q 'Powered: yes'; then bluetoothctl power off; else bluetoothctl power on; fi"]
-        running: false
-        stdout: StdioCollector {
-            onStreamFinished: { _toggleBtProc.running = false; _btProc.refresh() }
+    // ===== BLUETOOTH (native service — replaces the bluetoothctl loop that
+    // spawned one process per paired device every 30s) =====
+    readonly property var _btAdapter: Bluetooth.defaultAdapter
+    readonly property bool btPowered: _btAdapter !== null && _btAdapter.enabled
+    readonly property string btStatus: {
+        if (_btAdapter === null) return "N/A"
+        if (!_btAdapter.enabled) return "Off"
+        var devs = Bluetooth.devices.values
+        for (var i = 0; i < devs.length; i++) {
+            if (devs[i].connected) return "On\n" + devs[i].name
         }
+        return "On\nNo devices"
     }
-    PollingProcess {
-        id: _btProc
-        interval: 30000
-        command: ["sh", "-c", "if ! bluetoothctl show 2>/dev/null | grep -q 'Powered: yes'; then echo 'PWROFF'; exit 0; fi; name=$(bluetoothctl devices 2>/dev/null | awk '{print $2}' | while read m; do bluetoothctl info \"$m\" 2>/dev/null | grep -q 'Connected: yes' && bluetoothctl info \"$m\" 2>/dev/null | grep 'Name:' | sed 's/.*Name: //' | head -1 && break; done); if [ -z \"$name\" ]; then echo -e 'On\\nNo devices'; else echo -e \"On\\n${name}\"; fi"]
-        onOutput: text => {
-            var s = text.trim()
-            if (s === "PWROFF") {
-                root._btPowered = false
-                root._btStatus = "Off"
-            } else {
-                root._btPowered = true
-                root._btStatus = s || "On"
-            }
-        }
+    function toggleBluetooth() {
+        if (_btAdapter !== null) _btAdapter.enabled = !_btAdapter.enabled
     }
 
     // ===== DISK =====
@@ -276,14 +260,35 @@ Singleton {
         }
     }
 
-    // ===== THEME =====
+    // ===== THEME (FileView watch — replaces a cat every 2 seconds) =====
     readonly property string themeStatus: _themeStatus
     property string _themeStatus: "…"
-    PollingProcess {
-        interval: 2000
-        command: ["sh", "-c", "F=\"${XDG_CACHE_HOME:-$HOME/.cache}/hypr/current-theme.txt\"; if [ -r \"$F\" ]; then cat \"$F\"; else C=\"${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/Colors.qml\"; if [ -r \"$C\" ]; then grep -E 'Palette:|background:' \"$C\" | head -2 | tr '\\n' ' '; fi; fi"]
-        onOutput: text => {
-            var raw = text.trim()
+    property string _themeRaw: ""
+    property string _colorsRaw: ""
+    FileView {
+        path: (Quickshell.env("XDG_CACHE_HOME") || Quickshell.env("HOME") + "/.cache") + "/hypr/current-theme.txt"
+        watchChanges: true
+        onFileChanged: reload()
+        onLoaded: { root._themeRaw = text(); root._recomputeTheme() }
+        onLoadFailed: { root._themeRaw = ""; root._recomputeTheme() }
+    }
+    FileView {
+        path: (Quickshell.env("XDG_CONFIG_HOME") || Quickshell.env("HOME") + "/.config") + "/quickshell/Colors.qml"
+        watchChanges: true
+        onFileChanged: reload()
+        onLoaded: { root._colorsRaw = text(); root._recomputeTheme() }
+        onLoadFailed: { root._colorsRaw = ""; root._recomputeTheme() }
+    }
+    function _recomputeTheme() {
+        var raw = root._themeRaw.trim()
+        if (!raw) {
+            // Fallback: derive from Colors.qml (same info, different format).
+            var lines = root._colorsRaw.split("\n").filter(function(l) {
+                return l.indexOf("Palette:") >= 0 || l.indexOf("background:") >= 0
+            })
+            raw = lines.slice(0, 2).join(" ")
+        }
+        {
             var style = ""
             var mode = ""
             if (raw.indexOf("|") >= 0) {
@@ -462,39 +467,44 @@ Singleton {
         }
     }
 
-    // ===== POWER PROFILE =====
-    readonly property string powerProfile: _powerProfile
-    readonly property string powerIcon: _powerIcon
-    property string _powerProfile: "—"
-    property string _powerIcon: ""
-    readonly property var _powerIcons: ({ "balanced": "", "performance": "", "power-saver": "" })
-
-    function cyclePowerProfile() {
-        var order = ["balanced", "performance", "power-saver"]
-        var cur = _powerProfile.toLowerCase()
-        var idx = order.indexOf(cur)
-        var next = order[(idx + 1) % order.length]
-        _powerSetProc.command = ["powerprofilesctl", "set", next]
-        _powerSetProc.running = true
+    // ===== POWER PROFILE (native PowerProfiles — event-driven, replaces two
+    // independent 10s powerprofilesctl pollers that could disagree) =====
+    // One-shot daemon check so machines without power-profiles-daemon show "—"
+    // (the dbus proxy would otherwise report a default "Balanced").
+    property bool _powerHas: false
+    readonly property string powerProfile: {
+        if (!_powerHas) return "\u2014"
+        switch (PowerProfiles.profile) {
+        case PowerProfile.Performance: return "Performance"
+        case PowerProfile.PowerSaver: return "Power-saver"
+        default: return "Balanced"
+        }
     }
-    PollingProcess {
-        id: _powerGetProc
-        interval: 10000
-        command: ["powerprofilesctl", "get"]
-        onOutput: text => {
-            var s = text.trim()
-            if (s) {
-                root._powerProfile = s.charAt(0).toUpperCase() + s.slice(1)
-                root._powerIcon = root._powerIcons[s] || ""
-            }
+    readonly property string powerIcon: {
+        if (!_powerHas) return ""
+        switch (PowerProfiles.profile) {
+        case PowerProfile.Performance: return "\uF0E7"
+        case PowerProfile.PowerSaver: return "\uF06C"
+        default: return "\uF24E"
+        }
+    }
+    function cyclePowerProfile() {
+        if (!_powerHas) return
+        switch (PowerProfiles.profile) {
+        case PowerProfile.Balanced: PowerProfiles.profile = PowerProfile.Performance; break
+        case PowerProfile.Performance: PowerProfiles.profile = PowerProfile.PowerSaver; break
+        default: PowerProfiles.profile = PowerProfile.Balanced; break
         }
     }
     Process {
-        id: _powerSetProc
-        command: []
-        running: false
+        id: _powerDetectProc
+        command: ["sh", "-c", "command -v powerprofilesctl >/dev/null && echo yes || echo no"]
+        running: true
         stdout: StdioCollector {
-            onStreamFinished: { _powerSetProc.running = false; _powerGetProc.refresh() }
+            onStreamFinished: {
+                root._powerHas = (_powerDetectProc.stdout.text || "").trim() === "yes"
+                _powerDetectProc.running = false
+            }
         }
     }
 
@@ -508,6 +518,7 @@ Singleton {
     property real _txRate: 0
     property real _lastRx: 0
     property real _lastTx: 0
+    property real _lastNetTs: 0
     property bool _netHasData: false
     property string _netSpeed: "—"
     function _formatSpeed(bps) {
@@ -518,7 +529,9 @@ Singleton {
     PollingProcess {
         id: _ifaceProc
         interval: 60000
-        command: ["sh", "-c", "ip -o link show up 2>/dev/null | awk -F': ' '{print $2}' | grep -vE '^(lo|docker|br-|veth)' | head -1"]
+        // Default-route iface first (so tailscale0/wg/virbr tunnels don't win),
+        // falling back to the first plausible up link.
+        command: ["sh", "-c", "i=$(ip route show default 2>/dev/null | awk '{print $5; exit}'); [ -n \"$i\" ] && echo \"$i\" || ip -o link show up 2>/dev/null | awk -F': ' '{print $2}' | grep -vE '^(lo|docker|br-|veth|tailscale|wg|tun|virbr|vnet)' | head -1"]
         onOutput: text => {
             var s = text.trim()
             if (s && s !== root._netIface) {
@@ -537,13 +550,18 @@ Singleton {
             if (lines.length >= 2) {
                 var rx = parseFloat(lines[0]) || 0
                 var tx = parseFloat(lines[1]) || 0
-                if (root._netHasData) {
-                    root._rxRate = Math.max(0, (rx - root._lastRx) / 2)
-                    root._txRate = Math.max(0, (tx - root._lastTx) / 2)
+                var now = Date.now()
+                // Divide by real elapsed time, not the nominal interval — a
+                // delayed tick otherwise inflates the rate.
+                var dt = root._lastNetTs > 0 ? (now - root._lastNetTs) / 1000 : 2
+                if (root._netHasData && dt > 0) {
+                    root._rxRate = Math.max(0, (rx - root._lastRx) / dt)
+                    root._txRate = Math.max(0, (tx - root._lastTx) / dt)
                     root._netSpeed = "↓ " + root._formatSpeed(root._rxRate) + "  ↑ " + root._formatSpeed(root._txRate)
                 }
                 root._lastRx = rx
                 root._lastTx = tx
+                root._lastNetTs = now
                 root._netHasData = true
             }
         }
