@@ -53,7 +53,9 @@ ColumnLayout {
 
     Process {
         id: thumbProc
-        command: ["sh", "-c", "mkdir -p \"${XDG_RUNTIME_DIR:-/tmp}/cliphist-thumbs\" && i=0; echo \"" + clipRoot.imageEntries.join("\n") + "\" | while IFS= read -r line; do [ -z \"$line\" ] && continue; echo \"$line\" | cliphist decode > \"${XDG_RUNTIME_DIR:-/tmp}/cliphist-thumbs/qml_$i.png\" 2>/dev/null; i=$((i+1)); done; echo done"]
+        // Entries are passed as a positional arg ($1), never spliced into the
+        // script — clipboard contents can't inject shell.
+        command: ["sh", "-c", "mkdir -p \"${XDG_RUNTIME_DIR:-/tmp}/cliphist-thumbs\" && i=0; printf '%s\\n' \"$1\" | while IFS= read -r line; do [ -z \"$line\" ] && continue; printf '%s\\n' \"$line\" | cliphist decode > \"${XDG_RUNTIME_DIR:-/tmp}/cliphist-thumbs/qml_$i.png\" 2>/dev/null; i=$((i+1)); done; echo done", "_", clipRoot.imageEntries.join("\n")]
         running: false
         stdout: StdioCollector {
             onStreamFinished: {
@@ -76,7 +78,8 @@ ColumnLayout {
     }
 
     function pasteEntry(entry) {
-        pasteProc.command = ["sh", "-c", "echo " + JSON.stringify(entry) + " | cliphist decode | wl-copy"]
+        // Entry rides in as $1 — clipboard text with $()/quotes can't execute.
+        pasteProc.command = ["sh", "-c", "printf '%s\\n' \"$1\" | cliphist decode | wl-copy", "_", entry]
         pasteProc.running = true
     }
 

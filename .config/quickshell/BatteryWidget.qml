@@ -19,12 +19,6 @@ Item {
     implicitHeight: hasBattery ? 28 : 0
     visible: hasBattery
 
-    Process {
-        id: openPowerSettings
-        command: ["xdg-open", "power"]
-        running: false
-    }
-
     Rectangle {
         id: pill
         height: batteryWidget.implicitHeight - (colors.widgetPillPaddingV) * 2
@@ -53,9 +47,6 @@ Item {
             id: batteryHover
             anchors.fill: parent
             hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            acceptedButtons: Qt.RightButton
-            onClicked: openPowerSettings.running = true
         }
         Row {
             id: row

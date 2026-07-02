@@ -9,7 +9,7 @@ Column {
     required property var onClose
 
     property string compositorName: "hyprland"
-    property string lockCommand: "swaylock"
+    property string lockCommand: "hyprlock"
     property string suspendCommand: "systemctl suspend"
     property string hibernateCommand: "systemctl hibernate"
     property string logoutCommand: "loginctl terminate-user $(id -un)"

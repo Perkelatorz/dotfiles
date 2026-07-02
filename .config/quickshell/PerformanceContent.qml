@@ -30,11 +30,17 @@ Column {
         sensorsProc.running = true
     }
 
-    Component.onCompleted: refresh()
+    // Poll only while the popup window is open — this content is instantiated
+    // eagerly per monitor, so an unconditional timer means 3 process spawns
+    // every 2s per screen, 24/7, popup closed or not. (Item.visible can't be
+    // used: the parent PopupPanel is a Window, whose visibility doesn't
+    // propagate into the item tree — the caller binds panelOpen instead.)
+    property bool panelOpen: false
+    onPanelOpenChanged: if (panelOpen) refresh()
 
     Timer {
         interval: 2000
-        running: true
+        running: perfContent.panelOpen
         repeat: true
         onTriggered: perfContent.refresh()
     }

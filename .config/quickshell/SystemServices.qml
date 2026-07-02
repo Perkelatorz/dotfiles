@@ -335,7 +335,7 @@ Singleton {
     property string _weatherHumidity: ""
     property string _weatherWind: ""
     property var _weatherForecast: []
-    readonly property string _weatherUrl: _weatherLocation ? ("wttr.in/" + _weatherLocation) : "wttr.in"
+    readonly property string _weatherUrl: _weatherLocation ? ("wttr.in/" + encodeURIComponent(_weatherLocation)) : "wttr.in"
 
     function _weatherIconForCondition(cond) {
         if (!cond) return "\uF0C2"
@@ -351,7 +351,9 @@ Singleton {
 
     function setWeatherLocation(loc) {
         root._weatherLocation = loc
-        _saveWeatherLocProc.command = ["sh", "-c", "echo " + JSON.stringify(loc) + " > \"${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/weather-location.txt\""]
+        // $1 is passed as a positional arg — never interpolated into the script,
+        // so quotes/$()/backticks in the location can't execute.
+        _saveWeatherLocProc.command = ["sh", "-c", "printf '%s\\n' \"$1\" > \"${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/weather-location.txt\"", "_", loc]
         _saveWeatherLocProc.running = true
         _weatherProc.refresh()
     }
@@ -378,7 +380,10 @@ Singleton {
         id: _weatherProc
         interval: 900000
         runOnStart: false
-        command: ["sh", "-c", "curl -s '" + root._weatherUrl + "?format=j1' 2>/dev/null"]
+        // argv form: URL is a single argument, no shell parsing (encodeURIComponent
+        // in _weatherUrl handles spaces/quotes); --max-time so a hung curl can't
+        // block the next poll forever.
+        command: ["curl", "-s", "--max-time", "15", root._weatherUrl + "?format=j1"]
         onOutput: text => {
             var s = text.trim()
             if (!s || s.charAt(0) !== "{") {
