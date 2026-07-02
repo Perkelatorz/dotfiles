@@ -634,6 +634,13 @@ ShellRoot {
                                     }
                                 }
 
+                                // Appears only while mic/screen is being captured
+                                // (no toggle — presence IS the signal).
+                                PrivacyIndicatorWidget {
+                                    colors: shellRoot.shellColors
+                                    Layout.alignment: Qt.AlignVCenter
+                                }
+
                                 Tray {
                                     colors: shellRoot.shellColors
                                     barWindow: bar
@@ -844,10 +851,11 @@ ShellRoot {
                 barHeight: bar.implicitHeight
                 containerX: toolsMenuPanel.width - 188 - screenDelegate.toolsMenuMarginRight
                 containerWidth: 188
-                containerHeight: 168
+                containerHeight: toolsContentItem.implicitHeight + 8
                 onCloseRequested: screenDelegate.closeAllPanels()
 
                 ToolsMenuContent {
+                    id: toolsContentItem
                     anchors.fill: parent
                     anchors.margins: 4
                     colors: shellRoot.shellColors

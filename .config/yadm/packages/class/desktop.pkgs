@@ -9,3 +9,6 @@ linux-cachyos-headers
 
 # --- Remote access: Sunshine game-stream host (connect with Moonlight) ---
 sunshine
+
+# --- Instant replay (quickshell tools menu: replay buffer + save clip) ---
+gpu-screen-recorder

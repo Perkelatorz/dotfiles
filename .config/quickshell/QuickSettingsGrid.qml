@@ -37,6 +37,33 @@ GridLayout {
         stdout: StdioCollector { onStreamFinished: toggleMicProc.running = false }
     }
 
+    // ===== AUDIO OUTPUT (native Pipewire — cycle default sink) =====
+    readonly property var audioSinks: {
+        var out = []
+        var ns = Pipewire.nodes.values
+        for (var i = 0; i < ns.length; i++) {
+            var n = ns[i]
+            if (n.isSink && !n.isStream && (n.type & PwNodeType.Audio)) out.push(n)
+        }
+        return out
+    }
+    PwObjectTracker { objects: grid.audioSinks }
+    function cycleSink() {
+        var sinks = grid.audioSinks
+        if (sinks.length < 2) return
+        var cur = Pipewire.defaultAudioSink
+        var idx = -1
+        for (var i = 0; i < sinks.length; i++) {
+            if (cur && sinks[i].id === cur.id) { idx = i; break }
+        }
+        Pipewire.preferredDefaultAudioSink = sinks[(idx + 1) % sinks.length]
+    }
+    readonly property string currentSinkName: {
+        var s = Pipewire.defaultAudioSink
+        if (!s) return "None"
+        return s.nickname || s.description || s.name || "Unknown"
+    }
+
     // ===== WEATHER LOCATION PROMPT (rofi UI) =====
     function promptWeatherLocation() { promptWeatherLocProc.running = true }
     Process {
@@ -88,6 +115,15 @@ GridLayout {
         status: SystemServices.powerProfile
         active: SystemServices.powerProfile.toLowerCase() === "performance"
         onClick: function() { SystemServices.cyclePowerProfile() }
+    }
+    QuickSettingCard {
+        colors: grid.colors
+        icon: "\uF025"
+        title: "Output"
+        status: grid.currentSinkName + (grid.audioSinks.length > 1 ? "\nClick to switch" : "")
+        active: true
+        onClick: function() { grid.cycleSink() }
+        onRightClick: function() { grid.runCommand(grid.audioSettingsCommand) }
     }
     QuickSettingCard {
         colors: grid.colors
