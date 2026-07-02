@@ -65,7 +65,8 @@ CachyOS's `chwd` may pre-install a driver at install time; the lists use
 
 - **desktop** — Sunshine host (pair from Moonlight at `https://<host>:47990`).
 - **work** — xrdp → XFCE X11 session (Windows mstsc, session type "Xorg").
-  Bootstrap writes `~/.xinitrc` for this; see notes it prints.
+  Bootstrap writes `~/startwm.sh` (xrdp-sesman's per-user hook via
+  `UserWindowManager` in sesman.ini); non-work classes get xrdp disabled.
 - **laptop** — none (Tailscale + ssh only).
 
 ## Default applications
