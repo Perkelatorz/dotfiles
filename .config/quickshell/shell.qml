@@ -844,7 +844,7 @@ ShellRoot {
                 barHeight: bar.implicitHeight
                 containerX: toolsMenuPanel.width - 188 - screenDelegate.toolsMenuMarginRight
                 containerWidth: 188
-                containerHeight: 76
+                containerHeight: 168
                 onCloseRequested: screenDelegate.closeAllPanels()
 
                 ToolsMenuContent {

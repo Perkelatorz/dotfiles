@@ -15,7 +15,6 @@ ColumnLayout {
 
     property string audioSettingsCommand: "pavucontrol"
     property string displaySettingsCommand: "wdisplays"
-    property string batterySettingsCommand: ""
     property string diskSettingsCommand: "sh -c \"thunar \\$HOME\""
     property string systemMonitorCommand: "kitty -e btop"
 
@@ -50,10 +49,8 @@ ColumnLayout {
     QuickSettingsGrid {
         colors: quickSettingsRoot.colors
         audioSettingsCommand: quickSettingsRoot.audioSettingsCommand
-        batterySettingsCommand: quickSettingsRoot.batterySettingsCommand
         diskSettingsCommand: quickSettingsRoot.diskSettingsCommand
         onRunCommand: cmd => quickSettingsRoot.runInSession(cmd)
-        onCloseRequested: quickSettingsRoot.onClose()
     }
 
     Item { Layout.fillHeight: true }
