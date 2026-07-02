@@ -78,7 +78,7 @@ Item {
             cursorShape: Qt.PointingHandCursor
             onClicked: {
                 if (!tsWidget.ipAddress) return
-                copyProc.command = ["sh", "-c", "echo -n '" + tsWidget.ipAddress + "' | wl-copy"]
+                copyProc.command = ["wl-copy", tsWidget.ipAddress]
                 copyProc.running = true
                 tsWidget._copied = true
                 copiedTimer.restart()

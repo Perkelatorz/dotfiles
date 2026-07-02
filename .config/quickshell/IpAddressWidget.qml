@@ -31,7 +31,7 @@ Item {
 
     Process {
         id: copyIpProc
-        command: ["sh", "-c", "echo -n '" + ipWidget.ipAddress + "' | wl-copy"]
+        command: []
         running: false
     }
 
@@ -60,7 +60,7 @@ Item {
             acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
             onClicked: function(mouse) {
                 if (mouse.button === Qt.MiddleButton) {
-                    copyIpProc.command = ["sh", "-c", "echo -n '" + ipWidget.ipAddress + "' | wl-copy"]
+                    copyIpProc.command = ["wl-copy", ipWidget.ipAddress]
                     copyIpProc.running = true
                     ipWidget._copied = true
                     copiedTimer.restart()

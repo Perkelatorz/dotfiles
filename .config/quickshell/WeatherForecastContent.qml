@@ -128,7 +128,9 @@ Item {
                         Layout.preferredWidth: 80
                         text: {
                             if (!modelData.date) return ""
-                            var d = new Date(modelData.date)
+                            // Noon anchor: bare YYYY-MM-DD parses as UTC midnight and
+                            // shows the previous day in negative-offset timezones.
+                            var d = new Date(modelData.date + "T12:00:00")
                             if (isNaN(d.getTime())) return modelData.date
                             if (index === 0) return "Today"
                             if (index === 1) return "Tomorrow"

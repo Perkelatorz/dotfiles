@@ -65,6 +65,8 @@ ensure_class() {
     # inotify watch on sourced files (latches "source= globbing error"). A copy
     # is overwritten in place — same inode, watch survives.
     yadm config yadm.alt-copy true
+    # Wire the tracked ignore file (yadm clone doesn't set this).
+    yadm gitconfig core.excludesFile "~/.config/yadm/gitignore"
     # Materialize ##class./##hostname. alternates (e.g. hypr/env-gpu.conf) now
     # that the class is known.
     # (hooks/post_alt reloads Hyprland if live — alt's relink otherwise latches

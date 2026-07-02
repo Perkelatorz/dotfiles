@@ -129,7 +129,7 @@ RowLayout {
                     anchors.fill: parent
                     hoverEnabled: true
                     onClicked: {
-                        if (modelData.action === "lock") header.runCommand("sh -c 'command -v swaylock >/dev/null && exec swaylock || exec hyprlock'")
+                        if (modelData.action === "lock") header.runCommand("hyprlock")
                         else if (modelData.action === "power") header.powerRequested()
                         else if (modelData.action === "settings") header.settingsRequested()
                         else if (modelData.action === "edit") header.runCommand("sh -c 'xdg-open \"$HOME/.config/quickshell\"'")

@@ -77,6 +77,8 @@ PanelWindow {
             z: -1
             radius: 14
             color: root.colors.panelShadow
+            // No floating shadow behind transparent-content popups.
+            visible: root.showBackground
         }
 
         Rectangle {

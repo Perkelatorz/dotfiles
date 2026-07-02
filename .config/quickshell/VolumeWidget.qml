@@ -96,10 +96,9 @@ Item {
                             return "--"
                         if (volumeWidget.muted)
                             return "M"
+                        // Pipewire volume is 0.0–1.5; always scale, clamp at 150%.
                         var v = volumeWidget.volume
-                        if (v <= 1)
-                            return Math.round(v * 100) + "%"
-                        return Math.round(Math.min(100, v)) + "%"
+                        return Math.round(Math.min(v, 1.5) * 100) + "%"
                     }
                     color: volumeWidget.pillTextColor
                     font.pixelSize: colors.cpuFontSize

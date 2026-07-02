@@ -203,7 +203,8 @@ ShellRoot {
                     "notifications=" + (notificationsWidgetVisible ? "true" : "false"),
                     "powerProfile=" + (powerProfileWidgetVisible ? "true" : "false"),
                     "idleInhibitor=" + (idleInhibitorWidgetVisible ? "true" : "false"),
-                    "tailscale=" + (tailscaleWidgetVisible ? "true" : "false")
+                    "tailscale=" + (tailscaleWidgetVisible ? "true" : "false"),
+                    "workspaceOverview=" + (workspaceOverviewWidgetVisible ? "true" : "false")
                 ]
                 saveBarWidgetsProc.command = ["sh", "-c", "SCRIPT=\"${XDG_CONFIG_HOME:-$HOME/.config}/scripts/write-bar-widgets.sh\"; exec \"$SCRIPT\" " + args.join(" ")]
                 saveBarWidgetsProc.running = true
@@ -232,6 +233,7 @@ ShellRoot {
                             if (typeof o.powerProfile === "boolean") screenDelegate.powerProfileWidgetVisible = o.powerProfile
                             if (typeof o.idleInhibitor === "boolean") screenDelegate.idleInhibitorWidgetVisible = o.idleInhibitor
                             if (typeof o.tailscale === "boolean") screenDelegate.tailscaleWidgetVisible = o.tailscale
+                            if (typeof o.workspaceOverview === "boolean") screenDelegate.workspaceOverviewWidgetVisible = o.workspaceOverview
                             if (screenDelegate.isVerticalScreen) {
                                 screenDelegate.resetWidgetVisibility()
                             }
@@ -366,8 +368,10 @@ ShellRoot {
                         }
                     }
 
+                    // Fallback only — Hyprland raw events (above) drive refreshes;
+                    // this just catches anything an event miss could leave stale.
                     Timer {
-                        interval: 1000
+                        interval: 10000
                         repeat: true
                         running: root.hyprMonitor != null
                         onTriggered: root.refreshClients()
@@ -904,6 +908,7 @@ ShellRoot {
                     anchors.fill: parent
                     anchors.margins: 4
                     colors: shellRoot.shellColors
+                    panelOpen: performancePanel.visible
                     onClose: function() { screenDelegate.performancePanelVisible = false }
                 }
             }
@@ -956,7 +961,6 @@ ShellRoot {
                     }
                     onScreenshotMenuRequested: {
                         if (!screenDelegate.screenshotMenuVisible) {
-                            var pt = toolsMenuWidget.mapToItem(root, 0, 0)
                             var screenW = root.width || 1920
                             screenDelegate.screenshotMenuMarginLeft = Math.max(0, Math.floor(screenW - screenDelegate.toolsMenuMarginRight - 168))
                         }
