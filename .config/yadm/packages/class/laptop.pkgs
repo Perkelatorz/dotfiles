@@ -1,0 +1,13 @@
+# Laptop: hybrid AMD iGPU (primary, low power) + RTX dGPU (offload).
+# Run apps on the dGPU with: prime-run <app>
+
+# --- GPU ---
+nvidia-open-dkms
+nvidia-utils
+libva-nvidia-driver
+linux-cachyos-headers
+vulkan-radeon
+nvidia-prime
+
+# --- Power ---
+power-profiles-daemon

@@ -1,0 +1,9 @@
+# The ONLY AUR packages in this setup, and only on the work machine.
+# xrdp is required there: locked-down Windows clients can only use mstsc/RDP.
+
+xrdp
+xorgxrdp
+
+# NOTE: pulseaudio-module-xrdp is deliberately absent — its PKGBUILD conflicts
+# with pipewire-pulse and would rip out the PipeWire stack. If RDP audio is ever
+# needed, find a PipeWire-native path instead.

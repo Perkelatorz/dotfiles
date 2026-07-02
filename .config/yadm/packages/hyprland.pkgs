@@ -1,0 +1,76 @@
+# Full Hyprland desktop stack — everything between "TTY" and "usable session".
+
+# --- Login (bootstrap enables sddm.service; takes effect on reboot) ---
+sddm
+
+# --- Compositor + Hypr ecosystem ---
+# hyprlock (not swaylock): hypridle.conf and programs.conf $lock call hyprlock.
+hyprland
+hypridle
+hyprlock
+hyprpicker
+hyprpolkitagent
+uwsm
+
+# --- Portals (hyprland portal = screenshare/screenshot; gtk = file pickers) ---
+xdg-desktop-portal-hyprland
+xdg-desktop-portal-gtk
+
+# --- hyprpm plugin build deps (base-devel covers gcc/make) ---
+meson
+ninja
+cmake
+
+# --- Audio (no-DE install ships no audio stack) ---
+pipewire
+pipewire-alsa
+pipewire-pulse
+wireplumber
+pavucontrol
+playerctl
+
+# --- Bluetooth ---
+bluez
+bluez-utils
+blueman
+
+# --- Wallpaper daemon (select-wallpaper.sh; autostarted as awww-daemon) ---
+awww
+
+# --- Wayland utils ---
+wl-clipboard
+wl-clip-persist
+cliphist
+grim
+slurp
+brightnessctl
+
+# --- Bar / shell / notifications ---
+quickshell
+qt6-wayland
+qt6ct
+qt5ct
+kvantum
+swaync
+wdisplays
+
+# --- Theming (matugen pipeline + GTK/icons) ---
+matugen
+rofi
+libnotify
+imagemagick
+papirus-icon-theme
+adw-gtk-theme
+
+# --- Fonts (a no-DE install has NO fonts; noto covers UI + emoji fallback) ---
+noto-fonts
+noto-fonts-emoji
+ttf-jetbrains-mono-nerd
+ttf-firacode-nerd
+
+# --- Terminal ---
+kitty
+
+# --- Secrets / keyring ---
+gnome-keyring
+libsecret

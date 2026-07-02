@@ -1,8 +1,0 @@
-# Full XFCE desktop (skip if installing CachyOS XFCE edition — already provided).
-# Select via fzf at bootstrap. xfce4/xfce4-goodies are pacman GROUPS, so pacman
-# pulls all members; --needed in bootstrap skips already-installed ones.
-xfce4
-xfce4-goodies
-# X11 server (xrdp+xorgxrdp need Xorg even if not used locally)
-xorg-server
-xorg-xinit

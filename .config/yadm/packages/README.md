@@ -1,46 +1,84 @@
-# Package Lists
+# Packages & Bootstrap
 
-This directory contains package list files used by the bootstrap script.
+Bootstrap turns a **fresh CachyOS install with no desktop selected** into a
+complete Hyprland workstation. Everything is repo-only except `class/work.aur`
+(xrdp — required for RDP from locked-down Windows clients at work).
 
-## File Naming Convention
+## Fresh machine runbook
 
-- `*.pkgs` - Pacman (official repository) packages
-- `*.aur` - AUR (Arch User Repository) packages
+```sh
+# 1. Install CachyOS, choosing "No Desktop". Log into the TTY, then:
+sudo pacman -S --needed git yadm
 
-## Core Packages
+# 2. Clone dotfiles (say yes when it offers to run bootstrap, or run it yourself)
+yadm clone https://github.com/perkelatorz/dotfiles
 
-- `core.pkgs` - Essential pacman packages (installed automatically)
-- `core.aur` - Essential AUR packages (installed automatically)
+# 3. Tell yadm what this machine is (bootstrap prompts if you skip this)
+yadm config local.class desktop   # or: laptop | work
 
-## Profile Packages
+# 4. Bootstrap (full -Syu, all packages, services, shell, defaults)
+yadm bootstrap
 
-- `profile_*.pkgs` - Profile-specific pacman packages (user selects via fzf)
-- `profile_*.aur` - Profile-specific AUR packages (user selects via fzf)
-
-## File Format
-
-Each file contains one package name per line. Empty lines and lines starting with `#` are ignored.
-
-Example:
-```
-# This is a comment
-package-name
-another-package
-# another-comment
+# 5. Reboot → SDDM → Hyprland. Then authenticate tailscale:
+sudo tailscale up
 ```
 
-## Adding New Package Lists
+## Layout
 
-1. Create a new file with `.pkgs` or `.aur` extension
-2. Add package names, one per line
-3. The bootstrap script will automatically detect and offer it for selection (if not named `core.*`)
+| File | Applies to | Contents |
+|---|---|---|
+| `base.pkgs` | all machines | network, shell, core CLI, yadm |
+| `hyprland.pkgs` | all machines | SDDM, Hyprland stack, pipewire, portals, fonts, theming, kitty |
+| `apps.pkgs` | all machines | firefox, thunar, imv/mpv, vesktop, obsidian, bitwarden |
+| `dev.pkgs` | all machines | neovim, go/rust/npm, ripgrep/fd/fzf, gh |
+| `class/desktop.pkgs` | class `desktop` | nvidia-open, Sunshine (game-stream host) |
+| `class/laptop.pkgs` | class `laptop` | nvidia-open + AMD hybrid (prime-run), power-profiles |
+| `class/work.pkgs` | class `work` | nvidia-580xx (Pascal Quadros), Xorg + XFCE for RDP |
+| `class/work.aur` | class `work` | xrdp, xorgxrdp — the only AUR packages anywhere |
 
-## Neovim
+Format: one package per line; `#` comments and blank lines ignored.
+Adding a machine type = add `class/<name>.pkgs` (and optionally `.aur`).
 
-Core **pacman** packages for Neovim (git, curl, build toolchain, `tree-sitter` CLI, `neovim`, …) are in **`core.pkgs`**. After core installs, **`bootstrap`** runs a short headless **`nvim`** pass so **vim.pack** pulls plugins. Mason LSP/tools finish when you open **`:Mason`** in Neovim.
+## Machine classes
 
-**Claude Code CLI** — after core packages, **`install_claude_code_cli`** downloads and runs Anthropic’s **`https://claude.ai/install.sh`** (same as `curl -fsSL … | bash`). Skip with **`CLAUDE_CODE_SKIP=1 yadm bootstrap`**. Ensure **`~/.local/bin`** is on your **`PATH`** (typical for the installed `claude` binary).
+The class set via `yadm config local.class` drives two things:
 
-**Pacman:** by default the script runs **`pacman -Sy`** then installs packages (Arch documents risks of syncing without upgrading). For a full upgrade during bootstrap use **`BOOTSTRAP_FULL_SYSTEM_UPGRADE=1 yadm bootstrap`** (runs **`pacman -Syu`** after sync).
+1. **Packages** — bootstrap installs all top-level `*.pkgs` plus
+   `class/$CLASS.pkgs` / `class/$CLASS.aur`.
+2. **Config alternates** — yadm links `file##class.<name>` variants, e.g.
+   `~/.config/hypr/env-gpu.conf##class.laptop` becomes `env-gpu.conf` on the
+   laptop (GPU env vars differ per machine: NVIDIA-primary on desktop/work,
+   AMD-primary with prime-run offload on the laptop).
 
-**Default browser** — **`firefox`** and **`xdg-utils`** are in **`core.pkgs`**. After core installs, **`setup_default_browser_firefox`** runs **`xdg-mime default …`** for **`x-scheme-handler/http`** and **`https`**. **`BROWSER=firefox`** is also set in **`~/.config/environment.d/browser.conf`** (systemd user session) and **`~/.config/zsh/.zprofile`** (login shells). Re-login to apply **`environment.d`** everywhere; or run **`systemctl --user import-environment BROWSER`** after editing.
+## GPU driver map
+
+| Machine | GPU | Driver |
+|---|---|---|
+| desktop | RTX 4080 SUPER (+ Ryzen iGPU) | `nvidia-open-dkms` (current branch) |
+| laptop | RTX dGPU + AMD iGPU | `nvidia-open-dkms` + `vulkan-radeon`, offload via `prime-run` |
+| work | Quadro P4000 / P2000 (Pascal) | `nvidia-580xx-dkms` (last branch supporting Pascal; in CachyOS repos, not AUR) |
+
+CachyOS's `chwd` may pre-install a driver at install time; the lists use
+`--needed` so they simply agree with it.
+
+## Remote access map
+
+- **desktop** — Sunshine host (pair from Moonlight at `https://<host>:47990`).
+- **work** — xrdp → XFCE X11 session (Windows mstsc, session type "Xorg").
+  Bootstrap writes `~/.xinitrc` for this; see notes it prints.
+- **laptop** — none (Tailscale + ssh only).
+
+## Default applications
+
+`~/.config/mimeapps.list` is tracked (browser/files/images/video/archives →
+firefox/thunar/imv/mpv/xarchiver). No `xdg-mime` calls at bootstrap — edit the
+file, it wins.
+
+## Other bootstrap steps
+
+- Enables NetworkManager, bluetooth, tailscaled now; **sddm on next boot**.
+- Sets zsh as login shell.
+- Stubs `~/.config/nvim/secrets.lua` (add real API keys after).
+- Clones matugen-themes, installs Claude Code CLI (`CLAUDE_CODE_SKIP=1` to skip),
+  warms Neovim plugins headlessly (`:Mason` finishes LSP binaries).
+- Offers to build Hyprland plugins via hyprpm (interactive; never as root).

@@ -23,7 +23,8 @@ export PASSWORD_STORE_DIR="$XDG_DATA_HOME/password-store"
 export LESSHISTFILE="$XDG_CACHE_HOME/less/history"
 
 # Ensure subdirs exist for apps that don't auto-create
-mkdir -p "${GNUPGHOME}" "${PASSWORD_STORE_DIR}" "$(dirname "$LESSHISTFILE")" "$(dirname "$HISTFILE")"
+# (HISTFILE lives in .zshrc; ZDOTDIR already exists, no mkdir needed for it)
+mkdir -p "${GNUPGHOME}" "${PASSWORD_STORE_DIR}" "$(dirname "$LESSHISTFILE")"
 
 # start user agents (ssh-agent, gpg-agent) if not already running
 # [ -z "$SSH_AUTH_SOCK" ] && eval "$(ssh-agent -s)"
@@ -65,4 +66,10 @@ export RUSTUP_HOME="$XDG_DATA_HOME/rustup"
 export WGETRC="$XDG_CONFIG_HOME/wgetrc"
 export XINITRC="$XDG_CONFIG_HOME"/X11/xinitrc
 export XSERVERRC="$XDG_CONFIG_HOME"/X11/xserverrc
+
+# Tool bin dirs — go binaries land in $GOPATH/bin (set above); pnpm's bin has
+# its shims and globally-installed tools (tsc, tsserver).
+export PATH="$PATH:$GOPATH/bin"
+export PNPM_HOME="$XDG_DATA_HOME/pnpm"
+export PATH="$PATH:$PNPM_HOME/bin"
 

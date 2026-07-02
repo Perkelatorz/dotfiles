@@ -1,0 +1,17 @@
+#!/bin/bash
+# Runs after every `yadm alt` (including yadm's auto-alt on clone/pull/checkout).
+#
+# yadm relinks alternates by delete+create. Hyprland's inotify watch on a
+# sourced file (e.g. hypr/env-gpu.conf) dies with the deleted inode: Hyprland
+# re-parses mid-gap, latches "source= globbing error: found no match", and
+# never sees the recreated link. A reload heals it.
+
+sig="${HYPRLAND_INSTANCE_SIGNATURE:-}"
+if [[ -z "$sig" && -d "${XDG_RUNTIME_DIR:-/run/user/$UID}/hypr" ]]; then
+    # Not inside the session (ssh, cron) — target the newest live instance.
+    sig=$(ls -t "${XDG_RUNTIME_DIR:-/run/user/$UID}/hypr" 2>/dev/null | head -1)
+fi
+[[ -n "$sig" ]] || exit 0
+command -v hyprctl &>/dev/null || exit 0
+
+HYPRLAND_INSTANCE_SIGNATURE="$sig" hyprctl reload >/dev/null 2>&1 || true

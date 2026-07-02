@@ -1,0 +1,29 @@
+# Foundation — assumes a fresh CachyOS install with NO desktop selected.
+# Everything here is repo-only (--needed makes re-runs free).
+
+# --- Network / remote ---
+networkmanager
+openssh
+tailscale
+
+# --- Shell + core CLI ---
+zsh
+git
+curl
+wget
+rsync
+man-db
+less
+
+# --- Shell UX (zshrc integrates these; each no-ops if absent) ---
+starship
+zoxide
+eza
+fzf
+
+# --- System plumbing ---
+base-devel
+pacman-contrib
+xdg-utils
+xdg-user-dirs
+yadm
