@@ -9,12 +9,9 @@ GridLayout {
     id: grid
     required property var colors
     property string audioSettingsCommand: "pavucontrol"
-    property string batterySettingsCommand: ""
     property string diskSettingsCommand: "sh -c \"thunar \\$HOME\""
 
     signal runCommand(string cmd)
-    // Close the panel before actions that capture the screen.
-    signal closeRequested()
 
     Layout.fillWidth: true
     Layout.bottomMargin: 16
@@ -86,28 +83,11 @@ GridLayout {
     }
     QuickSettingCard {
         colors: grid.colors
-        enabled: SystemServices.batteryHas || !!grid.batterySettingsCommand
-        icon: SystemServices.batteryHas ? (SystemServices.batteryStatus === "Charging" ? "\uF0E7" : "\uF240") : "\uF244"
-        title: "Battery"
-        status: SystemServices.batteryHas ? (SystemServices.batteryCapacity + "% " + SystemServices.batteryStatus) : "N/A"
-        active: SystemServices.batteryHas && SystemServices.batteryStatus === "Charging"
-        progress: SystemServices.batteryHas ? SystemServices.batteryCapacity / 100 : -1
-        onClick: grid.batterySettingsCommand ? function() { grid.runCommand(grid.batterySettingsCommand) } : null
-    }
-    QuickSettingCard {
-        colors: grid.colors
         icon: SystemServices.powerIcon
         title: "Power Profile"
         status: SystemServices.powerProfile
         active: SystemServices.powerProfile.toLowerCase() === "performance"
         onClick: function() { SystemServices.cyclePowerProfile() }
-    }
-    QuickSettingCard {
-        colors: grid.colors
-        icon: "\uF0AC"
-        title: "Network"
-        status: SystemServices.netSpeed
-        onClick: function() { grid.runCommand("nm-connection-editor") }
     }
     QuickSettingCard {
         colors: grid.colors
@@ -120,18 +100,10 @@ GridLayout {
     }
     QuickSettingCard {
         colors: grid.colors
-        icon: "\uF49E"
-        title: "Updates"
-        status: SystemServices.updateStatus
-        active: SystemServices.repoUpdates + SystemServices.aurUpdates > 0
-        onClick: function() { grid.runCommand("kitty -e paru") }
-    }
-    QuickSettingCard {
-        colors: grid.colors
         icon: SystemServices.weatherIcon
         title: "Weather"
         status: SystemServices.weatherStatus
-        onClick: function() { grid.runCommand("xdg-open https://wttr.in/" + SystemServices.weatherLocation) }
+        onClick: function() { grid.runCommand("xdg-open https://wttr.in/" + encodeURIComponent(SystemServices.weatherLocation)) }
         onRightClick: function() { grid.promptWeatherLocation() }
     }
     QuickSettingCard {
@@ -141,22 +113,6 @@ GridLayout {
         status: SystemServices.themeStatus
         paletteColors: [grid.colors.primary, grid.colors.secondary, grid.colors.tertiary, grid.colors.error, grid.colors.primaryContainer, grid.colors.surfaceBright]
         onClick: function() { grid.runCommand("sh -c '\"$HOME/.config/scripts/select-wallpaper.sh\" --material'") }
-    }
-    QuickSettingCard {
-        colors: grid.colors
-        icon: "\uF030"
-        title: "Screenshot"
-        status: "Click: region\nRight: full screen"
-        // Panel must close first or it ends up in the capture; small sleep
-        // lets the popup animation finish before slurp/grim grab the screen.
-        onClick: function() {
-            grid.closeRequested()
-            grid.runCommand("sh -c 'sleep 0.2; exec \"${XDG_CONFIG_HOME:-$HOME/.config}/scripts/screenshot-region.sh\"'")
-        }
-        onRightClick: function() {
-            grid.closeRequested()
-            grid.runCommand("sh -c 'sleep 0.2; exec \"${XDG_CONFIG_HOME:-$HOME/.config}/scripts/screenshot-fullscreen.sh\"'")
-        }
     }
     QuickSettingCard {
         colors: grid.colors

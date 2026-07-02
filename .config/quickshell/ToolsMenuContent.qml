@@ -30,6 +30,9 @@ Column {
     Repeater {
         id: toolsRepeater
         model: [
+            { label: "Screenshot region", icon: "\uF030", action: "shot-region" },
+            { label: "Screenshot screen", icon: "\uF108", action: "shot-full" },
+            { label: "Same as last", icon: "\uF01E", action: "shot-last" },
             { label: "Quick Notes", icon: "\uF249", action: "notes" },
             { label: "Color Picker", icon: "\uF1FB", action: "colorpicker" }
         ]
@@ -40,7 +43,18 @@ Column {
             hoverEnabled: true
             onClicked: {
                 var act = modelData.action
-                if (act === "notes") {
+                // Screenshots: menu must close first (or it lands in the
+                // capture); the sleep lets the popup animation finish.
+                if (act === "shot-region") {
+                    toolsMenu.onClose()
+                    sessionRunner.run("sh -c 'sleep 0.2; exec \"${XDG_CONFIG_HOME:-$HOME/.config}/scripts/screenshot-region.sh\"'")
+                } else if (act === "shot-full") {
+                    toolsMenu.onClose()
+                    sessionRunner.run("sh -c 'sleep 0.2; exec \"${XDG_CONFIG_HOME:-$HOME/.config}/scripts/screenshot-fullscreen.sh\"'")
+                } else if (act === "shot-last") {
+                    toolsMenu.onClose()
+                    sessionRunner.run("sh -c 'sleep 0.2; exec \"${XDG_CONFIG_HOME:-$HOME/.config}/scripts/screenshot-last.sh\"'")
+                } else if (act === "notes") {
                     toolsMenu.onClose()
                     sessionRunner.run("kitty --class quick-notes -e nvim ~/notes.md")
                 } else if (act === "colorpicker") {
