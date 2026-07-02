@@ -4,6 +4,7 @@ import "."
 
 BarPill {
     id: batteryWidget
+    pillIndex: 5
 
     readonly property bool hasBattery: SystemServices.batteryHas
     readonly property int capacity: SystemServices.batteryCapacity

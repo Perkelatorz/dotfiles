@@ -5,6 +5,7 @@ import "."
 
 BarPill {
     id: micWidget
+    pillIndex: 0
 
     property var source: Pipewire.defaultAudioSource
     PwObjectTracker {

@@ -8,6 +8,7 @@ import "."
 // with the urgent color — you want to notice you've left it on.
 BarPill {
     id: idleWidget
+    pillIndex: 6
 
     property bool inhibited: false  // true = idle disabled, stay awake
 

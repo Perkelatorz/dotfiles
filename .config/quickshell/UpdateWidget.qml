@@ -5,6 +5,7 @@ import "."
 
 BarPill {
     id: updateWidget
+    pillIndex: 1
 
     readonly property int totalCount: SystemServices.repoUpdates + SystemServices.aurUpdates
     readonly property bool hasUpdates: totalCount > 0

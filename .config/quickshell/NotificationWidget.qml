@@ -5,6 +5,7 @@ import "."
 
 BarPill {
     id: notifWidget
+    pillIndex: 4
 
     property int notifCount: 0
     property bool dndActive: false

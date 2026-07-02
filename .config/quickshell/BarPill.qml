@@ -30,9 +30,18 @@ Item {
     signal clicked(var mouse)
     signal wheelMoved(var wheel)
 
-    readonly property color bg: active ? activeColor : colors.surfaceContainer
-    readonly property color fg: active ? activeTextColor : colors.textMain
-    readonly property color iconFg: active ? activeTextColor : colors.primary
+    // Wallpaper-derived pill color (matugen's widgetPillColors array) — each
+    // widget picks a slot so the bar carries the background's palette.
+    // pillIndex -1 = quiet surface tone. Active states always override with
+    // the accent/urgent container so meaningful states still stand out.
+    property int pillIndex: -1
+    readonly property bool _colored: pillIndex >= 0 && colors.widgetPillColors !== undefined && pillIndex < colors.widgetPillColors.length
+    readonly property color _baseBg: _colored ? colors.widgetPillColors[pillIndex] : colors.surfaceContainer
+    readonly property color _baseFg: _colored ? colors.widgetTextOnPillColors[pillIndex] : colors.textMain
+
+    readonly property color bg: active ? activeColor : _baseBg
+    readonly property color fg: active ? activeTextColor : _baseFg
+    readonly property color iconFg: active ? activeTextColor : (_colored ? _baseFg : colors.primary)
 
     implicitWidth: present ? bgRect.width : 0
     implicitHeight: present ? 28 : 0
@@ -49,7 +58,10 @@ Item {
              : ma.containsMouse && pill.interactive ? Qt.lighter(pill.bg, 1.25)
              : pill.bg
         border.width: 1
-        border.color: ma.containsMouse && pill.interactive ? colors.border : colors.borderSubtle
+        // Tone-on-tone border for colored pills; hairline for the quiet ones.
+        border.color: ma.containsMouse && pill.interactive ? colors.border
+                    : pill._colored ? Qt.lighter(pill.bg, 1.25)
+                    : colors.borderSubtle
         scale: ma.pressed && pill.interactive ? 0.95 : 1.0
         Behavior on color { ColorAnimation { duration: 100 } }
         Behavior on border.color { ColorAnimation { duration: 100 } }

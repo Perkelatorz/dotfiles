@@ -5,6 +5,7 @@ import "."
 
 BarPill {
     id: brightnessWidget
+    pillIndex: 6
 
     property string outputName: ""
     property int screenIndex: 0
