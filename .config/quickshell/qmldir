@@ -1,7 +1,8 @@
-Colors 1.0 Colors.qml
 singleton SystemServices 1.0 SystemServices.qml
+Colors 1.0 Colors.qml
 PollingProcess 1.0 PollingProcess.qml
 PopupPanel 1.0 PopupPanel.qml
+BarPill 1.0 BarPill.qml
 IdleInhibitorWidget 1.0 IdleInhibitorWidget.qml
 TailscaleWidget 1.0 TailscaleWidget.qml
 BatteryWidget 1.0 BatteryWidget.qml
@@ -10,6 +11,7 @@ CalendarContent 1.0 CalendarContent.qml
 ClientList 1.0 ClientList.qml
 ClockWidget 1.0 ClockWidget.qml
 PerformanceWidget 1.0 PerformanceWidget.qml
+PerformanceContent 1.0 PerformanceContent.qml
 IpAddressWidget 1.0 IpAddressWidget.qml
 PowerMenuContent 1.0 PowerMenuContent.qml
 QuickSettingCard 1.0 QuickSettingCard.qml
@@ -21,8 +23,6 @@ QuickSettingsWidget 1.0 QuickSettingsWidget.qml
 MicrophoneWidget 1.0 MicrophoneWidget.qml
 MiniPlayerContent 1.0 MiniPlayerContent.qml
 NowPlayingWidget 1.0 NowPlayingWidget.qml
-ScreenshotMenuContent 1.0 ScreenshotMenuContent.qml
-ScreenshotWidget 1.0 ScreenshotWidget.qml
 SessionRunner 1.0 SessionRunner.qml
 SettingsMenuContent 1.0 SettingsMenuContent.qml
 StyledCalendarGrid 1.0 StyledCalendarGrid.qml
@@ -30,6 +30,7 @@ Tray 1.0 Tray.qml
 VolumeWidget 1.0 VolumeWidget.qml
 WidgetToggleRow 1.0 WidgetToggleRow.qml
 WorkspaceOverviewContent 1.0 WorkspaceOverviewContent.qml
+WorkspaceOverviewWidget 1.0 WorkspaceOverviewWidget.qml
 Workspaces 1.0 Workspaces.qml
 PowerProfileWidget 1.0 PowerProfileWidget.qml
 NotificationWidget 1.0 NotificationWidget.qml
@@ -37,11 +38,5 @@ NetSpeedWidget 1.0 NetSpeedWidget.qml
 UpdateWidget 1.0 UpdateWidget.qml
 WeatherWidget 1.0 WeatherWidget.qml
 WeatherForecastContent 1.0 WeatherForecastContent.qml
-WorkspaceOverviewWidget 1.0 WorkspaceOverviewWidget.qml
-ClipboardContent 1.0 ClipboardContent.qml
-KeybindsContent 1.0 KeybindsContent.qml
 ToolsMenuWidget 1.0 ToolsMenuWidget.qml
 ToolsMenuContent 1.0 ToolsMenuContent.qml
-ClaudeUsageWidget 1.0 ClaudeUsageWidget.qml
-ClaudeUsageContent 1.0 ClaudeUsageContent.qml
-PerformanceContent 1.0 PerformanceContent.qml

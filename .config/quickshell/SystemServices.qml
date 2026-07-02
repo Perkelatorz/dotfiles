@@ -19,7 +19,9 @@ Singleton {
     // ===== BATTERY (UPower — event-driven, replaces the 60s sysfs pipeline) =====
     // Property names/strings preserved for BatteryWidget/QuickSettingsGrid.
     readonly property var _bat: UPower.displayDevice
-    readonly property bool batteryHas: _bat !== null && _bat.isLaptopBattery
+    // powerSupply filters out peripheral batteries (wireless mice/keyboards
+    // report power supply: no) that DisplayDevice otherwise aggregates.
+    readonly property bool batteryHas: _bat !== null && _bat.isLaptopBattery && _bat.powerSupply
     readonly property int batteryCapacity: batteryHas ? Math.round(_bat.percentage * 100) : 0
     readonly property string batteryStatus: {
         if (!batteryHas) return ""
@@ -102,7 +104,10 @@ Singleton {
     }
     Process {
         id: _brightnessctlListProc
-        command: ["sh", "-c", "brightnessctl -l 2>/dev/null"]
+        // -c backlight: only real display backlights — without it, keyboard
+        // LEDs (class 'leds') count as brightness devices and desktops show a
+        // phantom 0% brightness pill.
+        command: ["sh", "-c", "brightnessctl -l -c backlight 2>/dev/null"]
         running: false
         stdout: StdioCollector {
             onStreamFinished: {

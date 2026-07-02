@@ -6,15 +6,10 @@ import "."
 // Native Mpris service — event-driven, replaces the 3s playerctl polling and
 // its sentinel-string parser (which corrupted on titles containing "STATUS",
 // "SHUF", etc.). Public interface preserved for MiniPlayerContent/shell.qml.
-Item {
+BarPill {
     id: nowPlayingWidget
-    required property var colors
-    property int pillIndex: 6
 
     signal openMiniPlayerRequested()
-
-    readonly property color pillColor: (colors.widgetPillColors && pillIndex >= 0 && pillIndex < colors.widgetPillColors.length) ? colors.widgetPillColors[pillIndex] : colors.primary
-    readonly property color pillTextColor: (colors.widgetTextOnPillColors && pillIndex >= 0 && pillIndex < colors.widgetTextOnPillColors.length) ? colors.widgetTextOnPillColors[pillIndex] : colors.textMain
 
     property string selectedPlayer: ""
     readonly property var _player: {
@@ -53,9 +48,8 @@ Item {
         }
     }
 
-    implicitWidth: hasPlayer ? pill.width : 0
-    implicitHeight: hasPlayer ? 28 : 0
-    visible: hasPlayer
+    icon: status === "Playing" ? "" : ""
+    present: hasPlayer
 
     // No-ops kept for MiniPlayerContent compatibility — Mpris pushes changes.
     function refreshMetadata() { }
@@ -75,74 +69,39 @@ Item {
         }
     }
 
-    Rectangle {
-        id: pill
-        height: nowPlayingWidget.implicitHeight - (colors.widgetPillPaddingV) * 2
-        width: Math.min(row.implicitWidth + (colors.widgetPillPaddingH) * 2, 220)
-        anchors.verticalCenter: parent.verticalCenter
-        radius: colors.widgetPillRadius
-        color: mouseArea.pressed ? Qt.darker(nowPlayingWidget.pillColor, 1.15) : mouseArea.containsMouse ? Qt.lighter(nowPlayingWidget.pillColor, 1.2) : nowPlayingWidget.pillColor
-        border.width: 1
-        border.color: mouseArea.containsMouse ? Qt.lighter(nowPlayingWidget.pillColor, 1.4) : nowPlayingWidget.pillColor
-        scale: mouseArea.pressed ? 0.94 : 1.0
-        visible: nowPlayingWidget.hasPlayer
-        Behavior on color { ColorAnimation { duration: 100 } }
-        Behavior on border.color { ColorAnimation { duration: 100 } }
-        Behavior on scale { NumberAnimation { duration: 80; easing.type: Easing.OutCubic } }
+    onClicked: mouse => {
+        if (mouse.button === Qt.MiddleButton) nowPlayingWidget.playPause()
+        else nowPlayingWidget.openMiniPlayerRequested()
+    }
 
-        MouseArea {
-            id: mouseArea
-            anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            acceptedButtons: Qt.LeftButton | Qt.MiddleButton
-            onClicked: function(mouse) {
-                if (mouse.button === Qt.LeftButton)
-                    nowPlayingWidget.openMiniPlayerRequested()
-                else if (mouse.button === Qt.MiddleButton)
-                    nowPlayingWidget.playPause()
+    // Scrolling track label (max 160px, marquee when it overflows).
+    Item {
+        width: Math.min(npLabel.implicitWidth, 160)
+        height: npLabel.implicitHeight
+        anchors.verticalCenter: parent.verticalCenter
+        clip: true
+        Text {
+            id: npLabel
+            readonly property string displayText: {
+                var a = nowPlayingWidget.artist
+                var t = nowPlayingWidget.title
+                if (t) return a ? (a + " \u2013 " + t) : t
+                return a || "\u2014"
             }
-            Row {
-                id: row
-                anchors.centerIn: parent
-                spacing: 6
-                leftPadding: colors.widgetPillPaddingH
-                rightPadding: colors.widgetPillPaddingH
-                Text {
-                    text: nowPlayingWidget.status === "Playing" ? "\uF04B" : "\uF04C"
-                    color: nowPlayingWidget.pillTextColor
-                    font.pixelSize: colors.cpuFontSize
-                    font.family: colors.widgetIconFont
-                }
-                Item {
-                    width: 160
-                    height: npLabel.implicitHeight
-                    clip: true
-                    Text {
-                        id: npLabel
-                        readonly property string displayText: {
-                            var a = nowPlayingWidget.artist
-                            var t = nowPlayingWidget.title
-                            if (t) return a ? (a + " – " + t) : t
-                            return a || "—"
-                        }
-                        text: displayText
-                        color: nowPlayingWidget.pillTextColor
-                        font.pixelSize: colors.cpuFontSize
-                        readonly property bool overflows: implicitWidth > 160
-                        x: overflows ? npScrollAnim.scrollX : 0
-                        property real _scrollX: 0
-                        NumberAnimation on _scrollX {
-                            id: npScrollAnim
-                            property real scrollX: npLabel.overflows ? npLabel._scrollX : 0
-                            from: 0
-                            to: npLabel.overflows ? -(npLabel.implicitWidth + 40) : 0
-                            duration: npLabel.overflows ? Math.max(3000, (npLabel.implicitWidth + 40) * 30) : 0
-                            loops: Animation.Infinite
-                            running: npLabel.overflows && nowPlayingWidget.visible
-                        }
-                    }
-                }
+            text: displayText
+            color: nowPlayingWidget.fg
+            font.pixelSize: colors.cpuFontSize
+            readonly property bool overflows: implicitWidth > 160
+            x: overflows ? npScrollAnim.scrollX : 0
+            property real _scrollX: 0
+            NumberAnimation on _scrollX {
+                id: npScrollAnim
+                property real scrollX: npLabel.overflows ? npLabel._scrollX : 0
+                from: 0
+                to: npLabel.overflows ? -(npLabel.implicitWidth + 40) : 0
+                duration: npLabel.overflows ? Math.max(3000, (npLabel.implicitWidth + 40) * 30) : 0
+                loops: Animation.Infinite
+                running: npLabel.overflows && nowPlayingWidget.visible
             }
         }
     }

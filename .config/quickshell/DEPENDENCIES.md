@@ -24,21 +24,10 @@ Everything you need for this config to work. Optional items only affect specific
 
 ---
 
-## Screenshots
-
-| Dependency | Used by |
-|------------|--------|
-| **grim** | Fullscreen and region screenshots. |
-| **slurp** | Region selection for “Select region” and “Same as last” (geometry stored in `~/.cache/.../quickshell-last-slurp`). |
-| **wayfreeze** (AUR: **wayfreeze-git**) | Freezes the screen during region selection so the slurp overlay is not captured. Falls back to plain grim+slurp if not installed. |
-
----
-
 ## Media (Now Playing)
 
-| Dependency | Used by |
-|------------|--------|
-| **playerctl** | Now Playing widget and mini player: metadata, play/pause/prev/next, list players (MPRIS). |
+Uses Quickshell's native Mpris service — no external dependency (playerctl no
+longer needed).
 
 ---
 
@@ -48,7 +37,7 @@ Everything you need for this config to work. Optional items only affect specific
 |------------|--------|
 | **systemctl** | Power menu: suspend, hibernate, reboot, shutdown (configurable in `PowerMenuContent.qml`). |
 | **loginctl** | Power menu: logout. |
-| **swaylock** or **hyprlock** | Lock (Quick Settings lock button and power menu). Default is **swaylock** with fallback to **hyprlock** in Quick Settings; power menu uses `lockCommand` (default `swaylock`). |
+| **hyprlock** | Lock (Quick Settings lock button and power menu). |
 
 ---
 
@@ -127,12 +116,14 @@ For the bar to run and do something useful:
 
 - Quickshell  
 - Hyprland  
-- Pipewire + WirePlumber (`wpctl`)  
+- Pipewire + WirePlumber  
 - wl-copy  
-- grim (+ slurp for region/same-as-last screenshots)  
-- playerctl (if you use Now Playing)  
 - systemctl + loginctl  
-- swaylock or hyprlock (for lock)  
+- hyprlock (for lock)  
 - pavucontrol (or another app for volume click)  
 
-Quick Settings panel additionally benefits from: **nmcli**, **bluetoothctl**, **nm-connection-editor**, **df**, **lpstat** (optional: **blueman-manager**, **system-config-printer**, **nwg-displays**). Everything else is optional or has fallbacks (e.g. battery/brightness hide when no `/sys` data; cards show “N/A” or “No data” when a command is missing).
+Battery, bluetooth, media, and power profiles use Quickshell's native services
+(UPower/Bluetooth/Mpris/PowerProfiles) — no CLI tools needed. Quick Settings
+additionally benefits from: **nmcli**, **nm-connection-editor**, **df**,
+**lpstat** (optional: **blueman-manager**). Everything else is optional or has
+fallbacks (widgets hide or show "N/A" when a data source is missing).
