@@ -18,6 +18,21 @@ Column {
         compositorName: toolsMenu.compositorName
     }
 
+    // gpu-screen-recorder instant replay (desktop class) — entries only
+    // appear when gsr is installed.
+    property bool gsrAvailable: false
+    Process {
+        id: gsrCheck
+        command: ["sh", "-c", "command -v gpu-screen-recorder >/dev/null && echo yes || echo no"]
+        running: true
+        stdout: StdioCollector {
+            onStreamFinished: {
+                toolsMenu.gsrAvailable = (gsrCheck.stdout.text || "").trim() === "yes"
+                gsrCheck.running = false
+            }
+        }
+    }
+
     Process {
         id: pickerProc
         command: ["hyprpicker", "-a", "-f", "hex"]
@@ -29,13 +44,20 @@ Column {
 
     Repeater {
         id: toolsRepeater
-        model: [
-            { label: "Screenshot region", icon: "\uF030", action: "shot-region" },
-            { label: "Screenshot screen", icon: "\uF108", action: "shot-full" },
-            { label: "Same as last", icon: "\uF01E", action: "shot-last" },
-            { label: "Quick Notes", icon: "\uF249", action: "notes" },
-            { label: "Color Picker", icon: "\uF1FB", action: "colorpicker" }
-        ]
+        model: {
+            var m = [
+                { label: "Screenshot region", icon: "\uF030", action: "shot-region" },
+                { label: "Screenshot screen", icon: "\uF108", action: "shot-full" },
+                { label: "Same as last", icon: "\uF01E", action: "shot-last" },
+                { label: "Quick Notes", icon: "\uF249", action: "notes" },
+                { label: "Color Picker", icon: "\uF1FB", action: "colorpicker" }
+            ]
+            if (toolsMenu.gsrAvailable) {
+                m.push({ label: "Save replay clip", icon: "\uF0C7", action: "replay-save" })
+                m.push({ label: "Replay buffer", icon: "\uF03D", action: "replay-toggle" })
+            }
+            return m
+        }
         delegate: MouseArea {
             id: toolMa
             width: toolsMenu.width - 8
@@ -54,6 +76,12 @@ Column {
                 } else if (act === "shot-last") {
                     toolsMenu.onClose()
                     sessionRunner.run("sh -c 'sleep 0.2; exec \"${XDG_CONFIG_HOME:-$HOME/.config}/scripts/screenshot-last.sh\"'")
+                } else if (act === "replay-save") {
+                    toolsMenu.onClose()
+                    sessionRunner.run("sh -c 'if pgrep -f \"gpu-screen-recorder -w\" >/dev/null; then pkill -USR1 -f \"gpu-screen-recorder -w\"; notify-send \"Replay saved\" \"$HOME/Videos/Replays\"; else notify-send \"Replay buffer not running\" \"Start it from the tools menu\"; fi'")
+                } else if (act === "replay-toggle") {
+                    toolsMenu.onClose()
+                    sessionRunner.run("sh -c 'if pgrep -f \"gpu-screen-recorder -w\" >/dev/null; then pkill -f \"gpu-screen-recorder -w\"; notify-send \"Replay buffer stopped\"; else mkdir -p \"$HOME/Videos/Replays\"; gpu-screen-recorder -w screen -f 60 -a default_output -c mp4 -r 60 -o \"$HOME/Videos/Replays\" >/dev/null 2>&1 & notify-send \"Replay buffer started\" \"Last 60s saved on demand\"; fi'")
                 } else if (act === "notes") {
                     toolsMenu.onClose()
                     sessionRunner.run("kitty --class quick-notes -e nvim ~/notes.md")

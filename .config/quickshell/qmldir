@@ -3,6 +3,7 @@ Colors 1.0 Colors.qml
 PollingProcess 1.0 PollingProcess.qml
 PopupPanel 1.0 PopupPanel.qml
 BarPill 1.0 BarPill.qml
+PrivacyIndicatorWidget 1.0 PrivacyIndicatorWidget.qml
 IdleInhibitorWidget 1.0 IdleInhibitorWidget.qml
 TailscaleWidget 1.0 TailscaleWidget.qml
 BatteryWidget 1.0 BatteryWidget.qml

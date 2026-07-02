@@ -12,6 +12,9 @@ BarPill {
     property int lastCpuIdle: 0
     property int ramPercent: 0
     property int cpuTempC: 0
+    property bool gpuHas: false
+    property int gpuUsage: 0
+    property int gpuTempC: 0
     property string systemMonitorCommand: "kitty -e btop"
 
     signal toggleRequested()
@@ -60,6 +63,34 @@ BarPill {
         }
     }
 
+    // GPU: nvidia-smi where present (desktop/work), amdgpu sysfs otherwise
+    // (laptop iGPU). Any failure → segment hides (gpuHas stays false).
+    PollingProcess {
+        interval: 3000
+        active: perfWidget.visible
+        command: ["sh", "-c",
+            "if command -v nvidia-smi >/dev/null 2>&1; then " +
+            "  nvidia-smi --query-gpu=utilization.gpu,temperature.gpu --format=csv,noheader,nounits 2>/dev/null | head -1 | tr -d ' '; " +
+            "else " +
+            "  for c in /sys/class/drm/card*/device; do " +
+            "    if [ -r \"$c/gpu_busy_percent\" ]; then " +
+            "      b=$(cat \"$c/gpu_busy_percent\"); " +
+            "      t=$(cat \"$c\"/hwmon/hwmon*/temp1_input 2>/dev/null | head -1); " +
+            "      echo \"$b,$(( ${t:-0} / 1000 ))\"; break; " +
+            "    fi; " +
+            "  done; " +
+            "fi"]
+        onOutput: text => {
+            var parts = (text || "").trim().split(",")
+            var u = parseInt(parts[0], 10)
+            var t = parseInt(parts[1], 10)
+            if (isNaN(u)) { perfWidget.gpuHas = false; return }
+            perfWidget.gpuHas = true
+            perfWidget.gpuUsage = Math.max(0, Math.min(100, u))
+            perfWidget.gpuTempC = isNaN(t) ? 0 : t
+        }
+    }
+
     Process {
         id: runMonitor
         command: perfWidget.systemMonitorCommand.trim().split(/\s+/).filter(function(s) { return s.length > 0 })
@@ -103,5 +134,19 @@ BarPill {
         anchors.verticalCenter: parent.verticalCenter
         Text { text: "\uF2C7"; color: perfWidget.iconFg; font.pixelSize: colors.cpuFontSize; font.family: colors.widgetIconFont }
         Text { text: perfWidget.cpuTempC + "°"; color: perfWidget.fg; font.pixelSize: colors.cpuFontSize }
+    }
+    Text {
+        text: "\u2502"
+        anchors.verticalCenter: parent.verticalCenter
+        visible: perfWidget.gpuHas
+        color: Qt.rgba(perfWidget.fg.r, perfWidget.fg.g, perfWidget.fg.b, 0.35)
+        font.pixelSize: colors.cpuFontSize
+    }
+    Row {
+        spacing: 3
+        visible: perfWidget.gpuHas
+        anchors.verticalCenter: parent.verticalCenter
+        Text { text: "GPU"; color: perfWidget.iconFg; font.pixelSize: colors.cpuFontSize - 2; font.bold: true; anchors.verticalCenter: parent.verticalCenter }
+        Text { text: perfWidget.gpuUsage + "%" + (perfWidget.gpuTempC > 0 ? " " + perfWidget.gpuTempC + "\u00B0" : ""); color: perfWidget.fg; font.pixelSize: colors.cpuFontSize; anchors.verticalCenter: parent.verticalCenter }
     }
 }
