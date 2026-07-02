@@ -13,28 +13,19 @@ ShellRoot {
     id: shellRoot
     property var fullscreenMonitorNames: []
     property alias shellColors: colors
-    property string compositorName: "hyprland"
+    // Synchronous env read — no subprocess, no race where widgets briefly see
+    // the wrong compositor before async detection lands.
+    readonly property string compositorName: {
+        var s = (Quickshell.env("XDG_CURRENT_DESKTOP") || "").toLowerCase()
+        if (s.indexOf("hyprland") >= 0) return "hyprland"
+        if (s.indexOf("niri") >= 0) return "niri"
+        return "other"
+    }
     property bool workspaceOverviewTriggered: false
 
     function refreshFullscreenMonitors() {
         if (compositorName === "hyprland" && !fullscreenProcess.running)
             fullscreenProcess.running = true
-    }
-
-    Process {
-        id: compositorDetectProc
-        command: ["sh", "-c", "echo \"${XDG_CURRENT_DESKTOP:-}\""]
-        running: true
-        stdout: StdioCollector {
-            onStreamFinished: {
-                var s = (compositorDetectProc.stdout.text || "").trim().toLowerCase()
-                var next = s.indexOf("hyprland") >= 0 ? "hyprland"
-                    : s.indexOf("niri") >= 0 ? "niri"
-                    : "other"
-                shellRoot.compositorName = next
-                compositorDetectProc.running = false
-            }
-        }
     }
 
     Process {

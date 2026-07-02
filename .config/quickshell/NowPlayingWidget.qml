@@ -1,8 +1,11 @@
 import QtQuick
-import Quickshell.Io
+import Quickshell.Services.Mpris
 
 import "."
 
+// Native Mpris service — event-driven, replaces the 3s playerctl polling and
+// its sentinel-string parser (which corrupted on titles containing "STATUS",
+// "SHUF", etc.). Public interface preserved for MiniPlayerContent/shell.qml.
 Item {
     id: nowPlayingWidget
     required property var colors
@@ -13,172 +16,64 @@ Item {
     readonly property color pillColor: (colors.widgetPillColors && pillIndex >= 0 && pillIndex < colors.widgetPillColors.length) ? colors.widgetPillColors[pillIndex] : colors.primary
     readonly property color pillTextColor: (colors.widgetTextOnPillColors && pillIndex >= 0 && pillIndex < colors.widgetTextOnPillColors.length) ? colors.widgetTextOnPillColors[pillIndex] : colors.textMain
 
-    property string title: ""
-    property string artist: ""
-    property string artUrl: ""
-    property string status: ""  // Playing, Paused, Stopped
-    property bool hasPlayer: false
-    property var playerList: []
     property string selectedPlayer: ""
-    property bool shuffleOn: false
-    property string loopMode: "None"  // None, Track, Playlist
+    readonly property var _player: {
+        var ps = Mpris.players.values
+        if (ps.length === 0) return null
+        for (var i = 0; i < ps.length; i++) {
+            if (ps[i].identity === nowPlayingWidget.selectedPlayer) return ps[i]
+        }
+        return ps[0]
+    }
+    readonly property var playerList: {
+        var names = []
+        var ps = Mpris.players.values
+        for (var i = 0; i < ps.length; i++) names.push(ps[i].identity)
+        return names
+    }
+    readonly property bool hasPlayer: _player !== null
+    readonly property string title: _player ? (_player.trackTitle || "") : ""
+    readonly property string artist: _player ? (_player.trackArtist || "") : ""
+    readonly property string artUrl: _player ? (_player.trackArtUrl || "") : ""
+    readonly property string status: {
+        if (!_player) return ""
+        switch (_player.playbackState) {
+        case MprisPlaybackState.Playing: return "Playing"
+        case MprisPlaybackState.Paused: return "Paused"
+        default: return "Stopped"
+        }
+    }
+    readonly property bool shuffleOn: _player && _player.shuffleSupported ? _player.shuffle : false
+    readonly property string loopMode: {
+        if (!_player || !_player.loopSupported) return "None"
+        switch (_player.loopState) {
+        case MprisLoopState.Track: return "Track"
+        case MprisLoopState.Playlist: return "Playlist"
+        default: return "None"
+        }
+    }
 
     implicitWidth: hasPlayer ? pill.width : 0
     implicitHeight: hasPlayer ? 28 : 0
     visible: hasPlayer
 
-    function refreshMetadata() {
-        if (!metaProc.running) nowPlayingWidget.startMetaProc()
-    }
+    // No-ops kept for MiniPlayerContent compatibility — Mpris pushes changes.
+    function refreshMetadata() { }
+    function refreshList() { }
 
-    function refreshList() {
-        if (!listProc.running) listProc.running = true
-    }
-
-    function playPause() {
-        playPauseProc.command = ["playerctl"].concat(nowPlayingWidget.playerArg()).concat(["play-pause"])
-        playPauseProc.running = true
-    }
-
-    function previous() {
-        previousProc.command = ["playerctl"].concat(nowPlayingWidget.playerArg()).concat(["previous"])
-        previousProc.running = true
-    }
-
-    function next() {
-        nextProc.command = ["playerctl"].concat(nowPlayingWidget.playerArg()).concat(["next"])
-        nextProc.running = true
-    }
-
-    function toggleShuffle() {
-        shuffleProc.command = ["playerctl"].concat(nowPlayingWidget.playerArg()).concat(["shuffle", "Toggle"])
-        shuffleProc.running = true
-    }
-
+    function setSelectedPlayer(name) { nowPlayingWidget.selectedPlayer = name || "" }
+    function playPause() { if (_player && _player.canTogglePlaying) _player.togglePlaying() }
+    function previous() { if (_player && _player.canGoPrevious) _player.previous() }
+    function next() { if (_player && _player.canGoNext) _player.next() }
+    function toggleShuffle() { if (_player && _player.shuffleSupported) _player.shuffle = !_player.shuffle }
     function cycleLoop() {
-        var order = ["None", "Track", "Playlist"]
-        var idx = order.indexOf(nowPlayingWidget.loopMode)
-        var next = order[(idx + 1) % order.length]
-        loopProc.command = ["playerctl"].concat(nowPlayingWidget.playerArg()).concat(["loop", next])
-        loopProc.running = true
-    }
-
-    Process {
-        id: shuffleProc
-        command: ["playerctl", "shuffle", "Toggle"]
-        running: false
-        onRunningChanged: if (!running) nowPlayingWidget.startMetaProc()
-    }
-    Process {
-        id: loopProc
-        command: ["playerctl", "loop", "None"]
-        running: false
-        onRunningChanged: if (!running) nowPlayingWidget.startMetaProc()
-    }
-
-    function setSelectedPlayer(name) {
-        nowPlayingWidget.selectedPlayer = name || ""
-        if (!metaProc.running) nowPlayingWidget.startMetaProc()
-    }
-
-    function playerArg() {
-        return (nowPlayingWidget.selectedPlayer !== "") ? ["-p", nowPlayingWidget.selectedPlayer] : []
-    }
-
-    function startMetaProc() {
-        var p = nowPlayingWidget.playerArg()
-        var pre = p.length ? (p.join(" ") + " ") : ""
-        metaProc.command = ["sh", "-c",
-            "playerctl " + pre + "metadata --format '{{ artist }}|||{{ title }}' 2>/dev/null; " +
-            "echo 'STATUS'; playerctl " + pre + "status 2>/dev/null; " +
-            "echo 'ARTURL'; playerctl " + pre + "metadata mpris:artUrl 2>/dev/null; " +
-            "echo 'SHUF'; playerctl " + pre + "shuffle 2>/dev/null; " +
-            "echo 'LOOP'; playerctl " + pre + "loop 2>/dev/null"]
-        metaProc.running = true
-    }
-
-    Process {
-        id: listProc
-        command: ["playerctl", "-l"]
-        running: false
-        stdout: StdioCollector {
-            onStreamFinished: {
-                var lines = (listProc.stdout.text || "").trim().split("\n").filter(function(l) { return l.length > 0 })
-                nowPlayingWidget.playerList = lines
-                nowPlayingWidget.hasPlayer = lines.length > 0
-                if (lines.length > 0 && (nowPlayingWidget.selectedPlayer === "" || lines.indexOf(nowPlayingWidget.selectedPlayer) < 0))
-                    nowPlayingWidget.selectedPlayer = lines[0]
-                listProc.running = false
-                if (lines.length > 0 && !metaProc.running) nowPlayingWidget.startMetaProc()
-            }
+        if (!_player || !_player.loopSupported) return
+        switch (_player.loopState) {
+        case MprisLoopState.None: _player.loopState = MprisLoopState.Track; break
+        case MprisLoopState.Track: _player.loopState = MprisLoopState.Playlist; break
+        default: _player.loopState = MprisLoopState.None; break
         }
     }
-
-    Process {
-        id: metaProc
-        command: []
-        running: false
-        stdout: StdioCollector {
-            onStreamFinished: {
-                var out = (metaProc.stdout.text || "").trim()
-                var loopParts = out.split("LOOP")
-                if (loopParts.length >= 2) nowPlayingWidget.loopMode = String(loopParts[1]).trim() || "None"
-                var head = loopParts[0]
-                var shufParts = head.split("SHUF")
-                if (shufParts.length >= 2) {
-                    var sv = String(shufParts[1]).trim()
-                    nowPlayingWidget.shuffleOn = (sv === "On")
-                }
-                head = shufParts[0]
-                var artParts = head.split("ARTURL")
-                var main = artParts.length >= 1 ? artParts[0].trim() : ""
-                nowPlayingWidget.artUrl = artParts.length >= 2 ? String(artParts[1]).trim() : ""
-                var parts = main.split("STATUS")
-                if (parts.length >= 1 && parts[0].trim() !== "") {
-                    var meta = parts[0].trim().split("|||")
-                    nowPlayingWidget.artist = meta.length >= 1 ? String(meta[0]).trim() : ""
-                    nowPlayingWidget.title = meta.length >= 2 ? String(meta[1]).trim() : ""
-                }
-                if (parts.length >= 2) {
-                    nowPlayingWidget.status = String(parts[1]).trim()
-                }
-                metaProc.running = false
-            }
-        }
-    }
-
-    Process {
-        id: playPauseProc
-        command: ["playerctl", "play-pause"]
-        running: false
-        onRunningChanged: if (!running) nowPlayingWidget.startMetaProc()
-    }
-
-    Process {
-        id: previousProc
-        command: ["playerctl", "previous"]
-        running: false
-        onRunningChanged: if (!running) nowPlayingWidget.startMetaProc()
-    }
-
-    Process {
-        id: nextProc
-        command: ["playerctl", "next"]
-        running: false
-        onRunningChanged: if (!running) nowPlayingWidget.startMetaProc()
-    }
-
-    Timer {
-        interval: 3000
-        repeat: true
-        running: nowPlayingWidget.visible
-        onTriggered: function() {
-            if (!listProc.running) listProc.running = true
-            else if (!metaProc.running) nowPlayingWidget.startMetaProc()
-        }
-    }
-
-    Component.onCompleted: listProc.running = true
 
     Rectangle {
         id: pill
