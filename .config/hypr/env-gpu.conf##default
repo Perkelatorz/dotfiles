@@ -1,0 +1,3 @@
+# GPU-specific environment — yadm class alternate.
+# Real content lives in env-gpu.conf##class.{desktop,laptop,work}; yadm links
+# the matching one to env-gpu.conf. This default (no class set) is empty.

@@ -1,0 +1,36 @@
+# Lean starship config — same shape as the old hand-rolled prompt:
+#   user@host:~/path ❯          (git branch/status on the right)
+add_newline = false
+format = "$username$hostname$directory$character"
+right_format = "$git_branch$git_status"
+
+[username]
+show_always = true
+format = "[$user]($style)"
+style_user = "bold yellow"
+style_root = "bold red"
+
+[hostname]
+ssh_only = false
+format = "[@](bright-black)[$hostname]($style)[:](bright-black)"
+style = "bold blue"
+
+[directory]
+format = "[$path]($style)[$read_only](red) "
+style = "bold cyan"
+truncation_length = 4
+truncate_to_repo = false
+
+[character]
+success_symbol = "[❯](bold green)"
+error_symbol = "[❯](bold red)"
+vimcmd_symbol = "[❮](bold yellow)"
+
+[git_branch]
+format = "[$symbol$branch]($style) "
+symbol = " "
+style = "green"
+
+[git_status]
+format = "([$all_status$ahead_behind]($style))"
+style = "yellow"

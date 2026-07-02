@@ -1,0 +1,9 @@
+# Laptop: hybrid — AMD iGPU primary (battery life), NVIDIA dGPU for offload.
+#
+# Deliberately NO global NVIDIA env vars here: they would push rendering and
+# VA-API onto the dGPU and kill battery. Run heavy apps on the dGPU with:
+#   prime-run <app>
+
+# If Hyprland picks the dGPU instead of the AMD iGPU, pin the iGPU first.
+# Verify card numbering with: ls -l /dev/dri/by-path/
+# env = AQ_DRM_DEVICES,/dev/dri/card0:/dev/dri/card1

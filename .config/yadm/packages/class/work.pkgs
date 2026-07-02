@@ -1,0 +1,12 @@
+# Work machine: Quadro P4000/P2000 (Pascal) + RDP access from locked-down
+# Windows clients (mstsc is often the only allowed client there).
+
+# --- GPU: Pascal needs the legacy 580xx branch (last to support it) ---
+nvidia-580xx-dkms
+nvidia-580xx-utils
+linux-cachyos-headers
+
+# --- RDP session stack (xrdp serves an XFCE/X11 session; Wayland can't do RDP) ---
+xorg-server
+xorg-xinit
+xfce4

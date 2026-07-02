@@ -1,10 +1,31 @@
 [Default Applications]
-x-scheme-handler/discord=vesktop.desktop
-application/octet-stream=org.gnome.FileRoller.desktop
-inode/directory=thunar.desktop
 x-scheme-handler/http=firefox.desktop
 x-scheme-handler/https=firefox.desktop
+application/pdf=firefox.desktop
+inode/directory=thunar.desktop
+application/x-gnome-saved-search=thunar.desktop
+image/png=imv.desktop
+image/jpeg=imv.desktop
+image/gif=imv.desktop
+image/webp=imv.desktop
+image/bmp=imv.desktop
+image/tiff=imv.desktop
+image/svg+xml=imv.desktop
+video/mp4=mpv.desktop
+video/x-matroska=mpv.desktop
+video/webm=mpv.desktop
+video/quicktime=mpv.desktop
+audio/mpeg=mpv.desktop
+audio/flac=mpv.desktop
+audio/ogg=mpv.desktop
+audio/x-wav=mpv.desktop
+application/zip=xarchiver.desktop
+application/x-7z-compressed=xarchiver.desktop
+application/x-tar=xarchiver.desktop
+application/gzip=xarchiver.desktop
+application/octet-stream=xarchiver.desktop
+x-scheme-handler/discord=vesktop.desktop
 x-scheme-handler/claude-cli=claude-code-url-handler.desktop
 
 [Added Associations]
-application/octet-stream=org.gnome.FileRoller.desktop;
+application/octet-stream=xarchiver.desktop;

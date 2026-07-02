@@ -1,0 +1,14 @@
+# Desktop: NVIDIA-primary (RTX 4080 SUPER), Ryzen iGPU also present.
+
+# VA-API through libva-nvidia-driver + direct NVDEC backend.
+env = LIBVA_DRIVER_NAME,nvidia
+env = NVD_BACKEND,direct
+env = __GLX_VENDOR_LIBRARY_NAME,nvidia
+
+# If Hyprland ever grabs the iGPU (wrong monitor layout / low FPS), pin the
+# 4080 first. Card numbering can shift between boots — verify with:
+#   ls -l /dev/dri/by-path/
+# env = AQ_DRM_DEVICES,/dev/dri/card1:/dev/dri/card0
+
+# If the cursor turns invisible after driver updates, uncomment:
+# cursor:no_hardware_cursors = true

@@ -1,254 +1,258 @@
 #!/bin/bash
 set -euo pipefail
 
-# YADM bootstrap for fresh Arch install.
-# Run: yadm clone <repo> && yadm bootstrap
-# Options:
-#   --core-only                       Skip extra-package fzf and Hyprland plugin prompt.
-#   CLAUDE_CODE_SKIP=1                Skip Claude Code CLI install.
-#   BOOTSTRAP_FULL_SYSTEM_UPGRADE=1   Run pacman -Syu (not just -Sy) before installs.
-#   BOOTSTRAP_SKIP_RDP=1              Skip xrdp/XFCE session config (desktop-only machines).
+# yadm bootstrap — CachyOS (fresh, NO desktop selected) → Hyprland workstation.
+#
+# Fresh machine:
+#   sudo pacman -S --needed git yadm
+#   yadm clone https://github.com/perkelatorz/dotfiles
+#   yadm config local.class desktop|laptop|work     # (bootstrap prompts if unset)
+#   yadm bootstrap
+#   reboot                                          # lands in SDDM → Hyprland
+#
+# Classes (drive package lists in packages/class/ and ##class config alternates):
+#   desktop  — home desktop: nvidia-open, Sunshine game-stream host
+#   laptop   — hybrid AMD iGPU + NVIDIA dGPU (prime-run offload)
+#   work     — Pascal Quadros (legacy 580xx driver), xrdp for RDP access
+#
+# Env flags:
+#   BOOTSTRAP_SKIP_UPGRADE=1   Skip full system upgrade (pacman -Syu). Not
+#                              recommended on fresh installs — installing on a
+#                              synced-but-not-upgraded system is a partial upgrade.
+#   CLAUDE_CODE_SKIP=1         Skip Claude Code CLI install.
+#
+# Idempotent: every step is safe to re-run; --needed skips installed packages.
 
 PKG_DIR="$HOME/.config/yadm/packages"
 SECRETS_FILE="$HOME/.config/nvim/secrets.lua"
 MATUGEN_THEMES_DIR="$HOME/.config/matugen-themes"
-SCRIPTS_DIR="$HOME/.config/scripts"
-CORE_ONLY=false
 
-# Counters (referenced by nameref in process_packages)
-core_pacman_installed=0;  core_pacman_skipped=0
-core_aur_installed=0;     core_aur_skipped=0
-extra_pacman_installed=0; extra_pacman_skipped=0
-extra_aur_installed=0;    extra_aur_skipped=0
+CLASS=""
+FAILED_PKGS=()
 
-tmp_files=()
-cleanup() { for f in "${tmp_files[@]}"; do [[ -f "$f" ]] && rm -f "$f"; done; }
-trap cleanup EXIT
-
-# --- helpers ---
-
-ensure_base_devel() {
-    pacman -Q base-devel &>/dev/null && return
-    echo "🔧 Installing base-devel..."
-    sudo pacman -S --needed --noconfirm base-devel
-}
-
-ensure_paru() {
-    command -v paru &>/dev/null && return
-    ensure_base_devel
-    echo "🔧 Building paru from AUR..."
-    # Subshell to keep our EXIT trap intact.
-    (
-        tmpdir=$(mktemp -d)
-        trap 'rm -rf "$tmpdir"' EXIT
-        git clone https://aur.archlinux.org/paru.git "$tmpdir/paru"
-        (cd "$tmpdir/paru" && makepkg -si --noconfirm)
-    )
-}
+info() { echo "🔷 $*"; }
+ok()   { echo "   ✓ $*"; }
+warn() { echo "   ⚠️  $*"; }
 
 read_pkg_file() {
-    # Emit non-empty, non-comment lines.
-    local file="$1"
-    [[ -f "$file" ]] || { echo "⚠️  $file not found" >&2; return 1; }
-    grep -Ev '^[[:space:]]*(#|$)' "$file" || true
+    # Emit non-empty, non-comment lines from a package list.
+    grep -Ev '^[[:space:]]*(#|$)' "$1" 2>/dev/null || true
 }
 
-# Split given packages into installed vs missing using one bulk -Q query.
-# Echoes "installed <pkg>" / "missing <pkg>" lines.
-classify_packages() {
-    local pkgmgr="$1"; shift
-    local -a pkgs=("$@")
-    [[ ${#pkgs[@]} -eq 0 ]] && return 0
+# --- class ---
 
-    local installed
-    if [[ "$pkgmgr" == "pacman" ]]; then
-        installed=$(pacman -Q "${pkgs[@]}" 2>/dev/null | awk '{print $1}' || true)
-    else
-        installed=$(paru -Q "${pkgs[@]}" 2>/dev/null | awk '{print $1}' || true)
-    fi
-    for p in "${pkgs[@]}"; do
-        if grep -Fxq "$p" <<<"$installed"; then
-            echo "installed $p"
-        else
-            echo "missing $p"
+ensure_class() {
+    CLASS=$(yadm config local.class 2>/dev/null || true)
+    if [[ -z "$CLASS" ]]; then
+        local -a classes
+        mapfile -t classes < <(basename -s .pkgs "$PKG_DIR"/class/*.pkgs)
+        if [[ ! -t 0 ]]; then
+            echo "❌ No machine class set and no TTY to ask."
+            echo "   Run: yadm config local.class <$(IFS='|'; echo "${classes[*]}")> && yadm bootstrap"
+            exit 1
         fi
+        echo "This machine has no class yet. Available: ${classes[*]}"
+        read -rp "Class for this machine: " CLASS
+        if [[ ! -f "$PKG_DIR/class/$CLASS.pkgs" ]]; then
+            echo "❌ No package list for class '$CLASS' ($PKG_DIR/class/$CLASS.pkgs)"
+            exit 1
+        fi
+        yadm config local.class "$CLASS"
+    fi
+    ok "machine class: $CLASS"
+    # Copy alternates instead of symlinking: yadm's auto-alt (runs on most yadm
+    # commands) recreates symlinks, and the delete+create gap kills Hyprland's
+    # inotify watch on sourced files (latches "source= globbing error"). A copy
+    # is overwritten in place — same inode, watch survives.
+    yadm config yadm.alt-copy true
+    # Materialize ##class./##hostname. alternates (e.g. hypr/env-gpu.conf) now
+    # that the class is known.
+    # (hooks/post_alt reloads Hyprland if live — alt's relink otherwise latches
+    # a "source= globbing error" until reload)
+    yadm alt >/dev/null 2>&1 && ok "yadm alternates refreshed" || warn "yadm alt failed"
+}
+
+# --- package installation ---
+
+# Bulk install with --needed; if the transaction fails (one bad package, a
+# provider conflict, ...), fall back to one-at-a-time so the rest still lands.
+# stdin </dev/null auto-picks the default provider on "N providers available"
+# prompts that --noconfirm alone won't answer.
+install_repo_pkgs() {
+    local -a pkgs=("$@")
+    (( ${#pkgs[@]} )) || return 0
+    info "Installing ${#pkgs[@]} repo package(s)..."
+    if sudo pacman -S --needed --noconfirm "${pkgs[@]}" </dev/null; then
+        return 0
+    fi
+    warn "bulk install failed; retrying one at a time"
+    for p in "${pkgs[@]}"; do
+        sudo pacman -S --needed --noconfirm "$p" </dev/null \
+            || { warn "pacman failed: $p"; FAILED_PKGS+=("$p"); }
     done
 }
 
-# Install missing packages in one transaction. pacman/paru already log per-package failures.
-install_packages() {
-    local pkgmgr="$1"; shift
+# AUR via paru. paru itself comes from the CachyOS repo — nothing is built
+# from the AUR except the listed packages themselves.
+install_aur_pkgs() {
     local -a pkgs=("$@")
-    [[ ${#pkgs[@]} -eq 0 ]] && return 0
-
-    if [[ "$pkgmgr" == "pacman" ]]; then
-        echo "   → Installing ${#pkgs[@]} pacman package(s)..."
-        sudo pacman -S --needed --noconfirm "${pkgs[@]}"
-    else
-        echo "   → Installing ${#pkgs[@]} AUR package(s)..."
-        paru -S --needed --noconfirm "${pkgs[@]}"
-    fi
+    (( ${#pkgs[@]} )) || return 0
+    command -v paru &>/dev/null || sudo pacman -S --needed --noconfirm paru
+    info "Installing ${#pkgs[@]} AUR package(s)..."
+    # --skipreview: paru's PKGBUILD review prompt stalls scripted runs.
+    for p in "${pkgs[@]}"; do
+        paru -S --needed --noconfirm --skipreview --sudoloop "$p" \
+            || { warn "paru failed: $p"; FAILED_PKGS+=("$p"); }
+    done
 }
 
-process_packages() {
-    # args: pkgmgr_type pkg_file installed_counter_name skipped_counter_name
-    local pkgmgr="$1" pkg_file="$2"
-    local -n installed_ref="$3"
-    local -n skipped_ref="$4"
-
-    [[ -f "$pkg_file" ]] || { echo "⚠️  $pkg_file not found. Skipping."; return 0; }
-
-    local icon="📦"; [[ "$pkgmgr" == "aur" ]] && icon="🔧"
-    mapfile -t packages < <(read_pkg_file "$pkg_file" | awk '!seen[$0]++')
-    [[ ${#packages[@]} -eq 0 ]] && return 0
-
-    echo "$icon Processing ${#packages[@]} $pkgmgr package(s) from $(basename "$pkg_file")..."
-    [[ "$pkgmgr" == "aur" ]] && ensure_paru
-
-    local -a installed_list=() missing_list=()
-    while read -r status pkg; do
-        [[ "$status" == "installed" ]] && installed_list+=("$pkg") || missing_list+=("$pkg")
-    done < <(classify_packages "$pkgmgr" "${packages[@]}")
-
-    for p in "${installed_list[@]}"; do echo "   ✓ $p (already installed)"; done
-    skipped_ref=$((skipped_ref + ${#installed_list[@]}))
-
-    if [[ ${#missing_list[@]} -gt 0 ]] && install_packages "$pkgmgr" "${missing_list[@]}"; then
-        installed_ref=$((installed_ref + ${#missing_list[@]}))
+install_packages() {
+    local -a repo_pkgs=() aur_pkgs=()
+    local f
+    for f in "$PKG_DIR"/*.pkgs "$PKG_DIR/class/$CLASS.pkgs"; do
+        [[ -f "$f" ]] || continue
+        mapfile -t -O "${#repo_pkgs[@]}" repo_pkgs < <(read_pkg_file "$f")
+        ok "list: $(basename "$f")"
+    done
+    if [[ -f "$PKG_DIR/class/$CLASS.aur" ]]; then
+        mapfile -t aur_pkgs < <(read_pkg_file "$PKG_DIR/class/$CLASS.aur")
+        (( ${#aur_pkgs[@]} )) && ok "list: class/$CLASS.aur (AUR)"
     fi
+    mapfile -t repo_pkgs < <(printf '%s\n' "${repo_pkgs[@]}" | awk '!seen[$0]++')
+
+    install_repo_pkgs "${repo_pkgs[@]}"
+    install_aur_pkgs "${aur_pkgs[@]}"
 }
 
-# --- setup steps ---
+# --- services ---
 
-setup_neovim_secrets() {
-    echo "🔐 Neovim secrets..."
-    mkdir -p "$(dirname "$SECRETS_FILE")"
-    if [[ -f "$SECRETS_FILE" ]]; then
-        echo "   ✓ secrets.lua already present"
+enable_system_service() {
+    local svc="$1" now="${2:-}"
+    if ! systemctl list-unit-files "$svc.service" &>/dev/null; then
+        warn "$svc.service not present; skipping"
         return
     fi
+    local -a cmd=(sudo systemctl enable)
+    [[ "$now" == "--now" ]] && cmd+=(--now)
+    if "${cmd[@]}" "$svc" &>/dev/null; then
+        ok "$svc enabled${now:+ + started}"
+    else
+        warn "failed: sudo systemctl enable $now $svc"
+    fi
+}
+
+setup_services() {
+    info "Enabling services..."
+    enable_system_service NetworkManager --now
+    enable_system_service bluetooth --now
+    enable_system_service tailscaled --now
+    # sddm: enable only — starting it now would tear down this TTY mid-bootstrap.
+    enable_system_service sddm
+
+    case "$CLASS" in
+        desktop)
+            # Sunshine's user unit keeps its upstream flatpak-style name. Needs a
+            # session bus (fails harmlessly over bare ssh — re-run after first
+            # graphical login).
+            local sunshine_unit="app-dev.lizardbyte.app.Sunshine.service"
+            if systemctl --user enable "$sunshine_unit" &>/dev/null; then
+                ok "sunshine user service enabled (pair via https://localhost:47990)"
+            else
+                warn "sunshine not enabled — run: systemctl --user enable --now $sunshine_unit"
+            fi
+            ;;
+        work)
+            enable_system_service xrdp --now
+            enable_system_service xrdp-sesman --now
+            ;;
+    esac
+
+    if command -v tailscale &>/dev/null && ! tailscale status &>/dev/null; then
+        echo "   ℹ️  Tailscale not authed yet — run: sudo tailscale up"
+    fi
+}
+
+# --- one-time machine setup ---
+
+setup_default_shell_zsh() {
+    local zsh_path current
+    zsh_path=$(command -v zsh) || { warn "zsh missing"; return; }
+    current=$(getent passwd "$USER" | cut -d: -f7)
+    [[ "$current" == "$zsh_path" || "$current" == "/bin/zsh" ]] && return
+    info "Default shell → zsh..."
+    chsh -s "$zsh_path" && ok "shell set (takes effect next login)" || warn "chsh failed"
+}
+
+setup_neovim_secrets() {
+    [[ -f "$SECRETS_FILE" ]] && return
+    info "Neovim secrets stub..."
+    mkdir -p "$(dirname "$SECRETS_FILE")"
     cat > "$SECRETS_FILE" <<'EOF'
 return {
   ANTHROPIC_API_KEY = "your-anthropic-key-here",
   OPENAI_API_KEY = "your-openai-key-here",
 }
 EOF
-    echo "   ✓ Created $SECRETS_FILE — edit and add real keys"
+    ok "created $SECRETS_FILE — add real keys"
 }
 
 setup_matugen_themes() {
-    if [[ -d "$MATUGEN_THEMES_DIR/.git" ]]; then
-        echo "   ✓ matugen-themes already cloned"; return
-    fi
+    [[ -d "$MATUGEN_THEMES_DIR/.git" ]] && return
     if [[ -d "$MATUGEN_THEMES_DIR" ]]; then
-        echo "   ⚠️  $MATUGEN_THEMES_DIR exists but is not a git repo; skipping"
+        warn "$MATUGEN_THEMES_DIR exists but is not a git repo; skipping"
         return
     fi
-    echo "🎨 Cloning matugen-themes..."
-    mkdir -p "$(dirname "$MATUGEN_THEMES_DIR")"
+    info "Cloning matugen-themes (select-wallpaper.sh needs it)..."
     git clone --depth 1 https://github.com/InioX/matugen-themes.git "$MATUGEN_THEMES_DIR" \
-        || echo "   ⚠️  Clone failed (select-wallpaper.sh needs this)"
+        || warn "clone failed"
 }
 
-setup_scripts_executable() {
-    [[ -d "$SCRIPTS_DIR" ]] || { echo "   (no $SCRIPTS_DIR)"; return; }
-    local count=0
-    for f in "$SCRIPTS_DIR"/*.sh; do
-        [[ -f "$f" ]] && { chmod +x "$f"; count=$((count+1)); }
-    done
-    echo "   ✓ $count script(s) in $SCRIPTS_DIR made executable"
-}
-
-# Default http/https → Firefox (complements BROWSER env in environment.d/zprofile).
-setup_default_browser_firefox() {
-    echo "🌐 Default browser → Firefox..."
-    if ! command -v xdg-mime &>/dev/null; then
-        echo "   ⚠️  xdg-mime missing (install xdg-utils)"; return
-    fi
-    local desk="" appdir="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
-    for d in firefox.desktop org.mozilla.firefox.desktop; do
-        if [[ -f "/usr/share/applications/$d" || -f "$appdir/$d" ]]; then desk="$d"; break; fi
-    done
-    [[ -z "$desk" ]] && { echo "   ⚠️  No Firefox .desktop found"; return; }
-    if xdg-mime default "$desk" x-scheme-handler/http x-scheme-handler/https 2>/dev/null; then
-        echo "   ✓ xdg-mime default set: $desk"
-    else
-        echo "   ⚠️  xdg-mime default failed"
-    fi
-}
-
-# Thunar as default file manager (shared between Hyprland local + XFCE/RDP session).
-setup_default_file_manager_thunar() {
-    echo "🗂  Default file manager → Thunar..."
-    if ! command -v xdg-mime &>/dev/null; then
-        echo "   ⚠️  xdg-mime missing"; return
-    fi
-    local desk="thunar.desktop"
-    if [[ ! -f "/usr/share/applications/$desk" ]]; then
-        echo "   ⚠️  $desk not found; install thunar"; return
-    fi
-    if xdg-mime default "$desk" inode/directory application/x-gnome-saved-search 2>/dev/null; then
-        echo "   ✓ xdg-mime default set: $desk"
-    else
-        echo "   ⚠️  xdg-mime default failed"
-    fi
-}
-
-# Tailscale daemon — enables tailscaled. User runs `sudo tailscale up` interactively.
-setup_tailscale() {
-    echo "🔐 Tailscale daemon..."
-    if ! command -v tailscale &>/dev/null; then
-        echo "   (tailscale not installed; skipping)"
+install_claude_code_cli() {
+    [[ "${CLAUDE_CODE_SKIP:-}" == "1" ]] && return
+    if command -v claude &>/dev/null || [[ -x "$HOME/.local/bin/claude" ]]; then
         return
     fi
-    if ! systemctl list-unit-files tailscaled.service &>/dev/null; then
-        echo "   ⚠️  tailscaled.service not present"
-        return
-    fi
-    if sudo systemctl enable --now tailscaled 2>/dev/null; then
-        echo "   ✓ tailscaled running"
+    info "Installing Claude Code CLI..."
+    curl -fsSL https://claude.ai/install.sh | bash \
+        && ok "installed (ensure ~/.local/bin on PATH)" \
+        || warn "install failed — retry: curl -fsSL https://claude.ai/install.sh | bash"
+}
+
+# Headless nvim run so vim.pack pulls plugins (Mason finishes later in :Mason).
+warm_neovim_plugins() {
+    command -v nvim &>/dev/null || return 0
+    [[ -f "$HOME/.config/nvim/init.lua" ]] || return 0
+    info "Warming Neovim plugins (headless)..."
+    if nvim --headless -c 'qa' &>/dev/null; then
+        ok "vim.pack done — open nvim and :Mason for LSP binaries"
     else
-        echo "   ⚠️  Failed — run: sudo systemctl enable --now tailscaled"
-    fi
-    if tailscale status &>/dev/null; then
-        echo "   ✓ Already authed: $(tailscale ip -4 2>/dev/null | head -1)"
-    else
-        echo "   ℹ️  Auth next: sudo tailscale up   (opens browser/login URL)"
+        warn "headless nvim exited non-zero (usually fine on first run)"
     fi
 }
 
-# RDP via xrdp → XFCE session. Wayland/Hyprland cannot serve over RDP.
-# Stock /etc/xrdp/startwm.sh reads ~/.xinitrc (NOT ~/.xsession), so write .xinitrc.
-# Strips Wayland/Hyprland env so XFCE/dbus start clean; kills stale xfconfd from
-# the local Hyprland session sharing $HOME.
-setup_rdp_xfce_session() {
-    if [[ "${BOOTSTRAP_SKIP_RDP:-}" == "1" ]]; then
-        echo "⏭️  Skipping RDP setup (BOOTSTRAP_SKIP_RDP=1)"
-        return
-    fi
-    echo "🔌 RDP session setup (xrdp → XFCE)..."
-    if ! command -v xrdp &>/dev/null; then
-        echo "   (xrdp not installed yet; skipping — re-run bootstrap after AUR phase)"
-        return
-    fi
+# --- work-only: RDP session (xrdp → XFCE) ---
+# Stock /etc/xrdp/startwm.sh reads ~/.xinitrc (NOT ~/.xsession). Strips
+# Wayland/Hyprland env so XFCE/dbus start clean; kills stale xfconfd left by a
+# local Hyprland session sharing $HOME.
+setup_rdp_session() {
+    info "RDP session (xrdp → XFCE)..."
     if ! command -v startxfce4 &>/dev/null; then
-        echo "   ⚠️  startxfce4 missing — install xfce4 group (profile_xfce.pkgs) or CachyOS XFCE edition"
+        warn "startxfce4 missing — xfce4 group failed to install?"
         return
     fi
-
     local xi="$HOME/.xinitrc"
     local marker="# managed by yadm bootstrap (rdp-xfce)"
     if [[ -f "$xi" ]] && ! grep -qF "$marker" "$xi"; then
         cp "$xi" "$xi.bak.$(date +%s)"
-        echo "   → Backed up existing $xi"
+        warn "backed up existing $xi"
     fi
     cat >"$xi" <<EOF
 #!/bin/sh
 $marker
-# Sourced by /etc/xrdp/startwm.sh on RDP login. Stock startwm.sh sources this
-# (not exec'd), so we exec startxfce4 to take over the process.
+# Sourced by /etc/xrdp/startwm.sh on RDP login (sourced, not exec'd), so we
+# exec startxfce4 to take over the process.
 
-# Strip Wayland/Hyprland env leaked from local session profile/bashrc.
+# Strip Wayland/Hyprland env leaked from local session profile.
 unset WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE HYPRLAND_CMD
 export XDG_SESSION_TYPE=x11
 export XDG_CURRENT_DESKTOP=XFCE
@@ -259,193 +263,81 @@ killall xfconfd 2>/dev/null || true
 exec dbus-run-session -- startxfce4
 EOF
     chmod +x "$xi"
-    echo "   ✓ Wrote $xi (xrdp startwm.sh sources this)"
+    ok "wrote $xi"
 
-    # Verify stock startwm.sh hasn't been replaced by a version that ignores ~/.xinitrc.
     if [[ -f /etc/xrdp/startwm.sh ]] && ! grep -q '~/.xinitrc' /etc/xrdp/startwm.sh; then
-        echo "   ⚠️  /etc/xrdp/startwm.sh does not reference ~/.xinitrc — patch needed:"
-        echo "      Add at top of wm_start(): exec ~/.xinitrc if XRDP_SESSION set"
+        warn "/etc/xrdp/startwm.sh does not reference ~/.xinitrc — patch needed"
     fi
-
-    if systemctl list-unit-files xrdp.service &>/dev/null; then
-        echo "   → Enabling xrdp + xrdp-sesman..."
-        if sudo systemctl enable --now xrdp xrdp-sesman 2>/dev/null; then
-            echo "   ✓ xrdp running (port 3389)"
-        else
-            echo "   ⚠️  Failed — run: sudo systemctl enable --now xrdp xrdp-sesman"
-        fi
-    fi
-
     cat <<'EOF'
-   ℹ️  RDP next steps:
-       • Open port 3389 if firewall active:
-           sudo ufw allow 3389/tcp                                                            (ufw)
-           sudo firewall-cmd --permanent --add-port=3389/tcp && sudo firewall-cmd --reload    (firewalld)
-       • Connect from Windows: mstsc → <this-host>:3389 → Linux user creds → pick "Xorg"
-       • IMPORTANT: log out of local Hyprland before RDP-ing as same user, OR create
-         dedicated `remote` user (different $HOME avoids xfconfd/Thunar conflicts).
+   ℹ️  RDP notes:
+      • Firewall: open 3389/tcp if one is active.
+      • Windows: mstsc → <host>:3389 → Linux creds → session type "Xorg".
+      • Log out of local Hyprland before RDP-ing as the same user (or use a
+        dedicated user) — shared $HOME means xfconfd/Thunar conflicts.
 EOF
 }
 
-# Headless nvim run so vim.pack pulls plugins (Mason finishes interactively in :Mason).
-warm_neovim_plugins() {
-    if ! command -v nvim &>/dev/null; then echo "   (nvim not on PATH)"; return; fi
-    if [[ ! -f "$HOME/.config/nvim/init.lua" ]]; then echo "   (no init.lua)"; return; fi
-    echo "📝 Warming Neovim plugins (headless)..."
-    local log; log=$(mktemp); tmp_files+=("$log")
-    if nvim --headless -u "$HOME/.config/nvim/init.lua" -c 'qa' >"$log" 2>&1; then
-        echo "   ✓ vim.pack done — open nvim and :Mason for LSP binaries"
-    else
-        echo "   ⚠️  Headless nvim exited non-zero — see $log"
-    fi
-}
-
-# Anthropic install script — installs `claude` to ~/.local/bin.
-install_claude_code_cli() {
-    if [[ "${CLAUDE_CODE_SKIP:-}" == "1" ]]; then
-        echo "⏭️  Skipping Claude Code CLI (CLAUDE_CODE_SKIP=1)"; return
-    fi
-    if command -v claude &>/dev/null || [[ -x "$HOME/.local/bin/claude" ]]; then
-        echo "   ✓ Claude Code CLI already installed"; return
-    fi
-    if ! command -v curl &>/dev/null; then
-        echo "   ⚠️  curl missing; skipping Claude Code install"; return
-    fi
-    echo "🤖 Installing Claude Code CLI..."
-    mkdir -p "$HOME/.local/bin"
-    if curl -fsSL https://claude.ai/install.sh | bash; then
-        echo "   ✓ Claude Code install finished (ensure ~/.local/bin on PATH)"
-    else
-        echo "   ⚠️  Install failed — try manually: curl -fsSL https://claude.ai/install.sh | bash"
-    fi
-}
-
+# --- Hyprland plugins (interactive; needs hyprland installed) ---
 setup_hyprland_plugins() {
     local -a plugins=(https://github.com/Duckonaut/split-monitor-workspaces)
-    if ! command -v hyprpm &>/dev/null; then
-        echo "⚠️  hyprpm not found; skipping plugin setup"; return 1
-    fi
-    echo "🪟 Setting up Hyprland plugins..."
-    hyprpm update || { echo "   ⚠️  hyprpm update failed"; return 1; }
+    # NEVER run hyprpm as root — it writes /var/cache/hyprpm/$USER and elevates
+    # internally for header installs; running as root breaks later user calls.
+    [[ $EUID -eq 0 ]] && { warn "refusing to run hyprpm as root"; return 1; }
+    info "Hyprland plugins..."
+    hyprpm update || { warn "hyprpm update failed"; return 1; }
+    local url name
     for url in "${plugins[@]}"; do
-        local name; name=$(basename "$url" .git)
-        hyprpm add "$url"     || { echo "   ⚠️  add $name failed"; continue; }
-        hyprpm enable "$name" || { echo "   ⚠️  enable $name failed"; continue; }
+        name=$(basename "$url" .git)
+        hyprpm add "$url"     || { warn "add $name failed"; continue; }
+        hyprpm enable "$name" || { warn "enable $name failed"; continue; }
     done
-    hyprpm reload && echo "✅ Hyprland plugin setup complete"
+    hyprpm reload 2>/dev/null || true
+    ok "plugins done"
 }
 
-# --- args ---
-for arg in "$@"; do
-    case "$arg" in
-        --core-only) CORE_ONLY=true ;;
-    esac
-done
+# --- main ---
 
-# --- preflight ---
-echo "🚀 Starting Arch Linux setup..."
-sudo -n true 2>/dev/null || echo "⚠️  sudo required — you may be prompted"
+echo "🚀 CachyOS → Hyprland bootstrap"
 [[ -d "$PKG_DIR" ]] || { echo "❌ $PKG_DIR not found"; exit 1; }
-[[ -f "$PKG_DIR/core.pkgs" ]] || { echo "❌ $PKG_DIR/core.pkgs missing"; exit 1; }
+sudo -v || { echo "❌ sudo required"; exit 1; }
 
-setup_neovim_secrets
-echo
+ensure_class
 
-# --- phase 1: core ---
-echo "🔄 Syncing pacman database..."
-sudo pacman -Sy --noconfirm
-if [[ "${BOOTSTRAP_FULL_SYSTEM_UPGRADE:-}" == "1" ]]; then
-    echo "   → Running full system upgrade (pacman -Syu)..."
+if [[ "${BOOTSTRAP_SKIP_UPGRADE:-}" == "1" ]]; then
+    info "Syncing package databases (upgrade skipped)..."
+    sudo pacman -Sy --noconfirm
+else
+    info "Full system upgrade (pacman -Syu)..."
     sudo pacman -Syu --noconfirm
-else
-    echo "   ℹ️  DB synced only. For full upgrade: sudo pacman -Syu  (or rerun with BOOTSTRAP_FULL_SYSTEM_UPGRADE=1)"
 fi
 
-process_packages pacman "$PKG_DIR/core.pkgs" core_pacman_installed core_pacman_skipped
-process_packages aur    "$PKG_DIR/core.aur"  core_aur_installed    core_aur_skipped
-
-setup_default_browser_firefox
-setup_default_file_manager_thunar
-setup_tailscale
-setup_rdp_xfce_session
-warm_neovim_plugins
-install_claude_code_cli
+install_packages
+setup_services
+setup_default_shell_zsh
+setup_neovim_secrets
 setup_matugen_themes
-setup_scripts_executable
+install_claude_code_cli
+warm_neovim_plugins
+[[ "$CLASS" == "work" ]] && setup_rdp_session
 
-echo "✅ Core done."
-echo
-
-# --- Hyprland plugins (interactive) ---
-if [[ "$CORE_ONLY" != "true" ]] && [[ -t 0 ]] && command -v hyprpm &>/dev/null; then
-    read -p "Set up Hyprland plugins? (y/N): " choice
-    [[ "${choice,,}" == y* ]] && setup_hyprland_plugins || echo "⏭️  Skipped Hyprland plugins"
-fi
-echo
-
-# --- phase 2: interactive extras ---
-final_packages=(); final_aur=()
-selections=""
-
-if [[ "$CORE_ONLY" == "true" ]]; then
-    echo "⏭️  --core-only: skipping extras"
-elif [[ -t 0 ]] && command -v fzf &>/dev/null; then
-    selections=$(find "$PKG_DIR" \( -name '*.pkgs' -o -name '*.aur' \) \
-        ! -name 'core.pkgs' ! -name 'core.aur' -printf "%f\n" |
-        fzf -m --prompt="Select package lists (TAB mark, ENTER confirm) > " \
-            --header="Core already installed. Choose extras." \
-            --preview="cat \"$PKG_DIR/{}\"" || true)
-elif [[ ! -t 0 ]]; then
-    echo "⚠️  Not a TTY; skipping extras"
-else
-    echo "⚠️  fzf missing; selecting all non-core lists"
-    selections=$(find "$PKG_DIR" \( -name '*.pkgs' -o -name '*.aur' \) \
-        ! -name 'core.pkgs' ! -name 'core.aur' -printf "%f\n")
+if [[ -t 0 ]] && command -v hyprpm &>/dev/null; then
+    read -rp "Build Hyprland plugins now? (y/N): " choice
+    [[ "${choice,,}" == y* ]] && setup_hyprland_plugins || echo "⏭️  Skipped (re-run bootstrap or 'hyprpm update' later)"
 fi
 
-print_summary() {
-    echo
-    echo "📋 Installation Summary:"
-    echo "   • Core pacman:  $core_pacman_installed installed, $core_pacman_skipped skipped"
-    echo "   • Core AUR:     $core_aur_installed installed, $core_aur_skipped skipped"
-    echo "   • Extra pacman: $extra_pacman_installed installed, $extra_pacman_skipped skipped"
-    echo "   • Extra AUR:    $extra_aur_installed installed, $extra_aur_skipped skipped"
-    local total=$((core_pacman_installed + core_aur_installed + extra_pacman_installed + extra_aur_installed))
-    local skip=$((core_pacman_skipped + core_aur_skipped + extra_pacman_skipped + extra_aur_skipped))
-    echo "🎯 Total: $total installed, $skip skipped"
-}
-
-if [[ -z "$selections" ]]; then
-    echo "No extras selected. Setup complete!"
-    print_summary
-    exit 0
-fi
-
-echo "✅ Building extra package lists..."
-while IFS= read -r sel; do
-    [[ -z "$sel" ]] && continue
-    case "$sel" in
-        *.pkgs) mapfile -t tmp < <(read_pkg_file "$PKG_DIR/$sel"); final_packages+=("${tmp[@]}") ;;
-        *.aur)  mapfile -t tmp < <(read_pkg_file "$PKG_DIR/$sel"); final_aur+=("${tmp[@]}") ;;
-    esac
-done <<<"$selections"
-
-mapfile -t final_packages < <(printf '%s\n' "${final_packages[@]}" | awk '!seen[$0]++')
-mapfile -t final_aur      < <(printf '%s\n' "${final_aur[@]}"      | awk '!seen[$0]++')
-
-# --- phase 3: install extras ---
-process_extras() {
-    local pkgmgr="$1" installed_ref="$2" skipped_ref="$3"; shift 3
-    local -a pkgs=("$@")
-    [[ ${#pkgs[@]} -eq 0 ]] && return 0
-    local tmp; tmp=$(mktemp); tmp_files+=("$tmp")
-    printf '%s\n' "${pkgs[@]}" >"$tmp"
-    process_packages "$pkgmgr" "$tmp" "$installed_ref" "$skipped_ref"
-}
-
-process_extras pacman extra_pacman_installed extra_pacman_skipped "${final_packages[@]}"
-process_extras aur    extra_aur_installed    extra_aur_skipped    "${final_aur[@]}"
-
 echo
-echo "✨ Bootstrap complete!"
-print_summary
+echo "✨ Bootstrap complete (class: $CLASS)"
+if (( ${#FAILED_PKGS[@]} )); then
+    echo "⚠️  ${#FAILED_PKGS[@]} package(s) failed:"
+    printf '   ✗ %s\n' "${FAILED_PKGS[@]}"
+    # NVIDIA failures on an already-installed machine = driver-branch conflict
+    # (e.g. 580xx installed, list wants open). --noconfirm won't remove the old
+    # branch; the swap needs an interactive run.
+    mapfile -t nvidia_failed < <(printf '%s\n' "${FAILED_PKGS[@]}" | grep -E '^(lib32-)?nvidia' || true)
+    if (( ${#nvidia_failed[@]} )); then
+        echo "   ℹ️  NVIDIA branch swap needs interactive confirmation:"
+        echo "      sudo pacman -S ${nvidia_failed[*]}"
+        echo "      (answer y to remove the old driver branch, then reboot)"
+    fi
+fi
+echo "➡️  Next: reboot → SDDM → Hyprland. Then: sudo tailscale up (if new machine)."

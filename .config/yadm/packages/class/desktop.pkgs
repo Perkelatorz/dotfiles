@@ -1,0 +1,11 @@
+# Home desktop (Rodimus): RTX 4080 SUPER + Ryzen iGPU.
+
+# --- GPU: current open kernel modules (matches chwd's nvidia-open-dkms profile) ---
+nvidia-open-dkms
+nvidia-utils
+lib32-nvidia-utils
+libva-nvidia-driver
+linux-cachyos-headers
+
+# --- Remote access: Sunshine game-stream host (connect with Moonlight) ---
+sunshine

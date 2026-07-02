@@ -1,0 +1,17 @@
+# Dev toolchain (Neovim + languages + CLI tools).
+
+# --- Editor ---
+neovim
+tree-sitter-cli
+
+# --- Languages (rust: rust_analyzer needs rustc for sysroot detection) ---
+npm
+go
+rust
+
+# --- CLI tools (ripgrep/fd: Telescope; unzip: Mason extraction) ---
+ripgrep
+fd
+jq
+unzip
+github-cli
