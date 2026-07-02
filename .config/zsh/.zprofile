@@ -40,12 +40,10 @@ export ANSIBLE_GALAXY_CACHE_DIR="${XDG_CACHE_HOME}/ansible/galaxy_cache"
 export ASPELL_CONF="per-conf $XDG_CONFIG_HOME/aspell/aspell.conf; personal $XDG_DATA_HOME/aspell/en.pws; repl $XDG_DATA_HOME/aspell/en.prepl"
 export AWS_SHARED_CREDENTIALS_FILE="$XDG_CONFIG_HOME"/aws/credentials
 export AWS_CONFIG_FILE="$XDG_CONFIG_HOME"/aws/config
-export BITWARDEN_SSH_AUTH_SOCK="$XDG_RUNTIME_DIR/.bitwarden-ssh-agent.sock"
-# Only point SSH at Bitwarden's socket if it actually exists (Bitwarden running).
-# Otherwise leave SSH_AUTH_SOCK alone so a system/user ssh-agent still works.
-if [ -S "$BITWARDEN_SSH_AUTH_SOCK" ]; then
-    export SSH_AUTH_SOCK="$BITWARDEN_SSH_AUTH_SOCK"
-fi
+# Bitwarden desktop is the SSH agent (also set session-wide in
+# environment.d/ssh-agent.conf). Unconditional: ssh falls back to ~/.ssh keys
+# if the socket isn't there yet, and picks the agent up once Bitwarden starts.
+export SSH_AUTH_SOCK="$XDG_RUNTIME_DIR/.bitwarden-ssh-agent.sock"
 export CARGO_HOME="$XDG_DATA_HOME"/cargo
 export DISCORD_USER_DATA_DIR="${XDG_DATA_HOME}"
 export DOCKER_CONFIG="$XDG_CONFIG_HOME"/docker
@@ -55,6 +53,7 @@ export GOMODCACHE="$XDG_CACHE_HOME"/go/mod
 export GTK2_RC_FILES="$XDG_CONFIG_HOME/gtk-2.0/gtkrc":"$XDG_CONFIG_HOME/gtk-2.0/gtkrc.mine"
 export JUPYTER_CONFIG_DIR="$XDG_CONFIG_HOME"/jupyter
 export NODE_REPL_HISTORY="$XDG_STATE_HOME/node_repl_history"
+export npm_config_cache="$XDG_CACHE_HOME/npm"
 export MYSQL_HISTFILE="$XDG_STATE_HOME/mysql_history"
 export PSQL_HISTORY="$XDG_STATE_HOME/psql_history"
 export PYTHON_HISTORY="$XDG_STATE_HOME/python_history"
