@@ -23,6 +23,34 @@ yadm bootstrap
 sudo tailscale up
 ```
 
+### After first login
+
+```sh
+# Log into Bitwarden, then in its Settings enable "SSH agent" (one-time,
+# app-level toggle). SSH_AUTH_SOCK is already wired session-wide.
+# Once the agent serves keys, switch the dotfiles remote to SSH for pushing:
+yadm remote set-url origin git@github.com:perkelatorz/dotfiles.git
+
+# Sunshine (desktop class): pair Moonlight clients one time at
+#   https://localhost:47990
+```
+
+### What to expect on first boot
+
+- **GPU**: chwd + the class list install the right driver (`nvidia-open-dkms`
+  on desktop/laptop, `nvidia-580xx-dkms` on work's Pascal Quadros). The GPU
+  segment in the bar's performance pill appears once `nvidia-smi` works.
+- **Laptop hybrid graphics**: AMD iGPU should be primary. If Hyprland grabs
+  the dGPU (wrong outputs / poor battery), uncomment the `AQ_DRM_DEVICES`
+  pin in `~/.config/hypr/env-gpu.conf##class.laptop` — check card order
+  with `ls -l /dev/dri/by-path/`. Run heavy apps on the dGPU via `prime-run`.
+- **Work RDP**: bootstrap writes `~/startwm.sh` (xrdp-sesman's per-user
+  hook). From Windows: mstsc → host:3389 → session type "Xorg". Log out of
+  the local Hyprland session before RDP-ing as the same user.
+- **Bar widgets**: battery/brightness/tailscale pills appear only where the
+  hardware/service exists; toggle others in the ⋮ panel → Widgets & settings
+  (state is local per machine, not tracked).
+
 ## Layout
 
 | File | Applies to | Contents |
