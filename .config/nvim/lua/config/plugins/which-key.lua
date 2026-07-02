@@ -31,6 +31,19 @@ function M.setup()
 			desc = "Buffer-local keymaps",
 		},
 	})
+
+	-- Codeium ghost-text accept/cycle keys (insert mode). The plugin registers these
+	-- maps without a description, so label them here for :WhichKey listings. These are
+	-- single Alt-keypress maps (not prefixes), so which-key won't auto-popup on them.
+	wk.add({
+		mode = "i",
+		{ "<M-y>", desc = "Codeium: accept suggestion" },
+		{ "<M-w>", desc = "Codeium: accept word" },
+		{ "<M-l>", desc = "Codeium: accept line" },
+		{ "<M-]>", desc = "Codeium: next suggestion" },
+		{ "<M-[>", desc = "Codeium: prev suggestion" },
+		{ "<C-]>", desc = "Codeium: dismiss suggestion" },
+	})
 end
 
 return M
