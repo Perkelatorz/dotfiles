@@ -106,7 +106,6 @@ ShellRoot {
                 brightnessWidgetVisible = false
                 microphoneWidgetVisible = false
                 ipAddressWidgetVisible = false
-                screenshotWidgetVisible = false
                 weatherWidgetVisible = false
                 updatesWidgetVisible = false
                 netSpeedWidgetVisible = false
@@ -124,14 +123,9 @@ ShellRoot {
             property bool nowPlayingPopupVisible: false
             property bool quickSettingsMenuVisible: false
             property string quickSettingsSubView: "main"
-            property bool screenshotMenuVisible: false
             property bool workspaceOverviewVisible: false
-            property bool clipboardPanelVisible: false
-            property bool keybindsPanelVisible: false
             property bool toolsMenuVisible: false
             property int toolsMenuMarginRight: 0
-            property bool claudeUsageVisible: false
-            property int claudeUsageMarginRight: 0
             property bool weatherForecastVisible: false
             property int weatherForecastMarginRight: 0
             property bool performancePanelVisible: false
@@ -141,18 +135,12 @@ ShellRoot {
                 calendarVisible = false
                 nowPlayingPopupVisible = false
                 quickSettingsMenuVisible = false
-                screenshotMenuVisible = false
                 workspaceOverviewVisible = false
                 shellRoot.workspaceOverviewTriggered = false
-                clipboardPanelVisible = false
-                keybindsPanelVisible = false
                 toolsMenuVisible = false
-                claudeUsageVisible = false
                 weatherForecastVisible = false
                 performancePanelVisible = false
             }
-            property var screenshotWidgetRef: null
-            property int screenshotMenuMarginLeft: 0
             property int calendarMarginLeft: 0
             property int nowPlayingMarginLeft: 0
             // Widget visibility (toggle from settings menu)
@@ -163,7 +151,6 @@ ShellRoot {
             property bool brightnessWidgetVisible: true
             property bool microphoneWidgetVisible: true
             property bool ipAddressWidgetVisible: false
-            property bool screenshotWidgetVisible: true
             property bool clockWidgetVisible: true
             property bool weatherWidgetVisible: false
             property bool updatesWidgetVisible: true
@@ -186,7 +173,6 @@ ShellRoot {
                     "brightness=" + (brightnessWidgetVisible ? "true" : "false"),
                     "microphone=" + (microphoneWidgetVisible ? "true" : "false"),
                     "ipAddress=" + (ipAddressWidgetVisible ? "true" : "false"),
-                    "screenshot=" + (screenshotWidgetVisible ? "true" : "false"),
                     "clock=" + (clockWidgetVisible ? "true" : "false"),
                     "weather=" + (weatherWidgetVisible ? "true" : "false"),
                     "updates=" + (updatesWidgetVisible ? "true" : "false"),
@@ -215,7 +201,6 @@ ShellRoot {
                             if (typeof o.brightness === "boolean") screenDelegate.brightnessWidgetVisible = o.brightness
                             if (typeof o.microphone === "boolean") screenDelegate.microphoneWidgetVisible = o.microphone
                             if (typeof o.ipAddress === "boolean") screenDelegate.ipAddressWidgetVisible = o.ipAddress
-                            if (typeof o.screenshot === "boolean") screenDelegate.screenshotWidgetVisible = o.screenshot
                             if (typeof o.clock === "boolean") screenDelegate.clockWidgetVisible = o.clock
                             if (typeof o.weather === "boolean") screenDelegate.weatherWidgetVisible = o.weather
                             if (typeof o.updates === "boolean") screenDelegate.updatesWidgetVisible = o.updates
@@ -455,14 +440,9 @@ ShellRoot {
                             Layout.rightMargin: 4
                             visible: bar.compositorName === "hyprland" && screenDelegate.workspaceOverviewWidgetVisible
                             onToggleRequested: {
-                                screenDelegate.calendarVisible = false
-                                screenDelegate.quickSettingsMenuVisible = false
-                                screenDelegate.screenshotMenuVisible = false
-                                screenDelegate.nowPlayingPopupVisible = false
-                                screenDelegate.clipboardPanelVisible = false
-                                screenDelegate.keybindsPanelVisible = false
-                                screenDelegate.toolsMenuVisible = false
-                                screenDelegate.workspaceOverviewVisible = !screenDelegate.workspaceOverviewVisible
+                                var wasOpen = screenDelegate.workspaceOverviewVisible
+                                screenDelegate.closeAllPanels()
+                                screenDelegate.workspaceOverviewVisible = !wasOpen
                             }
                         }
                         Workspaces {
@@ -483,17 +463,12 @@ ShellRoot {
                             Layout.rightMargin: 4
                             visible: screenDelegate.nowPlayingWidgetVisible
                             onOpenMiniPlayerRequested: {
-                                        screenDelegate.calendarVisible = false
-                                        screenDelegate.quickSettingsMenuVisible = false
-                                        screenDelegate.screenshotMenuVisible = false
-                                        screenDelegate.workspaceOverviewVisible = false
-                                        screenDelegate.clipboardPanelVisible = false
-                                        screenDelegate.keybindsPanelVisible = false
-                                        screenDelegate.toolsMenuVisible = false
-                                        var pt = nowPlayingWidget.mapToItem(root, 0, 0)
-                                        screenDelegate.nowPlayingMarginLeft = Math.max(8, Math.floor(pt.x))
-                                        screenDelegate.nowPlayingPopupVisible = !screenDelegate.nowPlayingPopupVisible
-                                    }
+                                var wasOpen = screenDelegate.nowPlayingPopupVisible
+                                screenDelegate.closeAllPanels()
+                                var pt = nowPlayingWidget.mapToItem(root, 0, 0)
+                                screenDelegate.nowPlayingMarginLeft = Math.max(8, Math.floor(pt.x))
+                                screenDelegate.nowPlayingPopupVisible = !wasOpen
+                            }
                         }
 
                         Item {
@@ -620,47 +595,14 @@ ShellRoot {
                                     visible: screenDelegate.ipAddressWidgetVisible
                                 }
 
-                                ScreenshotWidget {
-                                    id: screenshotWidget
-                                    colors: shellRoot.shellColors
-                                    compositorName: bar.compositorName
-                                    Layout.alignment: Qt.AlignVCenter
-                                    visible: false
-                                    fullscreenOutput: screenDelegate.modelData && screenDelegate.modelData.name ? String(screenDelegate.modelData.name) : ""
-                                    Component.onCompleted: screenDelegate.screenshotWidgetRef = screenshotWidget
-                                }
-
-                                ClaudeUsageWidget {
-                                    id: claudeUsageWidget
-                                    colors: shellRoot.shellColors
-                                    Layout.alignment: Qt.AlignVCenter
-                                    onToggleRequested: {
-                                        var wasOpen = screenDelegate.claudeUsageVisible
-                                        screenDelegate.closeAllPanels()
-                                        if (!wasOpen) {
-                                            var pt = claudeUsageWidget.mapToItem(root, 0, 0)
-                                            var screenW = root.width || 1920
-                                            screenDelegate.claudeUsageMarginRight = Math.max(0, Math.floor(screenW - pt.x - claudeUsageWidget.width / 2 - 140))
-                                            screenDelegate.claudeUsageVisible = true
-                                        }
-                                    }
-                                }
-
                                 ToolsMenuWidget {
                                     id: toolsMenuWidget
                                     colors: shellRoot.shellColors
                                     Layout.alignment: Qt.AlignVCenter
                                     onToggleRequested: {
-                                        var anyToolOpen = screenDelegate.toolsMenuVisible || screenDelegate.clipboardPanelVisible || screenDelegate.keybindsPanelVisible || screenDelegate.screenshotMenuVisible
-                                        screenDelegate.calendarVisible = false
-                                        screenDelegate.quickSettingsMenuVisible = false
-                                        screenDelegate.nowPlayingPopupVisible = false
-                                        screenDelegate.workspaceOverviewVisible = false
-                                        screenDelegate.clipboardPanelVisible = false
-                                        screenDelegate.keybindsPanelVisible = false
-                                        screenDelegate.screenshotMenuVisible = false
-                                        screenDelegate.toolsMenuVisible = false
-                                        if (!anyToolOpen) {
+                                        var wasOpen = screenDelegate.toolsMenuVisible
+                                        screenDelegate.closeAllPanels()
+                                        if (!wasOpen) {
                                             var pt = toolsMenuWidget.mapToItem(root, 0, 0)
                                             var screenW = root.width || 1920
                                             screenDelegate.toolsMenuMarginRight = Math.max(0, Math.floor(screenW - pt.x - toolsMenuWidget.width / 2 - 90))
@@ -677,15 +619,10 @@ ShellRoot {
                                     Layout.leftMargin: 2
                                     Layout.rightMargin: 2
                                     onCalendarToggleRequested: function() {
-                                        screenDelegate.calendarVisible = !screenDelegate.calendarVisible
+                                        var wasOpen = screenDelegate.calendarVisible
+                                        screenDelegate.closeAllPanels()
+                                        screenDelegate.calendarVisible = !wasOpen
                                         if (screenDelegate.calendarVisible) {
-                                            screenDelegate.nowPlayingPopupVisible = false
-                                            screenDelegate.quickSettingsMenuVisible = false
-                                            screenDelegate.screenshotMenuVisible = false
-                                            screenDelegate.workspaceOverviewVisible = false
-                                            screenDelegate.clipboardPanelVisible = false
-                                            screenDelegate.keybindsPanelVisible = false
-                                            screenDelegate.toolsMenuVisible = false
                                             var pt = clockWidget.mapToItem(root, 0, 0)
                                             screenDelegate.calendarMarginLeft = Math.max(0, Math.floor(pt.x + (clockWidget.width - 200) / 2))
                                             var now = new Date()
@@ -714,17 +651,11 @@ ShellRoot {
                                     colors: shellRoot.shellColors
                                     Layout.alignment: Qt.AlignVCenter
                                     onMenuToggleRequested: {
-                                            screenDelegate.quickSettingsMenuVisible = !screenDelegate.quickSettingsMenuVisible
-                                            if (screenDelegate.quickSettingsMenuVisible) {
+                                        var wasOpen = screenDelegate.quickSettingsMenuVisible
+                                        screenDelegate.closeAllPanels()
+                                        screenDelegate.quickSettingsMenuVisible = !wasOpen
+                                        if (screenDelegate.quickSettingsMenuVisible)
                                             screenDelegate.quickSettingsSubView = "main"
-                                            screenDelegate.calendarVisible = false
-                                            screenDelegate.nowPlayingPopupVisible = false
-                                            screenDelegate.screenshotMenuVisible = false
-                                            screenDelegate.workspaceOverviewVisible = false
-                                            screenDelegate.clipboardPanelVisible = false
-                                            screenDelegate.keybindsPanelVisible = false
-                                            screenDelegate.toolsMenuVisible = false
-                                        }
                                     }
                                 }
                             }
@@ -905,27 +836,6 @@ ShellRoot {
             }
 
             PopupPanel {
-                id: claudeUsagePanel
-                screen: screenDelegate.modelData
-                visible: screenDelegate.claudeUsageVisible && bar.panelsVisible
-                colors: shellRoot.shellColors
-                layershellNamespace: "quickshell-claude-usage"
-                barHeight: bar.implicitHeight
-                containerX: claudeUsagePanel.width - 300 - screenDelegate.claudeUsageMarginRight
-                containerWidth: 300
-                containerHeight: cuContentItem.implicitHeight + 8
-                onCloseRequested: screenDelegate.closeAllPanels()
-
-                ClaudeUsageContent {
-                    id: cuContentItem
-                    anchors.fill: parent
-                    anchors.margins: 4
-                    colors: shellRoot.shellColors
-                    onClose: function() { screenDelegate.claudeUsageVisible = false }
-                }
-            }
-
-            PopupPanel {
                 id: toolsMenuPanel
                 screen: screenDelegate.modelData
                 visible: screenDelegate.toolsMenuVisible && bar.panelsVisible
@@ -934,7 +844,7 @@ ShellRoot {
                 barHeight: bar.implicitHeight
                 containerX: toolsMenuPanel.width - 188 - screenDelegate.toolsMenuMarginRight
                 containerWidth: 188
-                containerHeight: 168
+                containerHeight: 76
                 onCloseRequested: screenDelegate.closeAllPanels()
 
                 ToolsMenuContent {
@@ -942,42 +852,7 @@ ShellRoot {
                     anchors.margins: 4
                     colors: shellRoot.shellColors
                     compositorName: shellRoot.compositorName
-                    screenshotWidget: screenDelegate.screenshotWidgetRef
                     onClose: function() { screenDelegate.toolsMenuVisible = false }
-                    onClipboardRequested: {
-                        screenDelegate.clipboardPanelVisible = !screenDelegate.clipboardPanelVisible
-                    }
-                    onKeybindsRequested: {
-                        screenDelegate.keybindsPanelVisible = !screenDelegate.keybindsPanelVisible
-                    }
-                    onScreenshotMenuRequested: {
-                        if (!screenDelegate.screenshotMenuVisible) {
-                            var screenW = root.width || 1920
-                            screenDelegate.screenshotMenuMarginLeft = Math.max(0, Math.floor(screenW - screenDelegate.toolsMenuMarginRight - 168))
-                        }
-                        screenDelegate.screenshotMenuVisible = !screenDelegate.screenshotMenuVisible
-                    }
-                }
-            }
-
-            PopupPanel {
-                id: screenshotMenuPanel
-                screen: screenDelegate.modelData
-                visible: screenDelegate.screenshotMenuVisible && bar.panelsVisible
-                colors: shellRoot.shellColors
-                layershellNamespace: "quickshell-screenshot-menu"
-                barHeight: bar.implicitHeight
-                containerX: screenDelegate.screenshotMenuMarginLeft
-                containerWidth: 168
-                containerHeight: 128
-                onCloseRequested: screenDelegate.closeAllPanels()
-
-                ScreenshotMenuContent {
-                    anchors.fill: parent
-                    anchors.margins: 4
-                    colors: shellRoot.shellColors
-                    screenshotWidget: screenDelegate.screenshotWidgetRef
-                    onClose: function() { screenDelegate.screenshotMenuVisible = false }
                 }
             }
 
@@ -1023,48 +898,6 @@ ShellRoot {
                         var step = (wheel.angleDelta.y / 120) * 80
                         wsOverviewFlick.contentY = Math.max(0, Math.min(wsOverviewFlick.contentY - step, Math.max(0, wsOverviewFlick.contentHeight - wsOverviewFlick.height)))
                     }
-                }
-            }
-
-            PopupPanel {
-                id: clipboardPanel
-                screen: screenDelegate.modelData
-                visible: screenDelegate.clipboardPanelVisible && bar.panelsVisible
-                colors: shellRoot.shellColors
-                layershellNamespace: "quickshell-clipboard"
-                barHeight: bar.implicitHeight
-                containerWidth: 560
-                containerHeight: Math.min(Math.max(300, clipContent.desiredHeight + 24), 600)
-                onCloseRequested: screenDelegate.closeAllPanels()
-                onOpened: clipContent.refresh()
-
-                ClipboardContent {
-                    id: clipContent
-                    anchors.fill: parent
-                    anchors.margins: 12
-                    colors: shellRoot.shellColors
-                    onClose: function() { screenDelegate.clipboardPanelVisible = false }
-                }
-            }
-
-            PopupPanel {
-                id: keybindsPanel
-                screen: screenDelegate.modelData
-                visible: screenDelegate.keybindsPanelVisible && bar.panelsVisible
-                colors: shellRoot.shellColors
-                layershellNamespace: "quickshell-keybinds"
-                barHeight: bar.implicitHeight
-                containerWidth: 420
-                containerHeight: Math.min(Math.max(300, kbContent.desiredHeight + 24), 600)
-                onCloseRequested: screenDelegate.closeAllPanels()
-                onOpened: kbContent.refresh()
-
-                KeybindsContent {
-                    id: kbContent
-                    anchors.fill: parent
-                    anchors.margins: 12
-                    colors: shellRoot.shellColors
-                    onClose: function() { screenDelegate.keybindsPanelVisible = false }
                 }
             }
 
