@@ -1,4 +1,6 @@
 --- Windsurf / Codeium: cmp + inline ghost text (matches prior Lazy setup).
+--- Accept ghost text (insert mode): |<M-y>| whole suggestion · |<M-w>| next word · |<M-l>| next line.
+--- Cycle suggestions: |<M-]>| next · |<M-[>| prev · |<C-]>| dismiss.
 --- First auth: |:Codeium Auth| · |<Leader>aw| toggle · |<Leader>ac| chat · |<Leader>aa| auth · |<Leader>as| status.
 --- Browser: use **global** defaults — |$BROWSER| (see |~/.config/environment.d/browser.conf|), |xdg-mime| in yadm bootstrap, |export BROWSER=firefox| in |~/.config/zsh/.zprofile|.
 --- Auth URLs: detached |xdg-open| (respects XDG default; avoids Plenary 1s sync timeout). Flatpak Firefox: set |xdg-mime| / default app, or override |tools["xdg-open"]| here.
