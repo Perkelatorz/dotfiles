@@ -8,6 +8,7 @@ import "."
 // "SHUF", etc.). Public interface preserved for MiniPlayerContent/shell.qml.
 BarPill {
     id: nowPlayingWidget
+    pillIndex: 6
 
     signal openMiniPlayerRequested()
 

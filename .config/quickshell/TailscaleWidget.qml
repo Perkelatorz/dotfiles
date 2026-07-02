@@ -7,6 +7,7 @@ import "."
 // Hidden entirely when tailscale isn't installed.
 BarPill {
     id: tsWidget
+    pillIndex: 1
 
     property bool connected: false
     property string ipAddress: ""

@@ -5,6 +5,7 @@ import "."
 
 BarPill {
     id: perfWidget
+    pillIndex: 4
 
     property int cpuUsage: 0
     property int lastCpuTotal: 0

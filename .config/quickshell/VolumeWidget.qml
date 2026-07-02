@@ -6,6 +6,7 @@ import "."
 
 BarPill {
     id: volumeWidget
+    pillIndex: 7
 
     // Volume control app on right-click ("pulsemixer"/"ncpamixer" work too).
     property string volumeControlCommand: "pavucontrol"

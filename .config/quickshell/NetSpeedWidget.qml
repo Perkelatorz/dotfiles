@@ -5,6 +5,7 @@ import "."
 
 BarPill {
     id: netWidget
+    pillIndex: 2
 
     // Rendered as a single label (single source for formatting lives in
     // SystemServices; the local duplicate formatter is gone).

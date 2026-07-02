@@ -5,6 +5,7 @@ import "."
 
 BarPill {
     id: weatherWidget
+    pillIndex: 0
 
     signal openForecastRequested()
 

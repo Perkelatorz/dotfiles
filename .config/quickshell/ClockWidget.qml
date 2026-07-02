@@ -5,6 +5,7 @@ import "."
 
 BarPill {
     id: clockWidget
+    pillIndex: 3
 
     signal calendarToggleRequested()
 

@@ -13,6 +13,8 @@ GridLayout {
     property string diskSettingsCommand: "sh -c \"thunar \\$HOME\""
 
     signal runCommand(string cmd)
+    // Close the panel before actions that capture the screen.
+    signal closeRequested()
 
     Layout.fillWidth: true
     Layout.bottomMargin: 16
@@ -139,6 +141,22 @@ GridLayout {
         status: SystemServices.themeStatus
         paletteColors: [grid.colors.primary, grid.colors.secondary, grid.colors.tertiary, grid.colors.error, grid.colors.primaryContainer, grid.colors.surfaceBright]
         onClick: function() { grid.runCommand("sh -c '\"$HOME/.config/scripts/select-wallpaper.sh\" --material'") }
+    }
+    QuickSettingCard {
+        colors: grid.colors
+        icon: "\uF030"
+        title: "Screenshot"
+        status: "Click: region\nRight: full screen"
+        // Panel must close first or it ends up in the capture; small sleep
+        // lets the popup animation finish before slurp/grim grab the screen.
+        onClick: function() {
+            grid.closeRequested()
+            grid.runCommand("sh -c 'sleep 0.2; exec \"${XDG_CONFIG_HOME:-$HOME/.config}/scripts/screenshot-region.sh\"'")
+        }
+        onRightClick: function() {
+            grid.closeRequested()
+            grid.runCommand("sh -c 'sleep 0.2; exec \"${XDG_CONFIG_HOME:-$HOME/.config}/scripts/screenshot-fullscreen.sh\"'")
+        }
     }
     QuickSettingCard {
         colors: grid.colors

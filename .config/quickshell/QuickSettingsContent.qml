@@ -13,7 +13,6 @@ ColumnLayout {
     signal openPowerRequested()
     signal openSettingsRequested()
 
-    property string lockCommand: "swaylock"
     property string audioSettingsCommand: "pavucontrol"
     property string displaySettingsCommand: "wdisplays"
     property string batterySettingsCommand: ""
@@ -54,6 +53,7 @@ ColumnLayout {
         batterySettingsCommand: quickSettingsRoot.batterySettingsCommand
         diskSettingsCommand: quickSettingsRoot.diskSettingsCommand
         onRunCommand: cmd => quickSettingsRoot.runInSession(cmd)
+        onCloseRequested: quickSettingsRoot.onClose()
     }
 
     Item { Layout.fillHeight: true }

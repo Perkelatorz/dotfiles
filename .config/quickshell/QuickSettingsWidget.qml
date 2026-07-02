@@ -4,6 +4,7 @@ import "."
 
 BarPill {
     id: quickSettingsWidget
+    pillIndex: 5
 
     signal menuToggleRequested()
 

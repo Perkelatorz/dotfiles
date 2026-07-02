@@ -6,6 +6,7 @@ import "."
 // the bar pill and QuickSettings card can't disagree.
 BarPill {
     id: powerWidget
+    pillIndex: 3
 
     readonly property string profile: SystemServices.powerProfile.toLowerCase()
     readonly property var profileLabels: ({ "balanced": "Bal", "performance": "Perf", "power-saver": "Save" })

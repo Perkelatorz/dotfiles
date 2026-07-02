@@ -5,6 +5,7 @@ import "."
 
 BarPill {
     id: ipWidget
+    pillIndex: 1
 
     property string ipAddress: ""
     property bool _copied: false

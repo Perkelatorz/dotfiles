@@ -4,6 +4,7 @@ import "."
 
 BarPill {
     id: overviewWidget
+    pillIndex: 0
 
     signal toggleRequested()
 
