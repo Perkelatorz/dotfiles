@@ -485,7 +485,7 @@ if [ "$GENERATE_HIGH_CONTRAST_TEXT" = "true" ]; then
   # Extract background color from generated theme
   BG_COLOR=""
   if [ -f "$HOME/.config/hypr/matugen-colors.conf" ]; then
-    BG_COLOR=$(grep "md3_background" "$HOME/.config/hypr/matugen-colors.conf" | head -1 | grep -oP 'rgba\(\K[0-9a-fA-F]{6}' || echo "")
+    BG_COLOR=$(grep -E '^\$background ' "$HOME/.config/hypr/matugen-colors.conf" | head -1 | grep -oP 'rgba\(\K[0-9a-fA-F]{6}' || echo "")
   fi
   
   # Fallback: try to extract from matugen JSON output
@@ -516,9 +516,9 @@ if [ "$GENERATE_HIGH_CONTRAST_TEXT" = "true" ]; then
     {
       echo ""
       echo "# High-contrast text colors (auto-generated)"
-      echo "\$md3_text_primary = rgba(${TEXT_PRIMARY#\#}ff)"
-      echo "\$md3_text_secondary = rgba(${TEXT_SECONDARY#\#}ee)"
-      echo "\$md3_text_high_contrast = rgba(${TEXT_PRIMARY#\#}ff)"
+      echo "\$text_primary = rgba(${TEXT_PRIMARY#\#}ff)"
+      echo "\$text_secondary = rgba(${TEXT_SECONDARY#\#}ee)"
+      echo "\$text_high_contrast = rgba(${TEXT_PRIMARY#\#}ff)"
     } >> "$HOME/.config/hypr/matugen-colors.conf"
     log "INFO" "✓ Added high-contrast text colors to Hyprland config"
   fi
@@ -552,7 +552,7 @@ fi
 # Verify generated files exist
 if [ -f "$HOME/.config/hypr/matugen-colors.conf" ]; then
   log "INFO" "✓ Hyprland colors file generated"
-  FIRST_COLOR=$(head -5 "$HOME/.config/hypr/matugen-colors.conf" | grep -m1 "md3_" || echo "unknown")
+  FIRST_COLOR=$(head -5 "$HOME/.config/hypr/matugen-colors.conf" | grep -m1 -E '^\$' || echo "unknown")
   log "INFO" "  Sample: $FIRST_COLOR"
 else
   log "WARNING" "Hyprland colors file not found at $HOME/.config/hypr/matugen-colors.conf"
