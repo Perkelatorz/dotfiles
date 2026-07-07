@@ -12,6 +12,8 @@ ColumnLayout {
 
     signal openPowerRequested()
     signal openSettingsRequested()
+    signal openWifiRequested()
+    signal openBluetoothRequested()
 
     property string audioSettingsCommand: "pavucontrol"
     property string displaySettingsCommand: "wdisplays"
@@ -51,6 +53,8 @@ ColumnLayout {
         audioSettingsCommand: quickSettingsRoot.audioSettingsCommand
         diskSettingsCommand: quickSettingsRoot.diskSettingsCommand
         onRunCommand: cmd => quickSettingsRoot.runInSession(cmd)
+        onOpenWifiRequested: quickSettingsRoot.openWifiRequested()
+        onOpenBluetoothRequested: quickSettingsRoot.openBluetoothRequested()
     }
 
     Item { Layout.fillHeight: true }

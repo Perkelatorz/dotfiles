@@ -21,7 +21,6 @@ ShellRoot {
         if (s.indexOf("niri") >= 0) return "niri"
         return "other"
     }
-    property bool workspaceOverviewTriggered: false
 
     function refreshFullscreenMonitors() {
         if (compositorName === "hyprland" && !fullscreenProcess.running)
@@ -73,13 +72,14 @@ ShellRoot {
 
     // Compositor detected once at startup by compositorDetectProc (running: true)
 
-    // Workspace overview trigger via Quickshell IPC.
-    // Invoked by ~/.config/scripts/open-workspace-overview.sh (`qs ipc call shell openOverview`).
-    // Replaces a previous 400ms file-poll on $XDG_RUNTIME_DIR/quickshell-open-overview.
+    // Brightness OSD trigger: the brightness keys ping this over IPC because
+    // brightnessctl changes brightness outside Quickshell (nothing to watch).
+    property int osdBrightnessNonce: 0
     IpcHandler {
-        target: "shell"
-        function openOverview(): void {
-            shellRoot.workspaceOverviewTriggered = true
+        target: "osd"
+        function brightness(): void {
+            SystemServices._refreshBrightness()
+            shellRoot.osdBrightnessNonce++
         }
     }
 
@@ -123,23 +123,23 @@ ShellRoot {
             property bool nowPlayingPopupVisible: false
             property bool quickSettingsMenuVisible: false
             property string quickSettingsSubView: "main"
-            property bool workspaceOverviewVisible: false
             property bool toolsMenuVisible: false
             property int toolsMenuMarginRight: 0
             property bool weatherForecastVisible: false
             property int weatherForecastMarginRight: 0
             property bool performancePanelVisible: false
             property int performancePanelMarginRight: 0
+            property bool tailscalePanelVisible: false
+            property int tailscalePanelMarginRight: 0
 
             function closeAllPanels() {
                 calendarVisible = false
                 nowPlayingPopupVisible = false
                 quickSettingsMenuVisible = false
-                workspaceOverviewVisible = false
-                shellRoot.workspaceOverviewTriggered = false
                 toolsMenuVisible = false
                 weatherForecastVisible = false
                 performancePanelVisible = false
+                tailscalePanelVisible = false
             }
             property int calendarMarginLeft: 0
             property int nowPlayingMarginLeft: 0
@@ -157,7 +157,6 @@ ShellRoot {
             property bool netSpeedWidgetVisible: true
             property bool notificationsWidgetVisible: true
             property bool powerProfileWidgetVisible: false
-            property bool workspaceOverviewWidgetVisible: true
             property bool idleInhibitorWidgetVisible: true
             property bool tailscaleWidgetVisible: true
 
@@ -180,8 +179,7 @@ ShellRoot {
                     "notifications=" + (notificationsWidgetVisible ? "true" : "false"),
                     "powerProfile=" + (powerProfileWidgetVisible ? "true" : "false"),
                     "idleInhibitor=" + (idleInhibitorWidgetVisible ? "true" : "false"),
-                    "tailscale=" + (tailscaleWidgetVisible ? "true" : "false"),
-                    "workspaceOverview=" + (workspaceOverviewWidgetVisible ? "true" : "false")
+                    "tailscale=" + (tailscaleWidgetVisible ? "true" : "false")
                 ]
                 saveBarWidgetsProc.command = ["sh", "-c", "SCRIPT=\"${XDG_CONFIG_HOME:-$HOME/.config}/scripts/write-bar-widgets.sh\"; exec \"$SCRIPT\" " + args.join(" ")]
                 saveBarWidgetsProc.running = true
@@ -209,7 +207,6 @@ ShellRoot {
                             if (typeof o.powerProfile === "boolean") screenDelegate.powerProfileWidgetVisible = o.powerProfile
                             if (typeof o.idleInhibitor === "boolean") screenDelegate.idleInhibitorWidgetVisible = o.idleInhibitor
                             if (typeof o.tailscale === "boolean") screenDelegate.tailscaleWidgetVisible = o.tailscale
-                            if (typeof o.workspaceOverview === "boolean") screenDelegate.workspaceOverviewWidgetVisible = o.workspaceOverview
                             if (screenDelegate.isVerticalScreen) {
                                 screenDelegate.resetWidgetVisibility()
                             }
@@ -433,18 +430,6 @@ ShellRoot {
                         anchors.fill: parent
                         spacing: 0
 
-                        WorkspaceOverviewWidget {
-                            colors: shellRoot.shellColors
-                            Layout.alignment: Qt.AlignVCenter
-                            Layout.leftMargin: 4
-                            Layout.rightMargin: 4
-                            visible: bar.compositorName === "hyprland" && screenDelegate.workspaceOverviewWidgetVisible
-                            onToggleRequested: {
-                                var wasOpen = screenDelegate.workspaceOverviewVisible
-                                screenDelegate.closeAllPanels()
-                                screenDelegate.workspaceOverviewVisible = !wasOpen
-                            }
-                        }
                         Workspaces {
                             id: workspaceRow
                             visible: bar.compositorName === "hyprland"
@@ -497,7 +482,9 @@ ShellRoot {
                                 id: rightSectionLayout
                                 anchors.right: parent.right
                                 anchors.verticalCenter: parent.verticalCenter
-                                spacing: 6
+                                // Blocks style abuts widgets into one segmented
+                                // strip; every other style keeps breathing room.
+                                spacing: BarStyle.style === "blocks" ? 1 : 6
                                 layoutDirection: Qt.LeftToRight
 
                                 WeatherWidget {
@@ -540,9 +527,20 @@ ShellRoot {
                                 }
 
                                 TailscaleWidget {
+                                    id: tailscaleWidget
                                     colors: shellRoot.shellColors
                                     Layout.alignment: Qt.AlignVCenter
                                     visible: screenDelegate.tailscaleWidgetVisible
+                                    onToggleRequested: {
+                                        var wasOpen = screenDelegate.tailscalePanelVisible
+                                        screenDelegate.closeAllPanels()
+                                        if (!wasOpen) {
+                                            var pt = tailscaleWidget.mapToItem(root, 0, 0)
+                                            var screenW = root.width || 1920
+                                            screenDelegate.tailscalePanelMarginRight = Math.max(0, Math.floor(screenW - pt.x - tailscaleWidget.width / 2 - 134))
+                                            screenDelegate.tailscalePanelVisible = true
+                                        }
+                                    }
                                 }
 
                                 PerformanceWidget {
@@ -681,9 +679,11 @@ ShellRoot {
                 containerWidth: 440
                 containerHeight: screenDelegate.quickSettingsSubView === "settings"
                     ? Math.min(qsSettingsContent.implicitHeight + 60, 500)
-                    : (screenDelegate.quickSettingsSubView === "power"
+                    : screenDelegate.quickSettingsSubView === "power"
                         ? Math.min(qsPowerContent.implicitHeight + 60, 400)
-                        : Math.min(qsContent.implicitHeight + 40, 700))
+                    : (screenDelegate.quickSettingsSubView === "wifi" || screenDelegate.quickSettingsSubView === "bluetooth")
+                        ? 460
+                    : Math.min(qsContent.implicitHeight + 40, 700)
                 onCloseRequested: screenDelegate.closeAllPanels()
 
                 Column {
@@ -719,7 +719,10 @@ ShellRoot {
                         Item { width: 1; height: 1 }
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
-                            text: screenDelegate.quickSettingsSubView === "power" ? "Power" : "Widgets & settings"
+                            text: screenDelegate.quickSettingsSubView === "power" ? "Power"
+                                : screenDelegate.quickSettingsSubView === "wifi" ? "Wi-Fi"
+                                : screenDelegate.quickSettingsSubView === "bluetooth" ? "Bluetooth"
+                                : "Widgets & settings"
                             color: shellRoot.shellColors.primary
                             font.pixelSize: 14
                             font.bold: true
@@ -755,6 +758,8 @@ ShellRoot {
                                 onClose: function() { screenDelegate.quickSettingsMenuVisible = false }
                                 onOpenPowerRequested: screenDelegate.quickSettingsSubView = "power"
                                 onOpenSettingsRequested: screenDelegate.quickSettingsSubView = "settings"
+                                onOpenWifiRequested: screenDelegate.quickSettingsSubView = "wifi"
+                                onOpenBluetoothRequested: screenDelegate.quickSettingsSubView = "bluetooth"
                             }
                         }
                         MouseArea {
@@ -793,6 +798,26 @@ ShellRoot {
                                 onClose: function() {
                                     screenDelegate.quickSettingsSubView = "main"
                                 }
+                            }
+                        }
+                        Item {
+                            visible: screenDelegate.quickSettingsSubView === "wifi"
+                            anchors.fill: parent
+                            WifiContent {
+                                anchors.fill: parent
+                                anchors.margins: 8
+                                colors: shellRoot.shellColors
+                                panelOpen: screenDelegate.quickSettingsSubView === "wifi" && screenDelegate.quickSettingsMenuVisible
+                            }
+                        }
+                        Item {
+                            visible: screenDelegate.quickSettingsSubView === "bluetooth"
+                            anchors.fill: parent
+                            BluetoothContent {
+                                anchors.fill: parent
+                                anchors.margins: 8
+                                colors: shellRoot.shellColors
+                                panelOpen: screenDelegate.quickSettingsSubView === "bluetooth" && screenDelegate.quickSettingsMenuVisible
                             }
                         }
                     }
@@ -865,48 +890,31 @@ ShellRoot {
             }
 
             PopupPanel {
-                id: workspaceOverviewPanel
+                id: tailscalePanel
                 screen: screenDelegate.modelData
-                visible: (screenDelegate.workspaceOverviewVisible || shellRoot.workspaceOverviewTriggered) && bar.panelsVisible && bar.compositorName === "hyprland"
+                visible: screenDelegate.tailscalePanelVisible && bar.panelsVisible
                 colors: shellRoot.shellColors
-                layershellNamespace: "quickshell-workspace-overview"
+                layershellNamespace: "quickshell-tailscale"
                 barHeight: bar.implicitHeight
-                containerX: 12
-                containerWidth: 320
-                containerHeight: Math.min(overviewContent.implicitHeight + 24, 600)
+                containerX: tailscalePanel.width - 268 - screenDelegate.tailscalePanelMarginRight
+                containerWidth: 268
+                containerHeight: tsContentItem.implicitHeight + 8
                 onCloseRequested: screenDelegate.closeAllPanels()
 
-                Flickable {
-                    id: wsOverviewFlick
+                TailscaleContent {
+                    id: tsContentItem
                     anchors.fill: parent
-                    anchors.margins: 12
-                    contentWidth: overviewContent.width
-                    contentHeight: overviewContent.implicitHeight
-                    clip: true
-                    flickableDirection: Flickable.VerticalFlick
-                    boundsBehavior: Flickable.StopAtBounds
-                    WorkspaceOverviewContent {
-                        id: overviewContent
-                        width: 320 - 24
-                        colors: shellRoot.shellColors
-                        hyprMonitor: root.hyprMonitor
-                        clientsByWorkspace: root.clientsByWorkspace
-                        activeWindowAddress: root.activeWindowAddress
-                        onClose: function() {
-                            screenDelegate.workspaceOverviewVisible = false
-                            shellRoot.workspaceOverviewTriggered = false
-                        }
-                    }
+                    anchors.margins: 4
+                    colors: shellRoot.shellColors
+                    panelOpen: tailscalePanel.visible
+                    onClose: function() { screenDelegate.tailscalePanelVisible = false }
                 }
-                MouseArea {
-                    anchors.fill: parent
-                    anchors.margins: 12
-                    acceptedButtons: Qt.MiddleButton
-                    onWheel: function(wheel) {
-                        var step = (wheel.angleDelta.y / 120) * 80
-                        wsOverviewFlick.contentY = Math.max(0, Math.min(wsOverviewFlick.contentY - step, Math.max(0, wsOverviewFlick.contentHeight - wsOverviewFlick.height)))
-                    }
-                }
+            }
+
+            OsdOverlay {
+                colors: shellRoot.shellColors
+                screenObj: screenDelegate.modelData
+                brightnessNonce: shellRoot.osdBrightnessNonce
             }
 
             PopupPanel {

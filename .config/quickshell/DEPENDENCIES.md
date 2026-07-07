@@ -67,7 +67,6 @@ Quick Settings also uses: **wpctl** (sink name for Audio card), **Pipewire** (vo
 - **CPU/RAM**: read `/proc/stat` and `/proc/meminfo` (kernel).
 - **Clock/calendar**: in-QML only.
 - **Workspaces / Client list**: **Hyprland** – workspace row with per-workspace app icons, center client list, overview panel.
-- **Workspace overview** (Hyprland only, keyboard-only): Press a key that runs `~/.config/scripts/open-workspace-overview.sh` to see all workspaces and their windows (no bar button). Example: `bind = $mainMod, W, exec, ~/.config/scripts/open-workspace-overview.sh`
 
 ---
 

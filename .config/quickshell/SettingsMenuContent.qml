@@ -25,6 +25,46 @@ Item {
             spacing: 8
 
             Text {
+                text: "Bar style"
+                color: colors.textDim
+                font.pixelSize: colors.clockFontSize - 1
+            }
+
+            Flow {
+                width: parent.width - 20
+                spacing: 6
+                Repeater {
+                    model: BarStyle.styles
+                    delegate: Rectangle {
+                        id: styleChip
+                        property bool selected: BarStyle.style === modelData.id
+                        width: chipLabel.implicitWidth + 22
+                        height: 26
+                        radius: 13
+                        color: selected ? colors.primary
+                             : chipMa.containsMouse ? colors.surfaceBright : "transparent"
+                        border.width: 1
+                        border.color: selected ? colors.primary : colors.borderSubtle
+                        Behavior on color { ColorAnimation { duration: 100 } }
+                        Text {
+                            id: chipLabel
+                            anchors.centerIn: parent
+                            text: modelData.label
+                            color: styleChip.selected ? colors.textOnPrimary : colors.textMain
+                            font.pixelSize: colors.clockFontSize - 1
+                        }
+                        MouseArea {
+                            id: chipMa
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: BarStyle.setStyle(modelData.id)
+                        }
+                    }
+                }
+            }
+
+            Text {
                 text: "Bar widgets"
                 color: colors.textDim
                 font.pixelSize: colors.clockFontSize - 1
@@ -49,7 +89,6 @@ Item {
                 WidgetToggleRow { isOn: settingsState.netSpeedWidgetVisible; onToggle: function() { settingsState.netSpeedWidgetVisible = !settingsState.netSpeedWidgetVisible; if (settingsState.saveWidgetVisibility) settingsState.saveWidgetVisibility() }; label: "Net speed"; icon: "\uF0AC"; colors: settingsMenuContent.colors }
                 WidgetToggleRow { isOn: settingsState.notificationsWidgetVisible; onToggle: function() { settingsState.notificationsWidgetVisible = !settingsState.notificationsWidgetVisible; if (settingsState.saveWidgetVisibility) settingsState.saveWidgetVisibility() }; label: "Notifications"; icon: "\uF0F3"; colors: settingsMenuContent.colors }
                 WidgetToggleRow { isOn: settingsState.powerProfileWidgetVisible; onToggle: function() { settingsState.powerProfileWidgetVisible = !settingsState.powerProfileWidgetVisible; if (settingsState.saveWidgetVisibility) settingsState.saveWidgetVisibility() }; label: "Power profile"; icon: "\uF24E"; colors: settingsMenuContent.colors }
-                WidgetToggleRow { isOn: settingsState.workspaceOverviewWidgetVisible; onToggle: function() { settingsState.workspaceOverviewWidgetVisible = !settingsState.workspaceOverviewWidgetVisible; if (settingsState.saveWidgetVisibility) settingsState.saveWidgetVisibility() }; label: "Workspace overview"; icon: "\uF00A"; colors: settingsMenuContent.colors }
             }
         }
     }

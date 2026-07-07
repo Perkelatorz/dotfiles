@@ -1,11 +1,16 @@
 singleton SystemServices 1.0 SystemServices.qml
+singleton BarStyle 1.0 BarStyle.qml
 Colors 1.0 Colors.qml
 PollingProcess 1.0 PollingProcess.qml
 PopupPanel 1.0 PopupPanel.qml
 BarPill 1.0 BarPill.qml
+OsdOverlay 1.0 OsdOverlay.qml
 PrivacyIndicatorWidget 1.0 PrivacyIndicatorWidget.qml
 IdleInhibitorWidget 1.0 IdleInhibitorWidget.qml
 TailscaleWidget 1.0 TailscaleWidget.qml
+TailscaleContent 1.0 TailscaleContent.qml
+WifiContent 1.0 WifiContent.qml
+BluetoothContent 1.0 BluetoothContent.qml
 BatteryWidget 1.0 BatteryWidget.qml
 BrightnessWidget 1.0 BrightnessWidget.qml
 CalendarContent 1.0 CalendarContent.qml
@@ -30,8 +35,6 @@ StyledCalendarGrid 1.0 StyledCalendarGrid.qml
 Tray 1.0 Tray.qml
 VolumeWidget 1.0 VolumeWidget.qml
 WidgetToggleRow 1.0 WidgetToggleRow.qml
-WorkspaceOverviewContent 1.0 WorkspaceOverviewContent.qml
-WorkspaceOverviewWidget 1.0 WorkspaceOverviewWidget.qml
 Workspaces 1.0 Workspaces.qml
 PowerProfileWidget 1.0 PowerProfileWidget.qml
 NotificationWidget 1.0 NotificationWidget.qml
