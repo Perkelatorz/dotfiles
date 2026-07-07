@@ -12,6 +12,8 @@ GridLayout {
     property string diskSettingsCommand: "sh -c \"thunar \\$HOME\""
 
     signal runCommand(string cmd)
+    signal openWifiRequested()
+    signal openBluetoothRequested()
 
     Layout.fillWidth: true
     Layout.bottomMargin: 16
@@ -96,7 +98,7 @@ GridLayout {
             ? (SystemServices.wifiStatus + (SystemServices.vpnStatus !== "Disconnected" ? ("\n " + SystemServices.vpnStatus) : ""))
             : "Off"
         active: SystemServices.wifiEnabled
-        onClick: function() { SystemServices.toggleWifi() }
+        onClick: function() { grid.openWifiRequested() }
         onRightClick: function() { grid.runCommand("nm-connection-editor") }
     }
     QuickSettingCard {
@@ -105,7 +107,7 @@ GridLayout {
         title: "Bluetooth"
         status: SystemServices.btStatus
         active: SystemServices.btPowered
-        onClick: function() { SystemServices.toggleBluetooth() }
+        onClick: function() { grid.openBluetoothRequested() }
         onRightClick: function() { grid.runCommand("sh -c 'blueman-manager 2>/dev/null || bluetoothctl'") }
     }
     QuickSettingCard {
