@@ -1,0 +1,26 @@
+# Gaming stack — OPT-IN. Installed only when gaming is enabled for the machine:
+#   yadm config local.gaming true      (bootstrap also prompts on desktop/laptop)
+#   BOOTSTRAP_GAMING=1 yadm bootstrap   (force-enable, non-interactive)
+#
+# Mirrors the CachyOS gaming guide: https://wiki.cachyos.org/configuration/gaming/
+# Repo-only. Multilib is enabled by default on CachyOS (the lib32-* deps below
+# need it). GPU-side 32-bit drivers (lib32-nvidia-utils / lib32-vulkan-radeon)
+# live in the class lists (desktop.pkgs / laptop.pkgs), not here — they differ
+# per machine.
+
+# --- CachyOS gaming bundle (the guide's one-shot meta) ---
+# cachyos-gaming-applications pulls the whole recommended set:
+#   steam, lutris, heroic-games-launcher, gamescope, goverlay,
+#   mangohud + lib32-mangohud, AND cachyos-gaming-meta, which adds
+#   proton-cachyos-slr, umu-launcher, protontricks, wine-cachyos-opt,
+#   winetricks, vulkan-tools + the lib32 runtime libs games expect.
+cachyos-gaming-applications
+
+# --- Feral GameMode (the meta deliberately omits it; some titles still ask for
+#     it, and `gamemoderun %command%` is a handy per-game perf toggle) ---
+gamemode
+lib32-gamemode
+
+# HDR: gamescope (pulled above) is the HDR path — run a title with
+#   gamescope -f --hdr-enabled -- %command%
+# and give the display an HDR monitor line in monitors.conf (see hypr/gaming.conf).

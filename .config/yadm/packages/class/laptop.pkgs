@@ -9,5 +9,10 @@ linux-cachyos-headers
 vulkan-radeon
 nvidia-prime
 
+# 32-bit drivers for Steam/Proton (dGPU offload via prime-run + AMD iGPU).
+# Desktop ships lib32-nvidia-utils in its own list; the laptop needs both halves.
+lib32-nvidia-utils
+lib32-vulkan-radeon
+
 # --- Power ---
 power-profiles-daemon
