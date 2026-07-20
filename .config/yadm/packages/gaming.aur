@@ -1,0 +1,14 @@
+# Optional gaming extras from the AUR — installed (via paru) only when gaming is
+# enabled AND you uncomment them. Everything the CachyOS guide needs is in the
+# repos (gaming.pkgs); these are just nice-to-haves that only exist on the AUR.
+#
+# This setup keeps AUR use to a minimum on purpose, so all entries start off.
+
+# vkBasalt — Vulkan post-processing (CAS sharpening, FXAA, SMAA). Toggle in-game
+# with the Home key. lib32 variant is needed for 32-bit / most Proton titles.
+# vkbasalt
+# lib32-vkbasalt
+
+# game-devices-udev — udev rules for DualSense/DualShock/Switch Pro pads used
+# OUTSIDE Steam (Steam ships its own rules). Handy for Lutris/Heroic/emulators.
+# game-devices-udev

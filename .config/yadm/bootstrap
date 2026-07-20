@@ -15,10 +15,20 @@ set -euo pipefail
 #   laptop   — hybrid AMD iGPU + NVIDIA dGPU (prime-run offload)
 #   work     — Pascal Quadros (legacy 580xx driver), xrdp for RDP access
 #
+# Gaming (opt-in; orthogonal to class — you can game on desktop or laptop):
+#   yadm config local.gaming true      Persist the choice; bootstrap then always
+#                                       installs the CachyOS gaming stack
+#                                       (Steam/Proton/gamescope/MangoHud, see
+#                                       packages/gaming.pkgs) + Hyprland gaming
+#                                       tweaks (hypr/gaming.conf: tearing/VRR/HDR).
+#   (bootstrap prompts once on desktop/laptop if local.gaming is unset)
+#
 # Env flags:
 #   BOOTSTRAP_SKIP_UPGRADE=1   Skip full system upgrade (pacman -Syu). Not
 #                              recommended on fresh installs — installing on a
 #                              synced-but-not-upgraded system is a partial upgrade.
+#   BOOTSTRAP_GAMING=1         Force-enable the gaming stack non-interactively
+#                              (overrides local.gaming and the prompt).
 #   CLAUDE_CODE_SKIP=1         Skip Claude Code CLI install.
 #
 # Idempotent: every step is safe to re-run; --needed skips installed packages.
@@ -28,6 +38,7 @@ SECRETS_FILE="$HOME/.config/nvim/secrets.lua"
 MATUGEN_THEMES_DIR="$HOME/.config/matugen-themes"
 
 CLASS=""
+GAMING=false
 FAILED_PKGS=()
 
 info() { echo "🔷 $*"; }
@@ -74,6 +85,32 @@ ensure_class() {
     yadm alt >/dev/null 2>&1 && ok "yadm alternates refreshed" || warn "yadm alt failed"
 }
 
+# --- gaming (opt-in) ---
+
+# Decide whether to install the gaming stack. Precedence:
+#   BOOTSTRAP_GAMING env  >  stored local.gaming  >  interactive prompt  >  off.
+# Orthogonal to class: gaming makes sense on desktop/laptop, not the work box, so
+# work defaults off and is never prompted (override with: yadm config local.gaming true).
+resolve_gaming() {
+    if [[ -n "${BOOTSTRAP_GAMING:-}" ]]; then
+        [[ "$BOOTSTRAP_GAMING" == "1" ]] && GAMING=true || GAMING=false
+    else
+        GAMING=$(yadm config --bool local.gaming 2>/dev/null || true)
+        if [[ -z "$GAMING" ]]; then
+            if [[ "$CLASS" == "work" ]]; then
+                GAMING=false
+            elif [[ -t 0 ]]; then
+                read -rp "Install gaming stack (Steam/Proton/gamescope/MangoHud + HDR/tearing tweaks)? (y/N): " ans
+                [[ "${ans,,}" == y* ]] && GAMING=true || GAMING=false
+                yadm config local.gaming "$GAMING"
+            else
+                GAMING=false
+            fi
+        fi
+    fi
+    [[ "$GAMING" == "true" ]] && ok "gaming stack: enabled" || ok "gaming stack: disabled"
+}
+
 # --- package installation ---
 
 # Bulk install with --needed; if the transaction fails (one bad package, a
@@ -113,12 +150,24 @@ install_packages() {
     local f
     for f in "$PKG_DIR"/*.pkgs "$PKG_DIR/class/$CLASS.pkgs"; do
         [[ -f "$f" ]] || continue
+        # gaming.pkgs is opt-in (resolve_gaming) — never part of the base glob.
+        [[ "$(basename "$f")" == "gaming.pkgs" ]] && continue
         mapfile -t -O "${#repo_pkgs[@]}" repo_pkgs < <(read_pkg_file "$f")
         ok "list: $(basename "$f")"
     done
     if [[ -f "$PKG_DIR/class/$CLASS.aur" ]]; then
         mapfile -t aur_pkgs < <(read_pkg_file "$PKG_DIR/class/$CLASS.aur")
         (( ${#aur_pkgs[@]} )) && ok "list: class/$CLASS.aur (AUR)"
+    fi
+    if [[ "$GAMING" == "true" ]]; then
+        if [[ -f "$PKG_DIR/gaming.pkgs" ]]; then
+            mapfile -t -O "${#repo_pkgs[@]}" repo_pkgs < <(read_pkg_file "$PKG_DIR/gaming.pkgs")
+            ok "list: gaming.pkgs (gaming)"
+        fi
+        if [[ -f "$PKG_DIR/gaming.aur" ]]; then
+            mapfile -t -O "${#aur_pkgs[@]}" aur_pkgs < <(read_pkg_file "$PKG_DIR/gaming.aur")
+            (( ${#aur_pkgs[@]} )) && ok "list: gaming.aur (AUR)"
+        fi
     fi
     mapfile -t repo_pkgs < <(printf '%s\n' "${repo_pkgs[@]}" | awk '!seen[$0]++')
 
@@ -315,6 +364,7 @@ echo "🚀 CachyOS → Hyprland bootstrap"
 sudo -v || { echo "❌ sudo required"; exit 1; }
 
 ensure_class
+resolve_gaming
 
 if [[ "${BOOTSTRAP_SKIP_UPGRADE:-}" == "1" ]]; then
     info "Syncing package databases (upgrade skipped)..."
@@ -352,5 +402,16 @@ if (( ${#FAILED_PKGS[@]} )); then
         echo "      sudo pacman -S ${nvidia_failed[*]}"
         echo "      (answer y to remove the old driver branch, then reboot)"
     fi
+fi
+if [[ "$GAMING" == "true" ]]; then
+    echo "🎮 Gaming stack installed. After reboot:"
+    echo "   • Steam → Settings → Compatibility → enable Proton for all titles"
+    echo "     (pick Proton-CachyOS in a game's Compatibility tab)."
+    echo "   • Per-game launch options (Properties → Launch Options), e.g.:"
+    echo "       gamemoderun mangohud %command%           # perf + FPS/temp HUD"
+    echo "       gamescope -f --hdr-enabled -- %command%  # HDR / scaling"
+    echo "   • MangoHud overlay toggles in-game with Right Shift + F12."
+    echo "   • HDR: add 'bitdepth,10, cm,hdr' to the panel's line in monitors.conf"
+    echo "     (see ~/.config/hypr/gaming.conf for the exact syntax)."
 fi
 echo "➡️  Next: reboot → SDDM → Hyprland. Then: sudo tailscale up (if new machine)."

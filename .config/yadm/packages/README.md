@@ -60,12 +60,53 @@ yadm remote set-url origin git@github.com:perkelatorz/dotfiles.git
 | `apps.pkgs` | all machines | firefox, thunar, imv/mpv, vesktop, obsidian, bitwarden |
 | `dev.pkgs` | all machines | neovim, go/rust/npm, ripgrep/fd/fzf, gh |
 | `class/desktop.pkgs` | class `desktop` | nvidia-open, Sunshine (game-stream host) |
-| `class/laptop.pkgs` | class `laptop` | nvidia-open + AMD hybrid (prime-run), power-profiles |
+| `class/laptop.pkgs` | class `laptop` | nvidia-open + AMD hybrid (prime-run), power-profiles, lib32 drivers |
 | `class/work.pkgs` | class `work` | nvidia-580xx (Pascal Quadros), Xorg + XFCE for RDP |
 | `class/work.aur` | class `work` | xrdp, xorgxrdp — the only AUR packages anywhere |
+| `gaming.pkgs` | opt-in (any class) | CachyOS gaming bundle: Steam/Proton/gamescope/MangoHud/Lutris/Heroic + gamemode |
+| `gaming.aur` | opt-in (any class) | commented extras (vkBasalt, game-devices-udev) — off by default |
 
 Format: one package per line; `#` comments and blank lines ignored.
 Adding a machine type = add `class/<name>.pkgs` (and optionally `.aur`).
+
+## Gaming (opt-in)
+
+Orthogonal to class — enable it wherever you actually game (desktop or laptop,
+not the work box). It's off until you turn it on:
+
+```sh
+yadm config local.gaming true    # persist; bootstrap then always installs it
+yadm bootstrap                   # (desktop/laptop also prompt once if unset)
+# or, one-shot without persisting the choice:
+BOOTSTRAP_GAMING=1 yadm bootstrap
+```
+
+**Packages** (`gaming.pkgs`) follow the [CachyOS gaming guide](https://wiki.cachyos.org/configuration/gaming/):
+`cachyos-gaming-applications` pulls Steam, Lutris, Heroic, gamescope, goverlay,
+MangoHud (+lib32), and `cachyos-gaming-meta` (proton-cachyos-slr, umu-launcher,
+protontricks, wine-cachyos, winetricks, vulkan-tools + lib32 runtime libs). We
+add `gamemode`/`lib32-gamemode` on top (the meta omits them). The 32-bit GPU
+drivers live in the class lists (desktop already had `lib32-nvidia-utils`; the
+laptop list now adds `lib32-nvidia-utils` + `lib32-vulkan-radeon` for offload).
+AUR extras (`gaming.aur`: vkBasalt, game-devices-udev) ship commented-out.
+
+**Hyprland tweaks** live in `~/.config/hypr/gaming.conf` (sourced last so it
+overrides): `allow_tearing = true` + a per-game `immediate` window rule (lower
+latency), `misc:vrr = 2` (VRR on fullscreen games only), and `no_blur`/`no_anim`/
+`idle_inhibit = fullscreen` on game windows. A starter `~/.config/MangoHud/
+MangoHud.conf` is tracked too (toggle overlay with Right Shift + F12).
+
+**Per-game launch options** (Steam → game → Properties → Launch Options):
+
+```
+gamemoderun mangohud %command%              # perf governor + FPS/temp HUD
+gamescope -f --hdr-enabled -- %command%     # HDR / integer scaling wrapper
+__GL_SYNC_TO_VBLANK=0 mangohud %command%    # let the tearing rule work (NVIDIA)
+```
+
+**HDR** is off by default (color management itself is always on in Hyprland
+0.55). Turn it on per display by adding `bitdepth, 10, cm, hdr` to that monitor's
+line in `monitors.conf` — see the fully-worked example in `hypr/gaming.conf`.
 
 ## Machine classes
 
