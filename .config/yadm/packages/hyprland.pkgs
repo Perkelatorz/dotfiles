@@ -53,6 +53,7 @@ qt5ct
 kvantum
 swaync
 wdisplays
+nwg-displays          # GUI display layout editor; writes monitors.conf + workspaces.conf (wdisplays is live-only, can't save)
 
 # --- Theming (matugen pipeline + GTK/icons) ---
 matugen
