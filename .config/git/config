@@ -2,7 +2,6 @@
     defaultBranch = main
 
 [credential]
-    helper = manager
     credentialStore = secretservice
 
 [user]
