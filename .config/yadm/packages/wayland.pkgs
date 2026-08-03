@@ -1,0 +1,83 @@
+# Shared Wayland desktop stack — everything between "TTY" and "usable session"
+# that is NOT tied to one compositor. Both the Hyprland and mango sessions build
+# on this; compositor-specific bits live in hyprland.pkgs / mango.pkgs.
+
+# --- Login (bootstrap enables sddm.service; takes effect on reboot) ---
+sddm
+
+# --- Session helpers (compositor-agnostic despite the hypr* names) ---
+# hypridle drives ext-idle-notify-v1 and hyprlock uses ext-session-lock-v1, both
+# generic wlroots protocols — mango implements them too. mango runs hypridle
+# with its own timer file (mango/idle.conf) because the default one shells out
+# to hyprctl. hyprlock (not swaylock): hypr/programs.conf $lock and
+# mango/idle.conf both call it.
+hypridle
+hyprlock
+hyprpicker
+hyprpolkitagent
+
+# --- Portals (file pickers; the screencast backend is per-compositor) ---
+xdg-desktop-portal-gtk
+
+# --- Audio (no-DE install ships no audio stack) ---
+pipewire
+pipewire-alsa
+pipewire-pulse
+wireplumber
+pavucontrol
+playerctl
+
+# --- Bluetooth ---
+bluez
+bluez-utils
+blueman
+
+# --- Wallpaper daemon (select-wallpaper.sh; autostarted as awww-daemon) ---
+awww
+
+# --- Wayland utils ---
+wl-clipboard
+wl-clip-persist
+cliphist
+grim
+slurp
+brightnessctl
+
+# --- Runtime deps of ~/.config/scripts/* ---
+# jq: _compositor.sh, screen-off.sh, screenshot-fullscreen.sh parse compositor
+#     JSON with it. It used to arrive only as another package's dependency,
+#     which would silently break those scripts if that package ever went away.
+# python: alt-tab-cycle.sh sorts the window list in python3.
+jq
+python
+
+# --- Bar / shell / notifications ---
+quickshell
+qt6-wayland
+qt6ct
+qt5ct
+kvantum
+swaync
+wdisplays
+nwg-displays          # GUI display layout editor; writes hypr monitors.conf (wdisplays is live-only, can't save). Hyprland-oriented, but harmless to have under mango — mango/monitors.conf is hand-maintained from it.
+
+# --- Theming (matugen pipeline + GTK/icons) ---
+matugen
+rofi
+libnotify
+imagemagick
+papirus-icon-theme
+adw-gtk-theme
+
+# --- Fonts (a no-DE install has NO fonts; noto covers UI + emoji fallback) ---
+noto-fonts
+noto-fonts-emoji
+ttf-jetbrains-mono-nerd
+ttf-firacode-nerd
+
+# --- Terminal ---
+kitty
+
+# --- Secrets / keyring ---
+gnome-keyring
+libsecret
