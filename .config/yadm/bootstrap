@@ -1,14 +1,23 @@
 #!/bin/bash
 set -euo pipefail
 
-# yadm bootstrap — CachyOS (fresh, NO desktop selected) → Hyprland workstation.
+# yadm bootstrap — CachyOS (fresh, NO desktop selected) → Wayland workstation.
 #
 # Fresh machine:
 #   sudo pacman -S --needed git yadm
 #   yadm clone https://github.com/perkelatorz/dotfiles
 #   yadm config local.class desktop|laptop|work     # (bootstrap prompts if unset)
 #   yadm bootstrap
-#   reboot                                          # lands in SDDM → Hyprland
+#   reboot                                          # lands in SDDM → pick a session
+#
+# Compositor (both are installed by default and selectable at the SDDM session
+# picker; the shared desktop stack in packages/wayland.pkgs serves either):
+#   yadm config local.compositor hyprland|mango|both
+#     hyprland — Hyprland + uwsm + xdph. Per-monitor workspaces need the
+#                split-monitor-workspaces plugin (built via hyprpm, prompted below).
+#     mango    — MangoWC + xdg-desktop-portal-wlr. Tags are per-monitor natively,
+#                so no plugin. Loses portal GlobalShortcuts (see mango.pkgs).
+#     both     — default; install both and choose per login.
 #
 # Classes (drive package lists in packages/class/ and ##class config alternates):
 #   desktop  — home desktop: nvidia-open, Sunshine game-stream host
@@ -29,6 +38,7 @@ set -euo pipefail
 #                              synced-but-not-upgraded system is a partial upgrade.
 #   BOOTSTRAP_GAMING=1         Force-enable the gaming stack non-interactively
 #                              (overrides local.gaming and the prompt).
+#   BOOTSTRAP_COMPOSITOR=...   hyprland|mango|both — overrides local.compositor.
 #   CLAUDE_CODE_SKIP=1         Skip Claude Code CLI install.
 #
 # Idempotent: every step is safe to re-run; --needed skips installed packages.
@@ -39,6 +49,7 @@ MATUGEN_THEMES_DIR="$HOME/.config/matugen-themes"
 
 CLASS=""
 GAMING=false
+COMPOSITOR=""
 FAILED_PKGS=()
 
 info() { echo "🔷 $*"; }
@@ -47,7 +58,14 @@ warn() { echo "   ⚠️  $*"; }
 
 read_pkg_file() {
     # Emit non-empty, non-comment lines from a package list.
-    grep -Ev '^[[:space:]]*(#|$)' "$1" 2>/dev/null || true
+    #
+    # Trailing comments are stripped too, not just whole-line ones: a list entry
+    # written as `nwg-displays   # GUI display editor` was otherwise handed to
+    # pacman comment and all, which fails the bulk transaction, then fails again
+    # in the one-at-a-time retry, and lands in FAILED_PKGS. That silently cost
+    # nwg-displays on every run.
+    sed -E 's/[[:space:]]*#.*$//; s/[[:space:]]+$//' "$1" 2>/dev/null \
+        | grep -Ev '^[[:space:]]*$' || true
 }
 
 # --- class ---
@@ -111,6 +129,30 @@ resolve_gaming() {
     [[ "$GAMING" == "true" ]] && ok "gaming stack: enabled" || ok "gaming stack: disabled"
 }
 
+# --- compositor (hyprland | mango | both) ---
+
+# Which compositor package list(s) to install. Precedence:
+#   BOOTSTRAP_COMPOSITOR env  >  stored local.compositor  >  "both".
+# Deliberately never prompts: "both" is a safe superset, they coexist fine, and
+# SDDM lets you pick per login. The shared stack (wayland.pkgs) is installed
+# either way, so switching later is just a re-run with a different value.
+resolve_compositor() {
+    COMPOSITOR="${BOOTSTRAP_COMPOSITOR:-}"
+    [[ -z "$COMPOSITOR" ]] && COMPOSITOR=$(yadm config local.compositor 2>/dev/null || true)
+    [[ -z "$COMPOSITOR" ]] && COMPOSITOR="both"
+    case "$COMPOSITOR" in
+        hyprland|mango|both) ;;
+        *)
+            echo "❌ Invalid compositor '$COMPOSITOR' (want: hyprland|mango|both)"
+            exit 1
+            ;;
+    esac
+    ok "compositor: $COMPOSITOR"
+}
+
+want_hyprland() { [[ "$COMPOSITOR" == "hyprland" || "$COMPOSITOR" == "both" ]]; }
+want_mango()    { [[ "$COMPOSITOR" == "mango"    || "$COMPOSITOR" == "both" ]]; }
+
 # --- package installation ---
 
 # Bulk install with --needed; if the transaction fails (one bad package, a
@@ -150,10 +192,22 @@ install_packages() {
     local f
     for f in "$PKG_DIR"/*.pkgs "$PKG_DIR/class/$CLASS.pkgs"; do
         [[ -f "$f" ]] || continue
-        # gaming.pkgs is opt-in (resolve_gaming) — never part of the base glob.
-        [[ "$(basename "$f")" == "gaming.pkgs" ]] && continue
+        # Selection-gated lists are added explicitly below, never via the glob:
+        #   gaming.pkgs             -> resolve_gaming
+        #   hyprland/mango.pkgs     -> resolve_compositor
+        case "$(basename "$f")" in
+            gaming.pkgs|hyprland.pkgs|mango.pkgs) continue ;;
+        esac
         mapfile -t -O "${#repo_pkgs[@]}" repo_pkgs < <(read_pkg_file "$f")
         ok "list: $(basename "$f")"
+    done
+
+    local c
+    for c in hyprland mango; do
+        "want_$c" || continue
+        [[ -f "$PKG_DIR/$c.pkgs" ]] || continue
+        mapfile -t -O "${#repo_pkgs[@]}" repo_pkgs < <(read_pkg_file "$PKG_DIR/$c.pkgs")
+        ok "list: $c.pkgs (compositor)"
     done
     if [[ -f "$PKG_DIR/class/$CLASS.aur" ]]; then
         mapfile -t aur_pkgs < <(read_pkg_file "$PKG_DIR/class/$CLASS.aur")
@@ -359,11 +413,12 @@ setup_hyprland_plugins() {
 
 # --- main ---
 
-echo "🚀 CachyOS → Hyprland bootstrap"
+echo "🚀 CachyOS → Wayland desktop bootstrap"
 [[ -d "$PKG_DIR" ]] || { echo "❌ $PKG_DIR not found"; exit 1; }
 sudo -v || { echo "❌ sudo required"; exit 1; }
 
 ensure_class
+resolve_compositor
 resolve_gaming
 
 if [[ "${BOOTSTRAP_SKIP_UPGRADE:-}" == "1" ]]; then
@@ -383,13 +438,15 @@ install_claude_code_cli
 warm_neovim_plugins
 [[ "$CLASS" == "work" ]] && setup_rdp_session
 
-if [[ -t 0 ]] && command -v hyprpm &>/dev/null; then
+# split-monitor-workspaces is a Hyprland-only need — mango's tags are already
+# per-monitor, so skip the whole prompt when Hyprland isn't part of this machine.
+if want_hyprland && [[ -t 0 ]] && command -v hyprpm &>/dev/null; then
     read -rp "Build Hyprland plugins now? (y/N): " choice
     [[ "${choice,,}" == y* ]] && setup_hyprland_plugins || echo "⏭️  Skipped (re-run bootstrap or 'hyprpm update' later)"
 fi
 
 echo
-echo "✨ Bootstrap complete (class: $CLASS)"
+echo "✨ Bootstrap complete (class: $CLASS, compositor: $COMPOSITOR)"
 if (( ${#FAILED_PKGS[@]} )); then
     echo "⚠️  ${#FAILED_PKGS[@]} package(s) failed:"
     printf '   ✗ %s\n' "${FAILED_PKGS[@]}"
@@ -411,7 +468,21 @@ if [[ "$GAMING" == "true" ]]; then
     echo "       gamemoderun mangohud %command%           # perf + FPS/temp HUD"
     echo "       gamescope -f --hdr-enabled -- %command%  # HDR / scaling"
     echo "   • MangoHud overlay toggles in-game with Right Shift + F12."
-    echo "   • HDR: add 'bitdepth,10, cm,hdr' to the panel's line in monitors.conf"
-    echo "     (see ~/.config/hypr/gaming.conf for the exact syntax)."
+    if want_hyprland; then
+        echo "   • Hyprland HDR: add 'bitdepth,10, cm,hdr' to the panel's line in"
+        echo "     hypr/monitors.conf (see ~/.config/hypr/gaming.conf)."
+    fi
+    if want_mango; then
+        echo "   • mango HDR needs the wl-only build (AUR: mangowm-wlonly-git) —"
+        echo "     scenefx has no vulkan renderer. See ~/.config/mango/gaming.conf."
+        echo "   • mango has no equivalent to Hyprland's xwayland force_zero_scaling,"
+        echo "     so run XWayland games on a fractionally-scaled output under"
+        echo "     native-res gamescope to keep them sharp."
+    fi
 fi
-echo "➡️  Next: reboot → SDDM → Hyprland. Then: sudo tailscale up (if new machine)."
+case "$COMPOSITOR" in
+    both)     sessions="Hyprland or Mango" ;;
+    hyprland) sessions="Hyprland" ;;
+    mango)    sessions="Mango" ;;
+esac
+echo "➡️  Next: reboot → SDDM → $sessions. Then: sudo tailscale up (if new machine)."

@@ -1,0 +1,25 @@
+# mango (MangoWC) specific packages. Selected via:
+#   yadm config local.compositor hyprland|mango|both   (default: both)
+#
+# The shared desktop stack this builds on (sddm, audio, quickshell, fonts,
+# hypridle/hyprlock, ...) lives in wayland.pkgs and is always installed.
+#
+# mango needs no plugin equivalent to split-monitor-workspaces: its tags are
+# per-monitor natively. Note the tag count (9) is compiled in via
+# src/config/preset.h, so it is not configurable — the bar filters the strip
+# down to 5 instead (see quickshell/Workspaces.qml, visibleTagCount).
+
+# --- Compositor (cachyos repo; ships /usr/bin/mango, mmsg, and the session
+#     desktop file). The AUR also has mangowm-wlonly-git, which swaps scenefx
+#     for the vulkan renderer and is the only build with working HDR. ---
+mangowm
+
+# --- Portal (screenshare/screenshot) ---
+# xdg-desktop-portal-hyprland will not bind under mango; -wlr uses
+# wlr-screencopy, which mango implements. Backend selection is in
+# ~/.config/xdg-desktop-portal/mango-portals.conf.
+#
+# Caveat: -wlr does NOT implement the GlobalShortcuts interface, so apps that
+# register hotkeys through the portal (Discord push-to-talk, OBS) lose them
+# under mango. mango's own `globalkeybinding` window rule covers Wayland apps.
+xdg-desktop-portal-wlr

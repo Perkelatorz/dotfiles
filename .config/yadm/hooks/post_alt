@@ -5,13 +5,35 @@
 # sourced file (e.g. hypr/env-gpu.conf) dies with the deleted inode: Hyprland
 # re-parses mid-gap, latches "source= globbing error: found no match", and
 # never sees the recreated link. A reload heals it.
+#
+# mango has no ##class alternates of its own today, but it does source several
+# files (monitors/env/binds/autostart/gaming/matugen-colors), so a pull that
+# rewrites any of them wants the same treatment. Each branch is a no-op when
+# that compositor isn't the one running, so both can stay unconditional.
 
+# --- Hyprland ---
 sig="${HYPRLAND_INSTANCE_SIGNATURE:-}"
 if [[ -z "$sig" && -d "${XDG_RUNTIME_DIR:-/run/user/$UID}/hypr" ]]; then
     # Not inside the session (ssh, cron) — target the newest live instance.
     sig=$(ls -t "${XDG_RUNTIME_DIR:-/run/user/$UID}/hypr" 2>/dev/null | head -1)
 fi
-[[ -n "$sig" ]] || exit 0
-command -v hyprctl &>/dev/null || exit 0
+if [[ -n "$sig" ]] && command -v hyprctl &>/dev/null; then
+    HYPRLAND_INSTANCE_SIGNATURE="$sig" hyprctl reload >/dev/null 2>&1 || true
+fi
 
-HYPRLAND_INSTANCE_SIGNATURE="$sig" hyprctl reload >/dev/null 2>&1 || true
+# --- mango ---
+# The socket is named after the compositor pid. Do NOT try to read it out of
+# mango's own /proc/<pid>/environ: that is a snapshot taken at exec, before
+# mango setenv()s MANGO_INSTANCE_SIGNATURE, so it is stale or absent.
+if command -v mmsg &>/dev/null; then
+    msock="${MANGO_INSTANCE_SIGNATURE:-}"
+    if [[ -z "$msock" || ! -S "$msock" ]]; then
+        mpid=$(pgrep -x mango 2>/dev/null | head -1)
+        [[ -n "$mpid" ]] && msock="${XDG_RUNTIME_DIR:-/run/user/$UID}/mango-${mpid}.sock"
+    fi
+    if [[ -n "$msock" && -S "$msock" ]]; then
+        MANGO_INSTANCE_SIGNATURE="$msock" mmsg dispatch reload_config >/dev/null 2>&1 || true
+    fi
+fi
+
+exit 0
