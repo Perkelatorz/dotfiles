@@ -26,6 +26,7 @@ application/gzip=xarchiver.desktop
 application/octet-stream=xarchiver.desktop
 x-scheme-handler/discord=vesktop.desktop
 x-scheme-handler/claude-cli=claude-code-url-handler.desktop
+x-scheme-handler/claude=com.anthropic.Claude.desktop
 
 [Added Associations]
 application/octet-stream=xarchiver.desktop;
