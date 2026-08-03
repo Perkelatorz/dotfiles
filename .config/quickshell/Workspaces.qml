@@ -4,10 +4,18 @@ import Quickshell.Hyprland
 
 import "."
 
+// Workspace strip. Two data sources, one visual (WorkspacePill):
+//   hyprland — Hyprland.workspaces, filtered to this monitor
+//   mango    — the monitor's `tags` array from `mmsg watch all-monitors`
+// The Hyprland branch is unchanged in behaviour from before the mango port.
 Row {
     id: workspaceRow
     required property var colors
+    required property string compositorName
+    // Hyprland monitor object; null under mango.
     required property var hyprMonitor
+    // mango: this monitor's entry out of shellRoot.mangoMonitors.
+    property var mangoMonitor: null
     required property var occupiedWorkspaceIds
     property var clientsByWorkspace: ({})
 
@@ -20,8 +28,44 @@ Row {
     readonly property int appIconSize: 18
     readonly property int slotPadding: 6
 
+    // mango hardcodes 9 tags at compile time (src/config/preset.h), and there's
+    // no runtime option to shrink that. Only 1-5 are bound in binds.conf, to
+    // match the 5 Hyprland workspaces, so the rest are shown only when
+    // something is actually on them — a window can never end up stranded on an
+    // invisible tag, but the strip stays five wide in normal use.
+    property int visibleTagCount: 5
+
+    readonly property var mangoTags: {
+        if (compositorName !== "mango" || !mangoMonitor) return []
+        var all = mangoMonitor.tags || []
+        var out = []
+        for (var i = 0; i < all.length; i++) {
+            var t = all[i]
+            var idx = t.index !== undefined ? t.index : (i + 1)
+            if (idx <= workspaceRow.visibleTagCount || t.is_active || t.is_urgent
+                || workspaceRow.occupiedFor(idx))
+                out.push(t)
+        }
+        return out
+    }
+
+    // Clients sitting on a given workspace/tag key, tolerating id-vs-name keys.
+    function clientsFor(key, altKey) {
+        var by = workspaceRow.clientsByWorkspace
+        if (!by) return []
+        var list = by[key] || by[String(key)] || (altKey !== undefined ? (by[altKey] || by[String(altKey)]) : null) || []
+        return Array.isArray(list) ? list : []
+    }
+
+    function occupiedFor(key, altKey) {
+        var occ = workspaceRow.occupiedWorkspaceIds
+        if (!occ) return false
+        return !!(occ[key] || occ[String(key)] || (altKey !== undefined && (occ[altKey] || occ[String(altKey)])))
+    }
+
+    // --- Hyprland ---------------------------------------------------------
     Repeater {
-        model: Hyprland.workspaces
+        model: workspaceRow.compositorName === "hyprland" ? Hyprland.workspaces : null
         delegate: Item {
             readonly property var workspace: modelData
             readonly property bool onThisMonitor: workspace.monitor === workspaceRow.hyprMonitor
@@ -29,144 +73,62 @@ Row {
                 workspaceRow.hyprMonitor.activeWorkspace.id === workspace.id ||
                 workspaceRow.hyprMonitor.activeWorkspace.name === workspace.name
             )
-            readonly property bool isFocused: workspaceRow.hyprMonitor && workspaceRow.hyprMonitor.focused && isActive
-            readonly property bool occupied: !!(workspaceRow.occupiedWorkspaceIds[workspace.id] || workspaceRow.occupiedWorkspaceIds[String(workspace.name)])
-            readonly property bool hasUrgent: !!workspace.urgent
-            readonly property var wsClients: {
-                if (!onThisMonitor || !workspaceRow.clientsByWorkspace) return []
-                var by = workspaceRow.clientsByWorkspace
-                var list = by[workspace.id] || by[workspace.name] || by[String(workspace.id)] || by[String(workspace.name)] || []
-                return Array.isArray(list) ? list : []
-            }
-            readonly property int displayCount: Math.min(wsClients.length, workspaceRow.maxAppIndicators)
-            readonly property int slotWidth: onThisMonitor
-                ? (displayCount > 0
-                    ? workspaceRow.slotPadding * 2 + displayCount * (workspaceRow.appIconSize + 2) + (displayCount - 1) * 2
-                    : 28)
-                : 0
 
-            width: onThisMonitor ? slotWidth : 0
-            height: onThisMonitor ? 24 : 0
+            width: onThisMonitor ? hyprPill.width : 0
+            height: onThisMonitor ? hyprPill.height : 0
             visible: onThisMonitor
 
-            Item {
-                id: delegateRoot
-                anchors.fill: parent
-                Rectangle {
-                    anchors.fill: parent
-                    radius: 6
-                    border.width: isFocused ? 1 : 0
-                    border.color: colors.primary
-                    color: {
-                        if (hasUrgent) return colors.urgent
-                        if (!isActive && !wsMouse.containsMouse) return "transparent"
-                        if (!isActive && wsMouse.containsMouse) return colors.borderSubtle
-                        return isFocused ? colors.primary : colors.surfaceContainer
-                    }
-                    scale: wsMouse.pressed ? 0.90 : 1.0
-                    Behavior on color { ColorAnimation { duration: 100 } }
-                    Behavior on border.width { NumberAnimation { duration: 100 } }
-                    Behavior on scale { NumberAnimation { duration: 80; easing.type: Easing.OutCubic } }
-
-                    Row {
-                        anchors.centerIn: parent
-                        spacing: 2
-                        layoutDirection: Qt.LeftToRight
-                        Repeater {
-                            model: displayCount
-                            delegate: Item {
-                                width: workspaceRow.appIconSize + 2
-                                height: workspaceRow.appIconSize + 2
-                                anchors.verticalCenter: parent ? parent.verticalCenter : undefined
-                                readonly property var client: wsClients[index]
-                                readonly property string letter: {
-                                    if (!client) return "?"
-                                    var s = (client.class || client.title || "?").toString().trim()
-                                    return (s.charAt(0) || "?").toUpperCase()
-                                }
-                                readonly property string iconPath: (client && client.class) ? Quickshell.iconPath(String(client.class).toLowerCase(), true) : ""
-                                readonly property bool hasIcon: iconPath !== ""
-                                readonly property color badgeColor: {
-                                    var arr = colors.workspaceSlotColors || [colors.surfaceBright]
-                                    var i = index % Math.max(1, arr.length)
-                                    return arr[i] || colors.surfaceBright
-                                }
-                                readonly property color badgeOnColor: {
-                                    var arr = colors.workspaceSlotOnColors || [colors.textMain]
-                                    var i = index % Math.max(1, arr.length)
-                                    return arr[i] || colors.textMain
-                                }
-                                readonly property color letterColor: badgeOnColor !== badgeColor ? badgeOnColor : colors.textMain
-                                Rectangle {
-                                    anchors.centerIn: parent
-                                    width: workspaceRow.appIconSize
-                                    height: workspaceRow.appIconSize
-                                    radius: width / 2
-                                    color: badgeColor
-                                    border.width: 1
-                                    border.color: isActive ? (colors.textOnPrimary || colors.textMain) : colors.borderSubtle
-                                    Text {
-                                        id: letterLabel
-                                        anchors.centerIn: parent
-                                        text: letter
-                                        color: letterColor
-                                        font.pixelSize: Math.max(9, workspaceRow.appIconSize - 5)
-                                        font.bold: true
-                                        z: 0
-                                    }
-                                    Image {
-                                        id: appIcon
-                                        anchors.centerIn: parent
-                                        width: workspaceRow.appIconSize - 2
-                                        height: workspaceRow.appIconSize - 2
-                                        source: iconPath
-                                        sourceSize.width: workspaceRow.appIconSize - 2
-                                        sourceSize.height: workspaceRow.appIconSize - 2
-                                        visible: hasIcon && source !== "" && status === Image.Ready
-                                        smooth: true
-                                        mipmap: true
-                                        z: 1
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    Rectangle {
-                        anchors.centerIn: parent
-                        width: isActive ? 20 : 12
-                        height: 12
-                        radius: 6
-                        visible: displayCount === 0 && !hasUrgent
-                        color: occupied ? (isActive ? colors.textOnPrimary : colors.textMain) : "transparent"
-                        border.width: occupied ? 0 : 1
-                        border.color: isActive ? colors.textOnPrimary : colors.border
-                        Behavior on width { NumberAnimation { duration: 120 } }
-                    }
-                    Text {
-                        anchors.centerIn: parent
-                        visible: hasUrgent
-                        text: "!"
-                        color: colors.textOnUrgent
-                        font.pixelSize: 14
-                        font.bold: true
-                        font.family: colors.fontMain || "sans-serif"
-                    }
-
-                    MouseArea {
-                        id: wsMouse
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        acceptedButtons: Qt.LeftButton
-                        onClicked: {
-                            if (workspaceRow.hyprMonitor) {
-                                Hyprland.dispatch("focusmonitor " + workspaceRow.hyprMonitor.name)
-                                workspace.activate()
-                            }
-                        }
+            WorkspacePill {
+                id: hyprPill
+                colors: workspaceRow.colors
+                isActive: parent.isActive
+                isFocused: !!(workspaceRow.hyprMonitor && workspaceRow.hyprMonitor.focused && parent.isActive)
+                hasUrgent: !!workspace.urgent
+                occupied: workspaceRow.occupiedFor(workspace.id, String(workspace.name))
+                wsClients: parent.onThisMonitor ? workspaceRow.clientsFor(workspace.id, workspace.name) : []
+                maxAppIndicators: workspaceRow.maxAppIndicators
+                appIconSize: workspaceRow.appIconSize
+                slotPadding: workspaceRow.slotPadding
+                onActivated: {
+                    if (workspaceRow.hyprMonitor) {
+                        Hyprland.dispatch("focusmonitor " + workspaceRow.hyprMonitor.name)
+                        workspace.activate()
                     }
                 }
+            }
+        }
+    }
+
+    // --- mango ------------------------------------------------------------
+    // `tags` is a fixed-length array (one entry per configured tag), so unlike
+    // Hyprland there is nothing to filter by monitor — the array already
+    // belongs to this output.
+    Repeater {
+        model: workspaceRow.mangoTags
+        delegate: WorkspacePill {
+            required property var modelData
+            required property int index
+            // Read the tag number off the payload, never from the row position:
+            // the model is filtered, so index no longer tracks the real tag.
+            readonly property int tagIndex: modelData.index !== undefined ? modelData.index : (index + 1)
+
+            colors: workspaceRow.colors
+            isActive: !!modelData.is_active
+            // mango marks exactly one monitor `active`; that's the focused one.
+            isFocused: !!(workspaceRow.mangoMonitor && workspaceRow.mangoMonitor.active && modelData.is_active)
+            hasUrgent: !!modelData.is_urgent
+            occupied: workspaceRow.occupiedFor(tagIndex)
+            wsClients: workspaceRow.clientsFor(tagIndex)
+            maxAppIndicators: workspaceRow.maxAppIndicators
+            appIconSize: workspaceRow.appIconSize
+            slotPadding: workspaceRow.slotPadding
+            onActivated: {
+                if (!workspaceRow.mangoMonitor) return
+                // Focus the output first so the tag switch lands there, mirroring
+                // the focusmonitor + activate pair on the Hyprland side. The
+                // singleton serialises the two so the second can't clobber the first.
+                MangoIpc.dispatch("focusmon," + workspaceRow.mangoMonitor.name)
+                MangoIpc.dispatch("view," + tagIndex + ",0")
             }
         }
     }

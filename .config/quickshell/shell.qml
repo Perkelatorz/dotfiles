@@ -19,8 +19,13 @@ ShellRoot {
         var s = (Quickshell.env("XDG_CURRENT_DESKTOP") || "").toLowerCase()
         if (s.indexOf("hyprland") >= 0) return "hyprland"
         if (s.indexOf("niri") >= 0) return "niri"
+        // mango setenv()s XDG_CURRENT_DESKTOP=mango itself during startup.
+        if (s.indexOf("mango") >= 0) return "mango"
         return "other"
     }
+
+    // Compositors that can tell the bar about workspaces, windows and focus.
+    readonly property bool hasWindowIpc: compositorName === "hyprland" || compositorName === "mango"
 
     function refreshFullscreenMonitors() {
         if (compositorName === "hyprland" && !fullscreenProcess.running)
@@ -67,6 +72,16 @@ ShellRoot {
             if (n === "fullscreen") {
                 shellRoot.refreshFullscreenMonitors()
             }
+        }
+    }
+
+    // mango needs no equivalent poke: MangoIpc.fullscreenMonitorNames is derived
+    // straight off the all-clients subscription, so it updates on its own.
+    Connections {
+        target: MangoIpc
+        enabled: shellRoot.compositorName === "mango"
+        function onFullscreenMonitorNamesChanged() {
+            shellRoot.fullscreenMonitorNames = MangoIpc.fullscreenMonitorNames
         }
     }
 
@@ -159,6 +174,9 @@ ShellRoot {
             property bool powerProfileWidgetVisible: false
             property bool idleInhibitorWidgetVisible: true
             property bool tailscaleWidgetVisible: true
+            // Self-hides on compositors that don't report a layout, so it can
+            // default on without cluttering a Hyprland session.
+            property bool layoutWidgetVisible: true
 
             function loadBarWidgets() {
                 loadBarWidgetsProc.running = true
@@ -179,7 +197,8 @@ ShellRoot {
                     "notifications=" + (notificationsWidgetVisible ? "true" : "false"),
                     "powerProfile=" + (powerProfileWidgetVisible ? "true" : "false"),
                     "idleInhibitor=" + (idleInhibitorWidgetVisible ? "true" : "false"),
-                    "tailscale=" + (tailscaleWidgetVisible ? "true" : "false")
+                    "tailscale=" + (tailscaleWidgetVisible ? "true" : "false"),
+                    "layout=" + (layoutWidgetVisible ? "true" : "false")
                 ]
                 saveBarWidgetsProc.command = ["sh", "-c", "SCRIPT=\"${XDG_CONFIG_HOME:-$HOME/.config}/scripts/write-bar-widgets.sh\"; exec \"$SCRIPT\" " + args.join(" ")]
                 saveBarWidgetsProc.running = true
@@ -207,6 +226,7 @@ ShellRoot {
                             if (typeof o.powerProfile === "boolean") screenDelegate.powerProfileWidgetVisible = o.powerProfile
                             if (typeof o.idleInhibitor === "boolean") screenDelegate.idleInhibitorWidgetVisible = o.idleInhibitor
                             if (typeof o.tailscale === "boolean") screenDelegate.tailscaleWidgetVisible = o.tailscale
+                            if (typeof o.layout === "boolean") screenDelegate.layoutWidgetVisible = o.layout
                             if (screenDelegate.isVerticalScreen) {
                                 screenDelegate.resetWidgetVisibility()
                             }
@@ -280,10 +300,17 @@ ShellRoot {
                 property var modelData: screenDelegate.modelData
                 property string compositorName: shellRoot.compositorName
                 property var hyprMonitor: bar.compositorName === "hyprland" ? Hyprland.monitorFor(modelData) : null
-                readonly property bool panelsVisible: {
+                // mango's own view of this output, from the all-monitors stream.
+                property var mangoMonitor: bar.compositorName === "mango" ? MangoIpc.monitorFor(bar.monitorName) : null
+                // Output name, however the running compositor names it.
+                readonly property string monitorName: {
                     if (bar.compositorName === "hyprland")
-                        return !bar.hyprMonitor || shellRoot.fullscreenMonitorNames.indexOf(bar.hyprMonitor.name) < 0
-                    return true
+                        return bar.hyprMonitor ? String(bar.hyprMonitor.name) : ""
+                    return bar.modelData && bar.modelData.name ? String(bar.modelData.name) : ""
+                }
+                readonly property bool panelsVisible: {
+                    if (!shellRoot.hasWindowIpc || !bar.monitorName) return true
+                    return shellRoot.fullscreenMonitorNames.indexOf(bar.monitorName) < 0
                 }
                 property int screenIndex: {
                     var s = Quickshell.screens
@@ -325,6 +352,26 @@ ShellRoot {
                             if (!clientsProcess.running) clientsProcess.running = true
                             if (!activeWindowProcess.running) activeWindowProcess.running = true
                         }
+                    }
+
+                    // mango fills the same four properties, but off the pushed
+                    // MangoIpc subscriptions rather than a polled process. Only
+                    // one compositor is live per session, so both writing to
+                    // these imperatively is safe.
+                    function refreshMangoModel() {
+                        if (bar.compositorName !== "mango") return
+                        var m = bar.monitorName
+                        root.clientList = MangoIpc.visibleClientsOn(m)
+                        root.occupiedWorkspaceIds = MangoIpc.occupiedTags(m)
+                        root.clientsByWorkspace = MangoIpc.clientsByTag(m)
+                        root.activeWindowAddress = MangoIpc.activeClientId(m)
+                    }
+
+                    Connections {
+                        target: MangoIpc
+                        enabled: bar.compositorName === "mango"
+                        function onClientsChanged() { root.refreshMangoModel() }
+                        function onMonitorsChanged() { root.refreshMangoModel() }
                     }
 
                     Connections {
@@ -423,6 +470,7 @@ ShellRoot {
                             if (!clientsProcess.running) clientsProcess.running = true
                             if (!activeWindowProcess.running) activeWindowProcess.running = true
                         }
+                        root.refreshMangoModel()
                     }
 
                     RowLayout {
@@ -432,12 +480,22 @@ ShellRoot {
 
                         Workspaces {
                             id: workspaceRow
-                            visible: bar.compositorName === "hyprland"
+                            visible: shellRoot.hasWindowIpc
                             colors: shellRoot.shellColors
+                            compositorName: bar.compositorName
                             hyprMonitor: root.hyprMonitor
+                            mangoMonitor: bar.mangoMonitor
                             occupiedWorkspaceIds: root.occupiedWorkspaceIds
                             clientsByWorkspace: root.clientsByWorkspace
                             Layout.leftMargin: 0
+                            Layout.rightMargin: 4
+                        }
+                        LayoutWidget {
+                            colors: shellRoot.shellColors
+                            compositorName: bar.compositorName
+                            mangoMonitor: bar.mangoMonitor
+                            visible: screenDelegate.layoutWidgetVisible
+                            Layout.alignment: Qt.AlignVCenter
                             Layout.rightMargin: 4
                         }
                         NowPlayingWidget {
@@ -461,10 +519,11 @@ ShellRoot {
                             Layout.fillHeight: true
                             Layout.leftMargin: 4
                             Layout.rightMargin: 4
-                            visible: bar.compositorName === "hyprland"
+                            visible: shellRoot.hasWindowIpc
                             ClientList {
                                 anchors.centerIn: parent
                                 colors: shellRoot.shellColors
+                                compositorName: bar.compositorName
                                 clientList: root.clientList
                                 activeWindowAddress: root.activeWindowAddress
                             }
