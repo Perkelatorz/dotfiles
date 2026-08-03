@@ -79,7 +79,15 @@ alias ssh='kitten ssh'
 alias rvim='edit-in-kitty'
 alias wget='wget --hsts-file="$XDG_CACHE_HOME/wget-hsts"'
 
-. "$HOME/.local/share/../bin/env"
+# NOTE: installers append `. "$HOME/.local/share/../bin/env"` here. That script
+# only prepends $HOME/.local/share/../bin — the same directory .zprofile already
+# puts on PATH as $HOME/.local/bin — so it just adds a second spelling of an
+# existing entry. Deliberately not sourced; delete it again if an installer
+# re-adds it.
 
-# opencode
-export PATH=/home/perkelator/.opencode/bin:$PATH
+# opencode. Guarded: .zshrc runs for every interactive shell, and an unguarded
+# prepend stacks a fresh copy on PATH in each nested one.
+case ":$PATH:" in
+    *":$HOME/.opencode/bin:"*) ;;
+    *) export PATH="$HOME/.opencode/bin:$PATH" ;;
+esac
