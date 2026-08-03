@@ -4,11 +4,15 @@ import Quickshell.Hyprland
 
 import "."
 
+// Window strip. `clientList` entries are already compositor-neutral
+// ({address, title, class}); only focus/close routing differs, so that switches
+// on compositorName rather than duplicating the delegate.
 Row {
     id: clientRow
     required property var colors
     required property var clientList
     required property string activeWindowAddress
+    property string compositorName: "hyprland"
 
     spacing: 4
     anchors.verticalCenter: parent.verticalCenter
@@ -73,13 +77,17 @@ Row {
                     cursorShape: Qt.PointingHandCursor
                     acceptedButtons: Qt.LeftButton | Qt.MiddleButton
                     onClicked: function(mouse) {
+                        var close = mouse.button === Qt.MiddleButton
                         if (modelData.toplevel) {
-                            if (mouse.button === Qt.MiddleButton)
-                                modelData.toplevel.close()
-                            else
-                                modelData.toplevel.activate()
+                            if (close) modelData.toplevel.close()
+                            else modelData.toplevel.activate()
+                        } else if (clientRow.compositorName === "mango") {
+                            // `address` carries the mango client id here; both
+                            // dispatchers take it as a `client,<id>` target.
+                            MangoIpc.dispatch(close ? "killclient" : "focusid",
+                                              "client," + modelData.address)
                         } else {
-                            if (mouse.button === Qt.MiddleButton)
+                            if (close)
                                 Hyprland.dispatch("closewindow address:" + modelData.address)
                             else
                                 Hyprland.dispatch("focuswindow address:" + modelData.address)

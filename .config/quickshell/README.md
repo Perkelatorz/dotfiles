@@ -1,11 +1,26 @@
 # Quickshell workspace bar
 
-A simple top bar that shows Hyprland workspaces with **multi-monitor support**: each screen gets its own bar showing only the workspaces on that monitor.
+A simple top bar that shows workspaces with **multi-monitor support**: each screen gets its own bar showing only the workspaces on that monitor.
 
 ## Requirements
 
 - **Quickshell** (e.g. `pacman -S quickshell` on Arch)
-- **Hyprland** as the Wayland compositor (Quickshell talks to it via Hyprland IPC)
+- **Hyprland** or **mango** as the Wayland compositor
+
+The compositor is detected from `XDG_CURRENT_DESKTOP` at startup (`shell.qml`,
+`compositorName`), and the workspace strip and client list have a branch for each:
+
+| | Hyprland | mango |
+| --- | --- | --- |
+| workspaces | `Quickshell.Hyprland` + `hyprctl clients -j` (polled) | `mmsg watch all-monitors` (pushed) |
+| windows | `hyprctl clients -j` / `activewindow -j` | `mmsg watch all-clients` (pushed) |
+| actions | `Hyprland.dispatch(...)` | `mmsg dispatch ...` |
+
+mango state lives in the `MangoIpc` singleton — two long-lived `mmsg watch`
+subscriptions for the whole shell, rather than one polling pair per monitor.
+`WorkspacePill.qml` holds the shared indicator visual so both branches render
+identically. On any other compositor the bar still runs; the workspace strip and
+client list just hide.
 
 ## Run
 

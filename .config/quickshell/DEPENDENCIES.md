@@ -9,7 +9,7 @@ Everything you need for this config to work. Optional items only affect specific
 | Dependency | Purpose |
 |------------|--------|
 | **Quickshell** | Bar runtime (Qt 6, Wayland). Build/install from your distro or [quickshell](https://github.com/nicksrandall/quickshell). |
-| **Hyprland** | Workspace bar and client list. Uses `hyprctl` and `Quickshell.Hyprland`. |
+| **Hyprland** _or_ **mango** | Workspace bar and client list. Hyprland uses `hyprctl` + `Quickshell.Hyprland`; mango uses `mmsg` (see `MangoIpc.qml`). Everything else in the bar is compositor-agnostic. |
 | **Pipewire** | Audio (volume widget, Quick Settings sliders, microphone). Used with **WirePlumber** for `wpctl`. |
 | **wl-copy** | Clipboard for screenshots (from `wl-clipboard`). |
 

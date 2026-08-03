@@ -626,7 +626,7 @@ if [ "$MATUGEN_DRY_RUN" != "true" ]; then
     MANGO_MATUGEN_CONF="$HOME/.config/mango/matugen-colors.conf"
     if [ -f "$MANGO_MATUGEN_CONF" ]; then
       log "INFO" "Reloading MangoWC configuration..."
-      mmsg -d reload_config >/dev/null 2>&1 && log "INFO" "✓ MangoWC reloaded" || log "VERBOSE" "MangoWC reload skipped"
+      mmsg dispatch reload_config >/dev/null 2>&1 && log "INFO" "✓ MangoWC reloaded" || log "VERBOSE" "MangoWC reload skipped"
     fi
   fi
 

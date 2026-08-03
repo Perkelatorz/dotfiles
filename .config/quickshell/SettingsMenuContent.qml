@@ -89,6 +89,7 @@ Item {
                 WidgetToggleRow { isOn: settingsState.netSpeedWidgetVisible; onToggle: function() { settingsState.netSpeedWidgetVisible = !settingsState.netSpeedWidgetVisible; if (settingsState.saveWidgetVisibility) settingsState.saveWidgetVisibility() }; label: "Net speed"; icon: "\uF0AC"; colors: settingsMenuContent.colors }
                 WidgetToggleRow { isOn: settingsState.notificationsWidgetVisible; onToggle: function() { settingsState.notificationsWidgetVisible = !settingsState.notificationsWidgetVisible; if (settingsState.saveWidgetVisibility) settingsState.saveWidgetVisibility() }; label: "Notifications"; icon: "\uF0F3"; colors: settingsMenuContent.colors }
                 WidgetToggleRow { isOn: settingsState.powerProfileWidgetVisible; onToggle: function() { settingsState.powerProfileWidgetVisible = !settingsState.powerProfileWidgetVisible; if (settingsState.saveWidgetVisibility) settingsState.saveWidgetVisibility() }; label: "Power profile"; icon: "\uF24E"; colors: settingsMenuContent.colors }
+                WidgetToggleRow { isOn: settingsState.layoutWidgetVisible; onToggle: function() { settingsState.layoutWidgetVisible = !settingsState.layoutWidgetVisible; if (settingsState.saveWidgetVisibility) settingsState.saveWidgetVisibility() }; label: "Layout"; icon: "\uF009"; colors: settingsMenuContent.colors }
             }
         }
     }
