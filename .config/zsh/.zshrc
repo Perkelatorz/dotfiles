@@ -78,3 +78,8 @@ alias grep='grep --color=auto'
 alias ssh='kitten ssh'
 alias rvim='edit-in-kitty'
 alias wget='wget --hsts-file="$XDG_CACHE_HOME/wget-hsts"'
+
+. "$HOME/.local/share/../bin/env"
+
+# opencode
+export PATH=/home/perkelator/.opencode/bin:$PATH
