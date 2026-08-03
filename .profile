@@ -3,3 +3,5 @@
 # forcing it breaks TTY logins and ssh.
 export BROWSER=firefox
 export QT_QPA_PLATFORMTHEME="qt5ct"
+
+. "$HOME/.local/share/../bin/env"
