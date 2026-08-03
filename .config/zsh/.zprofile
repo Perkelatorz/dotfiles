@@ -43,6 +43,15 @@ export AWS_CONFIG_FILE="$XDG_CONFIG_HOME"/aws/config
 # Bitwarden desktop is the SSH agent (also set session-wide in
 # environment.d/ssh-agent.conf). Unconditional: ssh falls back to ~/.ssh keys
 # if the socket isn't there yet, and picks the agent up once Bitwarden starts.
+#
+# BOTH vars must be set here, not just SSH_AUTH_SOCK. environment.d only
+# reaches processes started by `systemd --user`, which covers the Hyprland-uwsm
+# session but NOT a plain `Exec=mango` session started straight from SDDM —
+# that one only gets what this file exports. With BITWARDEN_SSH_AUTH_SOCK
+# missing, Bitwarden creates its socket at the default $HOME path while ssh
+# keeps looking here, and every GitHub push fails with "Permission denied
+# (publickey)" despite an unlocked vault.
+export BITWARDEN_SSH_AUTH_SOCK="$XDG_RUNTIME_DIR/.bitwarden-ssh-agent.sock"
 export SSH_AUTH_SOCK="$XDG_RUNTIME_DIR/.bitwarden-ssh-agent.sock"
 export CARGO_HOME="$XDG_DATA_HOME"/cargo
 export DISCORD_USER_DATA_DIR="${XDG_DATA_HOME}"
