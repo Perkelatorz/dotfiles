@@ -13,3 +13,5 @@
 
 [includeIf "gitdir:~/code/work/**"]
     path = ~/.config/git/config-work
+[credential "https://git.gvltest.local"]
+	provider = generic
