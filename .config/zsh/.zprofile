@@ -43,6 +43,12 @@ export AWS_CONFIG_FILE="$XDG_CONFIG_HOME"/aws/config
 # Bitwarden desktop is the SSH agent (also set session-wide in
 # environment.d/ssh-agent.conf). Unconditional: ssh falls back to ~/.ssh keys
 # if the socket isn't there yet, and picks the agent up once Bitwarden starts.
+#
+# Deliberately the DEFAULT Bitwarden socket path, no BITWARDEN_SSH_AUTH_SOCK
+# override: the 2026-07 Bitwarden update stopped honoring the override (it
+# creates the socket at $HOME regardless), so overriding just made ssh look in
+# the wrong place. The default path also needs no env plumbing into
+# SDDM-started mango sessions — Bitwarden lands there on its own.
 export SSH_AUTH_SOCK="$HOME/.bitwarden-ssh-agent.sock"
 export CARGO_HOME="$XDG_DATA_HOME"/cargo
 export DISCORD_USER_DATA_DIR="${XDG_DATA_HOME}"
