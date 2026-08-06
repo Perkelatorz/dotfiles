@@ -135,6 +135,14 @@ session's edits or a Syncthing pull in flight.
 `.obsidian/` is configured to match (new notes to `notes/`, absolute wiki links,
 templates at `meta/templates`), so the desktop app and Neovim agree.
 
+**Only `obsidian-ls` serves the vault.** An `LspAttach` hook in `lsp.lua` detaches
+**marksman** and **tailwindcss** for buffers under `$NOTES` — both stay enabled
+everywhere else. Marksman duplicates obsidian.nvim's in-process LSP but validates
+`[[wiki]]` links against its own index, which does not track notes written to disk
+outside the running session (a Syncthing pull, the Obsidian app, a second Nvim).
+That produces **`Link to non-existent document`** on links that resolve fine, and
+the index never catches up. Tailwindcss just has no business in Markdown prose.
+
 > `link.format` is **`absolute`** (vault-relative: `[[homelab/caddy]]`), not
 > upstream's `shortest`. The layout puts the same basename under more than one
 > context, and `shortest` is literally `vim.fs.basename()` — it would emit

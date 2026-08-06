@@ -109,6 +109,58 @@ function M.setup()
 		require("lspconfig").nil_ls.setup({ capabilities = caps })
 	end
 
+	-- Servers that must not serve the notes vault, and why.
+	--
+	--   marksman    Duplicates obsidian.nvim's in-process LSP (definition, references,
+	--               rename, completion, symbols) but validates `[[wiki]]` links against
+	--               its own index, which does not track notes written to disk outside
+	--               the running session -- a Syncthing pull from another machine, the
+	--               Obsidian desktop app, a second Nvim. The result is "Link to
+	--               non-existent document" on links that resolve fine, and the index
+	--               never catches up on its own.
+	--   tailwindcss Attaches to markdown looking for class names. There are none in a
+	--               notes vault; it is a wasted server and wasted CPU.
+	--
+	-- Both stay enabled everywhere else -- a README in a code repo still wants marksman.
+	-- Detach rather than refuse to start: the vault is also a git repo, so `root_dir`
+	-- matches and these would attach regardless.
+	local VAULT_EXCLUDED_SERVERS = { marksman = true, tailwindcss = true }
+
+	local function notes_vault()
+		local raw = vim.env.NOTES
+		if raw == nil or raw == "" then
+			raw = "~/notes"
+		end
+		return (vim.fn.resolve(vim.fn.expand(raw)):gsub("/$", ""))
+	end
+
+	vim.api.nvim_create_autocmd("LspAttach", {
+		group = vim.api.nvim_create_augroup("config.lsp.vault", { clear = true }),
+		callback = function(event)
+			local client = vim.lsp.get_client_by_id(event.data.client_id)
+			if not client or not VAULT_EXCLUDED_SERVERS[client.name] then
+				return
+			end
+			local name = vim.api.nvim_buf_get_name(event.buf)
+			if name == "" then
+				return
+			end
+			local vault = notes_vault()
+			local path = vim.fn.resolve(vim.fn.fnamemodify(name, ":p"))
+			if path:sub(1, #vault + 1) ~= vault .. "/" then
+				return
+			end
+			vim.schedule(function()
+				pcall(vim.lsp.buf_detach_client, event.buf, client.id)
+				local ns = vim.lsp.diagnostic.get_namespace(client.id)
+				if ns then
+					pcall(vim.diagnostic.reset, ns, event.buf)
+				end
+			end)
+		end,
+		desc = "Notes vault: detach servers that duplicate or misread obsidian-ls",
+	})
+
 	vim.api.nvim_create_autocmd("LspAttach", {
 		group = vim.api.nvim_create_augroup("config.lsp", { clear = true }),
 		callback = function(event)
