@@ -79,6 +79,13 @@ alias ssh='kitten ssh'
 alias rvim='edit-in-kitty'
 alias wget='wget --hsts-file="$XDG_CACHE_HOME/wget-hsts"'
 
+# ------------------------------------------------------------------
+# Functions
+# ------------------------------------------------------------------
+# `notes` / `nn` — the notes vault from the shell. Must come after compinit
+# above; the file ends in a compdef.
+[[ -r "$ZDOTDIR/notes.zsh" ]] && source "$ZDOTDIR/notes.zsh"
+
 # NOTE: installers append `. "$HOME/.local/share/../bin/env"` here. That script
 # only prepends $HOME/.local/share/../bin — the same directory .zprofile already
 # puts on PATH as $HOME/.local/bin — so it just adds a second spelling of an

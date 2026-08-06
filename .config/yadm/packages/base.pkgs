@@ -23,6 +23,9 @@ starship
 zoxide
 eza
 fzf
+# fzf preview renderer for `notes find` / `notes grep` (notes.zsh falls back to
+# cat without it, losing highlighting but nothing else).
+bat
 
 # --- System plumbing ---
 base-devel

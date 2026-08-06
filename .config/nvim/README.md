@@ -100,9 +100,17 @@ Its default mode list (`n, i, c, x`) drops visual/select/op-pending/terminal map
 
 ## Notes (Obsidian vault, preview, tables)
 
-Vault: **`~/notes`** — plain Markdown, so the Obsidian desktop app opens the same
-folder. Replicated between machines by **Syncthing** over the tailnet; `.stignore`
-there excludes `.git` and Obsidian's `workspace.json`.
+Vault: **`$NOTES`** (exported from `~/.config/zsh/.zprofile`, default **`~/notes`**) —
+plain Markdown, so the Obsidian desktop app opens the same folder. Replicated
+between machines by **Syncthing** over the tailnet; `.stignore` there excludes
+`.git` and Obsidian's `workspace.json`.
+
+From a shell, **`notes`** / **`nn`** (`~/.config/zsh/notes.zsh`) is the other front
+end: `notes` opens the index, `notes <words>` fuzzy-picks, `notes grep <pat>` opens
+on a matching line, `notes today` / `notes new <title>` / `notes cd`. It always
+launches Nvim *inside* the vault so Telescope's `find_files`/`live_grep` search the
+right tree, and creates notes via `:Obsidian new` so filenames match the ones made
+in-editor. `notes help` lists everything.
 
 **`lua/config/plugins/obsidian.lua`** — **obsidian.nvim** (pinned 3.x) under **`<leader>o`**:
 

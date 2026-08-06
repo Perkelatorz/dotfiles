@@ -14,7 +14,10 @@
 
 local M = {}
 
-local vault = vim.fn.expand("~/notes")
+-- $NOTES is exported from ~/.config/zsh/.zprofile, which is also what the `notes`
+-- shell function reads — one path, two front ends. Falls back to ~/notes for
+-- sessions that never sourced a login shell (GUI launchers, `su`, some xrdp).
+local vault = vim.fn.expand((vim.env.NOTES or "") ~= "" and vim.env.NOTES or "~/notes")
 
 function M.setup()
 	require("obsidian").setup({

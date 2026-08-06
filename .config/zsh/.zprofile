@@ -22,6 +22,10 @@ export GNUPGHOME="$XDG_DATA_HOME/gnupg"
 export PASSWORD_STORE_DIR="$XDG_DATA_HOME/password-store"
 export LESSHISTFILE="$XDG_CACHE_HOME/less/history"
 
+# Notes vault. Exported (not just set in .zshrc) so obsidian.nvim reads the same
+# path as the `notes` shell function, and so GUI-launched editors inherit it.
+export NOTES="$HOME/notes"
+
 # Ensure subdirs exist for apps that don't auto-create
 # (HISTFILE lives in .zshrc; ZDOTDIR already exists, no mkdir needed for it)
 mkdir -p "${GNUPGHOME}" "${PASSWORD_STORE_DIR}" "$(dirname "$LESSHISTFILE")"
