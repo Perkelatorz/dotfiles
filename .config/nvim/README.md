@@ -106,11 +106,24 @@ between machines by **Syncthing** over the tailnet; `.stignore` there excludes
 `.git` and Obsidian's `workspace.json`.
 
 From a shell, **`notes`** / **`nn`** (`~/.config/zsh/notes.zsh`) is the other front
-end: `notes` opens the index, `notes <words>` fuzzy-picks, `notes grep <pat>` opens
-on a matching line, `notes today` / `notes new <title>` / `notes cd`. It always
-launches Nvim *inside* the vault so Telescope's `find_files`/`live_grep` search the
-right tree, and creates notes via `:Obsidian new` so filenames match the ones made
-in-editor. `notes help` lists everything.
+end: bare `notes` cd's the shell into the vault and opens the index with Neo-tree;
+`notes <words>` fuzzy-picks, `notes grep <pat>` opens on a matching line, plus
+`notes today` / `notes new <title>` / `notes cd`. The targeted forms launch Nvim
+*inside* the vault (in a subshell, so your cwd is untouched) — Telescope's
+`find_files`/`live_grep` follow cwd and would otherwise search the wrong tree.
+New notes go through `:Obsidian new` so filenames match ones made in-editor.
+`notes help` lists everything. **`st`** (`syncthing.zsh`) covers sync: status,
+pairing, conflicts, `.stversions` restore.
+
+**Vault layout** — `ref/` (how things work, transferable), `homelab/` and `work/`
+(deployment detail for each context), `notes/` (inbox), plus `daily/`,
+`templates/`, `attachments/`. Folders say *where it applies*; tags say *what it is
+about*. A path in the title creates the folders: `:Obsidian new homelab/caddy`.
+
+> `link.format` is **`absolute`** (vault-relative: `[[homelab/caddy]]`), not
+> upstream's `shortest`. The layout puts the same basename under more than one
+> context, and `shortest` is literally `vim.fs.basename()` — it would emit
+> `[[caddy]]` for both and resolve to whichever was found first, silently.
 
 **`lua/config/plugins/obsidian.lua`** — **obsidian.nvim** (pinned 3.x) under **`<leader>o`**:
 

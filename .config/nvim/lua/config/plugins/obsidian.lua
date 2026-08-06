@@ -32,7 +32,13 @@ function M.setup()
 		picker = { name = "telescope.nvim" },
 
 		-- Obsidian's default `[[wiki]]` links, so notes stay portable to the desktop app.
-		link = { style = "wiki", format = "shortest", auto_update = true },
+		-- `format = "absolute"` means vault-relative: `[[homelab/caddy]]`, not `[[caddy]]`.
+		-- Required by this vault's layout. The same topic appears under more than one
+		-- context (homelab/caddy.md and work/caddy.md both exist), and upstream's
+		-- "shortest" is literally vim.fs.basename() -- it would emit `[[caddy]]` for
+		-- both and resolve to whichever turned up first. That failure is silent: the
+		-- link looks right and opens the wrong note.
+		link = { style = "wiki", format = "absolute", auto_update = true },
 
 		-- Human-readable filenames ("my-note.md") instead of the default random
 		-- Zettel IDs ("1717umnq-my-note.md"), which are painful to browse outside nvim.
