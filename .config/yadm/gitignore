@@ -101,7 +101,12 @@ log_iotc.txt
 !.config/opencode/skills
 .config/go/
 .config/systemd/
-.config/xfce4/
+# xfconf dumps per-machine state here (window geometry, mounted shares, panel
+# layout), so the directory stays ignored -- but helpers.rc is a real preference:
+# it is the file that actually selects the TerminalEmulator/WebBrowser helper.
+# Without it, custom-TerminalEmulator.desktop is installed but never chosen.
+.config/xfce4/*
+!.config/xfce4/helpers.rc
 .config/autostart/
 .pki/
 
