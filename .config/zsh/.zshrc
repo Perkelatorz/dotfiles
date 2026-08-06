@@ -85,6 +85,8 @@ alias wget='wget --hsts-file="$XDG_CACHE_HOME/wget-hsts"'
 # `notes` / `nn` — the notes vault from the shell. Must come after compinit
 # above; the file ends in a compdef.
 [[ -r "$ZDOTDIR/notes.zsh" ]] && source "$ZDOTDIR/notes.zsh"
+# `st` — syncthing status/pairing/conflicts without the web UI.
+[[ -r "$ZDOTDIR/syncthing.zsh" ]] && source "$ZDOTDIR/syncthing.zsh"
 
 # NOTE: installers append `. "$HOME/.local/share/../bin/env"` here. That script
 # only prepends $HOME/.local/share/../bin — the same directory .zprofile already
