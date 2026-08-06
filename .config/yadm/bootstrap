@@ -46,6 +46,10 @@ set -euo pipefail
 PKG_DIR="$HOME/.config/yadm/packages"
 SECRETS_FILE="$HOME/.config/nvim/secrets.lua"
 MATUGEN_THEMES_DIR="$HOME/.config/matugen-themes"
+# Notes vault. $NOTES is exported by .config/zsh/.zprofile, but bootstrap is bash
+# and may run before that shell ever loads, hence the fallback.
+VAULT="${NOTES:-$HOME/notes}"
+SYNCTHING_FOLDER_ID="notes"
 
 CLASS=""
 GAMING=false
@@ -268,8 +272,9 @@ setup_services() {
 
     # Syncthing replicates ~/notes between machines over the tailnet. Runs as a
     # user unit (it touches $HOME, so it must not be a system service). Enabled
-    # without --now: the daemon is happy on a TTY, but leaving the start to first
-    # login keeps bootstrap from racing the tailscale auth step below.
+    # here, started later by setup_syncthing_vault -- which needs the daemon up to
+    # configure the folder through its API, and runs after the tailscale step
+    # below so the two do not race.
     if command -v syncthing &>/dev/null; then
         enable_user_service syncthing.service
         # Without lingering, syncthing dies at logout and stops replicating on a
@@ -316,6 +321,71 @@ setup_services() {
 }
 
 # --- one-time machine setup ---
+
+setup_syncthing_vault() {
+    command -v syncthing &>/dev/null || return 0
+
+    info "Syncthing notes vault..."
+    mkdir -p "$VAULT"
+
+    # The folder is configured through the running daemon's API rather than by
+    # editing config.xml, because syncthing rewrites that file from memory and
+    # would clobber an offline edit. `syncthing cli` finds the address and API
+    # key from the config dir itself, so nothing has to be parsed out by hand.
+    if ! systemctl --user is-active --quiet syncthing.service; then
+        systemctl --user start syncthing.service 2>/dev/null || true
+    fi
+
+    local i
+    for i in {1..30}; do
+        syncthing cli config folders list &>/dev/null && break
+        sleep 1
+    done
+    if ! syncthing cli config folders list &>/dev/null; then
+        warn "syncthing API not responding — vault folder not configured"
+        echo "      start it and re-run bootstrap: systemctl --user start syncthing.service"
+        return 0
+    fi
+
+    # Idempotent: an existing folder is left exactly as it is, so a re-run never
+    # disturbs sharing or ignore settings established on this machine.
+    if syncthing cli config folders list 2>/dev/null | grep -qx "$SYNCTHING_FOLDER_ID"; then
+        ok "vault folder '$SYNCTHING_FOLDER_ID' already configured"
+    else
+        # The ID must match on every machine -- it, not the path or label, is what
+        # pairs two folders. Left to syncthing it would be a random 5-char string,
+        # different on each host and impossible to line up by hand.
+        if syncthing cli config folders add \
+            --id "$SYNCTHING_FOLDER_ID" --label "Notes" \
+            --path "$VAULT" --type sendreceive &>/dev/null; then
+            ok "vault folder '$SYNCTHING_FOLDER_ID' → $VAULT"
+        else
+            warn "could not add the vault folder — add it in the GUI (http://127.0.0.1:8384)"
+            return 0
+        fi
+        # Keep 10 old copies under .stversions. Sync has no undo of its own: a
+        # delete or a bad overwrite propagates to every peer within seconds.
+        # .stversions is excluded by both .gitignore and .stignore in the vault.
+        syncthing cli config folders "$SYNCTHING_FOLDER_ID" versioning type set simple &>/dev/null \
+            && syncthing cli config folders "$SYNCTHING_FOLDER_ID" versioning params set keep 10 &>/dev/null \
+            && ok "file versioning: keep 10 (.stversions/)" \
+            || warn "versioning not set — enable it in the GUI"
+    fi
+
+    # Pairing needs a device ID from the *other* machine, so it cannot be
+    # scripted from one side. Print what the other end needs.
+    local myid
+    myid=$(syncthing cli show system 2>/dev/null | sed -n 's/.*"myID"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p') || true
+    if [[ -n "$myid" ]]; then
+        echo "      this device: $myid"
+        echo "      pair: add that ID on the other machine, share folder '$SYNCTHING_FOLDER_ID',"
+        echo "            then accept the invite here (http://127.0.0.1:8384)"
+    fi
+
+    # .stignore ships with the vault, so on a fresh machine it only exists after
+    # the first sync completes. Harmless: a brand-new vault has no .git to leak.
+    [[ -f "$VAULT/.stignore" ]] || echo "      note: .stignore arrives with the first sync"
+}
 
 setup_default_shell_zsh() {
     local zsh_path current
@@ -460,6 +530,7 @@ fi
 
 install_packages
 setup_services
+setup_syncthing_vault
 setup_default_shell_zsh
 setup_neovim_secrets
 setup_matugen_themes
