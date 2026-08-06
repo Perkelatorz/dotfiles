@@ -52,6 +52,10 @@
       "rev": "d28a3f70721c79e3c5f6693057ae929f3d9c0a03",
       "src": "https://github.com/lukas-reineke/indent-blankline.nvim"
     },
+    "live-preview.nvim": {
+      "rev": "a30e54e51e7480d7060c8c8185f2a963ad3518b4",
+      "src": "https://github.com/brianhuster/live-preview.nvim"
+    },
     "lualine.nvim": {
       "rev": "131a558e13f9f28b15cd235557150ccb23f89286",
       "src": "https://github.com/nvim-lualine/lualine.nvim"
@@ -121,6 +125,11 @@
       "rev": "6382540b2ae5de6c793d4aa2e3fe6dbb518505ec",
       "src": "https://github.com/s1n7ax/nvim-window-picker"
     },
+    "obsidian.nvim": {
+      "rev": "69fe7c6bf61a5222b5061a9a9dfc5023f2ec0fdc",
+      "src": "https://github.com/obsidian-nvim/obsidian.nvim",
+      "version": "3.0.0 - 4.0.0"
+    },
     "plenary.nvim": {
       "rev": "74b06c6c75e4eeb3108ec01852001636d85a932b",
       "src": "https://github.com/nvim-lua/plenary.nvim"
@@ -137,14 +146,13 @@
       "rev": "f04ab730b8f9c6bf3f54a206d0dcddfd70c52d59",
       "src": "https://github.com/nvim-telescope/telescope.nvim"
     },
-    "toggleterm.nvim": {
-      "rev": "50ea089fc548917cc3cc16b46a8211833b9e3c7c",
-      "src": "https://github.com/akinsho/toggleterm.nvim",
-      "version": "'v2.13.1'"
-    },
     "trouble.nvim": {
       "rev": "bd67efe408d4816e25e8491cc5ad4088e708a69a",
       "src": "https://github.com/folke/trouble.nvim"
+    },
+    "vim-table-mode": {
+      "rev": "bb025308a45c67c7c8f0763ba37bc2ee3f534df0",
+      "src": "https://github.com/dhruvasagar/vim-table-mode"
     },
     "which-key.nvim": {
       "rev": "3aab2147e74890957785941f0c1ad87d0a44c15a",

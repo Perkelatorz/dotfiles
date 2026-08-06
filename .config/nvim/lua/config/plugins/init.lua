@@ -1,6 +1,8 @@
 --- Wire-up for plugins declared in |config.pack|.
 --- Order matters: Notify → Devicons → Gitsigns → Which-key → Lualine → Mason → Tree-sitter →
---- Render-markdown → CSV view → … → LSP → Fidget → Trouble → Diffview → Conform → nvim-lint.
+--- Render-markdown → Live-preview → Table-mode → CSV view → … → Telescope → Obsidian → …
+--- → LSP → Fidget → Trouble → Diffview → Conform → nvim-lint.
+--- Obsidian follows Telescope because it resolves |telescope.nvim| as its picker.
 
 local M = {}
 
@@ -15,14 +17,17 @@ function M.setup()
 	require("config.plugins.ts_autotag").setup()
 	require("config.plugins.surround").setup()
 	require("config.plugins.render_markdown").setup()
+	require("config.plugins.live_preview").setup()
+	require("config.plugins.table_mode").setup()
 	require("config.plugins.csvview").setup()
 	require("config.plugins.ibl").setup()
 	require("config.plugins.flash").setup()
 	require("config.plugins.telescope").setup()
+	require("config.plugins.keyhelp").setup()
+	require("config.plugins.obsidian").setup()
 	require("config.plugins.dressing").setup()
 	require("config.plugins.arrow").setup()
 	require("config.plugins.neo-tree").setup()
-	require("config.plugins.toggleterm").setup()
 	require("config.plugins.codeium").setup()
 	require("config.plugins.cmp").setup()
 	require("config.plugins.autopairs").setup()

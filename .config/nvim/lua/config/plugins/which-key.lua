@@ -15,7 +15,16 @@ function M.setup()
 		{ "<leader>a", group = "codeium" },
 		{ "<leader>c", group = "LSP · Claude · theme" },
 		{ "<leader>m", group = "markdown · preview" },
-		{ "<leader>t", group = "terminal" },
+		{ "<leader>k", group = "keys (cheatsheet)" },
+		{ "<leader>;", group = "arrow: project bookmarks" },
+		{ "<leader>'", group = "arrow: buffer bookmarks" },
+		{ "<leader>o", group = "obsidian (notes)" },
+		-- Table-mode is a Vimscript plugin and registers its maps without `desc`,
+		-- so unlike the Lua plugins its sub-groups have to be labelled by hand.
+		{ "<leader>t", group = "tables" },
+		{ "<leader>td", group = "table: delete" },
+		{ "<leader>tf", group = "table: formula" },
+		{ "<leader>ti", group = "table: insert column" },
 		{ "<leader>f", group = "find (telescope)" },
 		{ "<leader>g", group = "git" },
 		{ "<leader>d", group = "diagnostics" },
@@ -32,18 +41,11 @@ function M.setup()
 		},
 	})
 
-	-- Codeium ghost-text accept/cycle keys (insert mode). The plugin registers these
-	-- maps without a description, so label them here for :WhichKey listings. These are
-	-- single Alt-keypress maps (not prefixes), so which-key won't auto-popup on them.
-	wk.add({
-		mode = "i",
-		{ "<M-y>", desc = "Codeium: accept suggestion" },
-		{ "<M-w>", desc = "Codeium: accept word" },
-		{ "<M-l>", desc = "Codeium: accept line" },
-		{ "<M-]>", desc = "Codeium: next suggestion" },
-		{ "<M-[>", desc = "Codeium: prev suggestion" },
-		{ "<C-]>", desc = "Codeium: dismiss suggestion" },
-	})
+	-- Codeium's ghost-text keys used to be labelled here. They now carry a real `desc`
+	-- on the mapping itself (see |config.plugins.codeium|), so which-key picks them up
+	-- automatically — and, unlike a which-key-only annotation, they also show up in
+	-- Telescope's keymaps picker and `:Keys`. Being single keypresses rather than
+	-- prefixes, which-key still never auto-popups for them: browse with `<leader>ka`.
 end
 
 return M

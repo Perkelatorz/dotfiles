@@ -1,7 +1,7 @@
 vim.g.mapleader = " "
 vim.g.maplocalleader = " "
 
--- Allow hiding terminals without discarding buffers (|toggleterm.nvim|).
+-- Switch away from a modified buffer without being forced to write it first.
 vim.opt.hidden = true
 
 local opt = vim.opt

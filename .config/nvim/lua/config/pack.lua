@@ -40,13 +40,17 @@ function M.setup()
 			gh("mfussenegger/nvim-lint"),
 			gh("hat0uma/csvview.nvim"),
 			gh("MeanderingProgrammer/render-markdown.nvim"),
+			gh("brianhuster/live-preview.nvim"),
+			gh("dhruvasagar/vim-table-mode"),
 			gh("folke/trouble.nvim"),
 			gh("rcarriga/nvim-notify"),
 			gh("stevearc/dressing.nvim"),
 			gh("lukas-reineke/indent-blankline.nvim"),
 			gh("otavioschwanck/arrow.nvim"),
 			gh("s1n7ax/nvim-window-picker"),
-			{ src = gh("akinsho/toggleterm.nvim"), version = "v2.13.1" },
+			-- Pinned to 3.x: 4.0 drops |legacy_commands| and reworks options (see the
+			-- upstream "Breaking changes" wiki page before widening this range).
+			{ src = gh("obsidian-nvim/obsidian.nvim"), version = vim.version.range("3") },
 			{ src = gh("nvim-neo-tree/neo-tree.nvim"), version = vim.version.range("3") },
 		},
 		{ confirm = false, load = true }

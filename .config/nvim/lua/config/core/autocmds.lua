@@ -32,7 +32,7 @@ autocmd("BufWritePre", {
 	desc = "Trim trailing whitespace",
 })
 
--- Auto-close terminal buffer when shell exits cleanly (Claude/shell toggleterm leftovers).
+-- Auto-close a terminal buffer when its job exits cleanly (e.g. the <Leader>mp Glow pager).
 autocmd("TermClose", {
 	group = augroup("AutoCloseTerm", { clear = true }),
 	callback = function(ev)
@@ -43,7 +43,7 @@ autocmd("TermClose", {
 	desc = "Wipe terminal buffer on clean exit",
 })
 
--- After focus or leaving a terminal (e.g. Claude in toggleterm), pick up disk changes without :edit.
+-- On regaining focus (e.g. back from a Claude Code window in the WM), pick up disk changes.
 autocmd({ "FocusGained", "TermLeave", "TermClose" }, {
 	group = augroup("config_autoread", { clear = true }),
 	pattern = "*",

@@ -4,7 +4,7 @@ Everything this setup expects on the machine, in one place.
 
 ## Arch Linux + yadm
 
-**OS packages** for this Neovim setup live in **`~/.config/yadm/packages/core.pkgs`** (section *Neovim: vim.pack…*): `git`, `curl`, `tar`, `gcc`, `make`, `tree-sitter`, plus `neovim`, `go`, `npm`, etc. Install them with your usual **`yadm bootstrap`** (or `pacman` from that list).
+**OS packages** for this Neovim setup live in **`~/.config/yadm/packages/dev.pkgs`** (`neovim`, `tree-sitter-cli`, `npm`, `go`, `rust`, `ripgrep`, `fd`, `jq`, `unzip`, `github-cli`), with the toolchain basics (`git`, `curl`, `base-devel` → `gcc`/`make`) in **`base.pkgs`**. Install them with your usual **`yadm bootstrap`** (or `pacman` from those lists).
 
 After bootstrap, **`warm_neovim_plugins`** in **`~/.config/yadm/bootstrap`** runs **`nvim --headless … +qa`** once so **vim.pack** clones plugins. **Mason** (LSP + formatters) still completes on first interactive session (**`:Mason`**).
 
@@ -29,6 +29,10 @@ To wipe only Neovim *data* (plugins under `~/.local/share/nvim/site`, Mason, cac
 | **Go** (`go`, **`gofmt`** on `PATH`) | Conform runs `gofmt` after `goimports`; Mason only supplies `goimports`. |
 | **Node.js** (project-local or global) | Some ESLint/Tailwind setups expect `node_modules`; Mason ships many LSP binaries standalone. |
 | **`nil`** (oxalica, on `PATH`) | Optional **Nix** language server for `.nix` / flakes. Install a **prebuilt** `nil` (e.g. AUR **`nil-git`**) if you want LSP features. This config does **not** install Mason’s **`nil`** package (that build expects the **Nix package manager**). Without `nil`, you still get Tree-sitter highlighting for `nix`. |
+| **`ripgrep`** | Required by **obsidian.nvim** for vault search, backlinks and tag indexing (already in `dev.pkgs` for Telescope). |
+| **`wl-clipboard`** (Wayland) or **`xclip`** (X11) | `:Obsidian paste_img` reads the image off the clipboard. `wl-clipboard` is already in `wayland.pkgs`. |
+| **A web browser** | **live-preview.nvim** opens the rendered page in it (`firefox` is in `apps.pkgs`). No NodeJS/Python runtime needed — the server is pure Lua. |
+| **`syncthing`** (optional) | Replicates the `~/notes` vault between machines over the tailnet; in `base.pkgs`, unit enabled by bootstrap. |
 | **Zeal** (optional) | Offline docs (`docs.lua`). |
 | **Spell** | Neovim may download `spelllang` dictionaries once (`:help spell`). |
 
@@ -51,6 +55,9 @@ Installed under `$XDG_DATA_HOME/nvim/site/pack/core/opt/` (default: `~/.local/sh
 | mfussenegger/nvim-lint |
 | hat0uma/csvview.nvim |
 | MeanderingProgrammer/render-markdown.nvim |
+| brianhuster/live-preview.nvim |
+| dhruvasagar/vim-table-mode |
+| obsidian-nvim/obsidian.nvim **(pin semver 3.x)** |
 | hrsh7th/nvim-cmp |
 | hrsh7th/cmp-nvim-lsp |
 | hrsh7th/cmp-buffer |
@@ -69,7 +76,6 @@ Installed under `$XDG_DATA_HOME/nvim/site/pack/core/opt/` (default: `~/.local/sh
 | lukas-reineke/indent-blankline.nvim |
 | otavioschwanck/arrow.nvim |
 | s1n7ax/nvim-window-picker |
-| akinsho/toggleterm.nvim **(pin `v2.13.1`)** |
 | nvim-neo-tree/neo-tree.nvim **(pin semver 3.x)** |
 
 Revisions are pinned in **`nvim-pack-lock.json`** (commit that file for reproducible machines).

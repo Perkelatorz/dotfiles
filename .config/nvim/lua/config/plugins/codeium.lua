@@ -50,6 +50,25 @@ function M.setup()
 		},
 	})
 
+	-- codeium installs its ghost-text maps with no `desc`, so they render blank in
+	-- |config.plugins.keyhelp| (`<leader>kc` / `<leader>ka`) and in which-key. Round-trip
+	-- each through |maparg()| → |mapset()|, which preserves the plugin's own callback and
+	-- `expr` flag exactly (<M-y> is an expr map) and only attaches the description.
+	for lhs, desc in pairs({
+		["<M-y>"] = "Codeium: accept suggestion",
+		["<M-w>"] = "Codeium: accept word",
+		["<M-l>"] = "Codeium: accept line",
+		["<M-]>"] = "Codeium: next suggestion",
+		["<M-[>"] = "Codeium: prev suggestion",
+		["<C-]>"] = "Codeium: dismiss suggestion",
+	}) do
+		local m = vim.fn.maparg(lhs, "i", false, true)
+		if not vim.tbl_isempty(m) then
+			m.desc = desc
+			vim.fn.mapset(m)
+		end
+	end
+
 	local keymap = vim.keymap.set
 	keymap("n", "<leader>aw", "<cmd>Codeium Toggle<cr>", { desc = "Codeium toggle" })
 	keymap("n", "<leader>ac", "<cmd>Codeium Chat<cr>", { desc = "Codeium chat (browser)" })

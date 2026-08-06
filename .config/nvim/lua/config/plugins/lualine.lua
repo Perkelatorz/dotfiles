@@ -60,7 +60,7 @@ function M.setup()
 			lualine_y = {},
 			lualine_z = {},
 		},
-		extensions = { "neo-tree", "quickfix", "toggleterm" },
+		extensions = { "neo-tree", "quickfix" },
 	})
 
 	-- Let Codeium force a lualine redraw when suggestion state changes, so the
