@@ -372,6 +372,8 @@ setup_syncthing_vault() {
             || warn "versioning not set — enable it in the GUI"
     fi
 
+    setup_syncthing_tailnet
+
     # Pairing needs a device ID from the *other* machine, so it cannot be
     # scripted from one side. Print what the other end needs.
     local myid
@@ -380,11 +382,70 @@ setup_syncthing_vault() {
         echo "      this device: $myid"
         echo "      pair: add that ID on the other machine, share folder '$SYNCTHING_FOLDER_ID',"
         echo "            then accept the invite here (http://127.0.0.1:8384)"
+        # With discovery off there is nothing left to resolve a peer, so the
+        # default "dynamic" address never connects. Every device entry has to
+        # carry an explicit tailnet address on both ends.
+        echo "      IMPORTANT: set each device's address to tcp://<its-tailscale-ip>:22000,"
+        echo "                 not 'dynamic' -- discovery is disabled (tailnet-only)"
     fi
 
     # .stignore ships with the vault, so on a fresh machine it only exists after
     # the first sync completes. Harmless: a brand-new vault has no .git to leak.
     [[ -f "$VAULT/.stignore" ]] || echo "      note: .stignore arrives with the first sync"
+}
+
+# Confine syncthing to the tailnet: bind the sync listener to the tailscale
+# address only, and switch off every mechanism that would reach a peer any other
+# way -- public discovery servers, relays, UPnP, and LAN broadcast.
+#
+# Traffic was already TLS without this; what it buys is *path* control. By
+# default syncthing announces to public discovery servers and will happily route
+# a connection over the open internet or a third-party relay. After this the only
+# route to a peer is the tailnet, and the daemon is not reachable from the LAN at
+# all.
+#
+# The trade is that nothing discovers peers any more, so each device needs an
+# explicit tcp://100.x.x.x:22000 address at both ends.
+setup_syncthing_tailnet() {
+    command -v tailscale &>/dev/null || return 0
+
+    local tsip
+    tsip=$(tailscale ip -4 2>/dev/null | head -1) || true
+    if [[ -z "$tsip" ]]; then
+        # Deliberately do nothing. Binding to an address that does not exist yet
+        # would leave syncthing with no listener at all -- worse than the default.
+        warn "tailscale not up — syncthing left on default (public) discovery"
+        echo "      re-run bootstrap after: sudo tailscale up"
+        return 0
+    fi
+
+    local conf="" d
+    for d in "${XDG_STATE_HOME:-$HOME/.local/state}/syncthing" "$HOME/.config/syncthing"; do
+        [[ -f "$d/config.xml" ]] && { conf="$d/config.xml"; break; }
+    done
+    [[ -n "$conf" ]] || { warn "syncthing config.xml not found — tailnet lockdown skipped"; return 0; }
+
+    # Already bound to this address? Then leave the daemon alone; re-PATCHing
+    # restarts the listeners for no reason.
+    if grep -q "<listenAddress>tcp://$tsip:22000</listenAddress>" "$conf"; then
+        ok "tailnet-only (listening on $tsip:22000)"
+        return 0
+    fi
+
+    # The listen-address list is not settable through `syncthing cli` (it exposes
+    # only list/add on that collection), so this one goes through the REST API,
+    # which replaces the whole options object atomically.
+    local key
+    key=$(sed -n 's:.*<apikey>\(.*\)</apikey>.*:\1:p' "$conf" | head -1)
+    [[ -n "$key" ]] || { warn "could not read syncthing API key — tailnet lockdown skipped"; return 0; }
+
+    if curl -sf -X PATCH -H "X-API-Key: $key" -H 'Content-Type: application/json' \
+        --data "{\"listenAddresses\":[\"tcp://$tsip:22000\",\"quic://$tsip:22000\"],\"globalAnnounceEnabled\":false,\"localAnnounceEnabled\":false,\"relaysEnabled\":false,\"natEnabled\":false,\"announceLANAddresses\":false}" \
+        http://127.0.0.1:8384/rest/config/options &>/dev/null; then
+        ok "tailnet-only: listening on $tsip:22000, discovery/relays/UPnP off"
+    else
+        warn "tailnet lockdown failed — syncthing still on public discovery"
+    fi
 }
 
 setup_default_shell_zsh() {

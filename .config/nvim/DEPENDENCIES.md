@@ -32,7 +32,7 @@ To wipe only Neovim *data* (plugins under `~/.local/share/nvim/site`, Mason, cac
 | **`ripgrep`** | Required by **obsidian.nvim** for vault search, backlinks and tag indexing (already in `dev.pkgs` for Telescope). |
 | **`wl-clipboard`** (Wayland) or **`xclip`** (X11) | `:Obsidian paste_img` reads the image off the clipboard. `wl-clipboard` is already in `wayland.pkgs`. |
 | **A web browser** | **live-preview.nvim** opens the rendered page in it (`firefox` is in `apps.pkgs`). No NodeJS/Python runtime needed — the server is pure Lua. |
-| **`syncthing`** (optional) | Replicates the `$NOTES` vault between machines over the tailnet. In `base.pkgs`; `bootstrap` enables the user unit, turns on lingering, and configures the folder (ID **`notes`**, send-receive, 10 versions kept). Pairing a second machine is manual — it needs that machine's device ID. |
+| **`syncthing`** (optional) | Replicates the `$NOTES` vault between machines over the tailnet. In `base.pkgs`; `bootstrap` enables the user unit, turns on lingering, configures the folder (ID **`notes`**, send-receive, 10 versions kept), and confines the daemon to the Tailscale address (discovery/relays/UPnP off). Pairing a second machine is manual: it needs that machine's device ID **and an explicit `tcp://100.x.x.x:22000` address**, since discovery is disabled. |
 | **`bat`** | Preview pane for the `notes` shell function's pickers (`base.pkgs`; falls back to `cat`). |
 | **Zeal** (optional) | Offline docs (`docs.lua`). |
 | **Spell** | Neovim may download `spelllang` dictionaries once (`:help spell`). |
