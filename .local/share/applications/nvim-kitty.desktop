@@ -1,0 +1,17 @@
+[Desktop Entry]
+# Opens files in Neovim inside kitty. Cannot use the packaged nvim.desktop:
+# it is Terminal=true, and GLib only knows xdg-terminal-exec / gnome-terminal /
+# xterm — never kitty. Wiring kitty explicitly sidesteps that entirely.
+Type=Application
+Version=1.0
+Name=Neovim (kitty)
+GenericName=Text Editor
+Comment=Edit text files in Neovim
+TryExec=kitty
+Exec=kitty --class nvim-kitty --title Neovim -e nvim %F
+Icon=nvim
+Terminal=false
+StartupNotify=false
+Categories=Utility;TextEditor;Development;
+Keywords=Text;editor;vim;nvim;
+MimeType=text/plain;text/english;text/markdown;text/x-markdown;text/csv;text/x-log;text/x-makefile;text/x-cmake;text/x-c;text/x-c++;text/x-chdr;text/x-csrc;text/x-c++hdr;text/x-c++src;text/x-java;text/x-python;text/x-python3;text/x-perl;text/x-ruby;text/x-lua;text/x-go;text/x-rust;text/x-haskell;text/x-tex;text/x-tcl;text/x-pascal;text/x-moc;text/x-sql;text/x-diff;text/x-patch;text/x-dtd;text/x-scheme;text/x-lisp;text/rust;text/troff;application/x-shellscript;application/x-perl;application/x-python;application/x-ruby;application/x-php;application/javascript;text/javascript;application/json;application/x-yaml;text/x-yaml;application/toml;text/x-toml;application/xml;text/xml;application/x-desktop;text/vnd.trolltech.linguist;

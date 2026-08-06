@@ -1,0 +1,16 @@
+[Desktop Entry]
+# Images via kitty https://sw.kovidgoyal.net/kitty/kittens/icat/ .
+# --hold keeps the window up after icat exits (close with Ctrl+Shift+W).
+# Needs imagemagick (in wayland.pkgs) for SVG/AVIF/HEIF.
+Type=Application
+Version=1.0
+Name=kitty Image Viewer (icat)
+GenericName=Image Viewer
+Comment=Display images inline with kitty's icat
+TryExec=kitty
+Exec=kitty --class kitty-icat --title "Image Viewer" --hold kitten icat --align center %F
+Icon=kitty
+Terminal=false
+StartupNotify=false
+Categories=Graphics;Viewer;
+MimeType=image/png;image/jpeg;image/gif;image/webp;image/bmp;image/tiff;image/x-icon;image/vnd.microsoft.icon;image/avif;image/heif;image/x-portable-pixmap;
