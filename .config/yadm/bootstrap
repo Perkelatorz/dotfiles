@@ -246,6 +246,18 @@ enable_system_service() {
     fi
 }
 
+enable_user_service() {
+    local svc="$1" now="${2:-}"
+    local -a cmd=(systemctl --user enable)
+    [[ "$now" == "--now" ]] && cmd+=(--now)
+    if "${cmd[@]}" "$svc" &>/dev/null; then
+        ok "$svc (user) enabled${now:+ + started}"
+        return 0
+    fi
+    warn "$svc not enabled — run: systemctl --user enable $now $svc"
+    return 1
+}
+
 setup_services() {
     info "Enabling services..."
     enable_system_service NetworkManager --now
@@ -253,6 +265,23 @@ setup_services() {
     enable_system_service tailscaled --now
     # sddm: enable only — starting it now would tear down this TTY mid-bootstrap.
     enable_system_service sddm
+
+    # Syncthing replicates ~/notes between machines over the tailnet. Runs as a
+    # user unit (it touches $HOME, so it must not be a system service). Enabled
+    # without --now: the daemon is happy on a TTY, but leaving the start to first
+    # login keeps bootstrap from racing the tailscale auth step below.
+    if command -v syncthing &>/dev/null; then
+        enable_user_service syncthing.service
+        # Without lingering, syncthing dies at logout and stops replicating on a
+        # box you only ever reach over ssh/RDP.
+        if ! loginctl show-user "$USER" -p Linger --value 2>/dev/null | grep -q yes; then
+            if sudo loginctl enable-linger "$USER" &>/dev/null; then
+                ok "lingering enabled for $USER (syncthing survives logout)"
+            else
+                warn "could not enable lingering — run: sudo loginctl enable-linger $USER"
+            fi
+        fi
+    fi
 
     case "$CLASS" in
         desktop)

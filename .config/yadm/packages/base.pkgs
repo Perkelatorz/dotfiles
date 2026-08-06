@@ -5,6 +5,9 @@
 networkmanager
 openssh
 tailscale
+# syncthing: replicates ~/notes (Obsidian vault) between machines over the
+# tailnet. Bootstrap enables the per-user unit; GUI at http://127.0.0.1:8384.
+syncthing
 
 # --- Shell + core CLI ---
 zsh

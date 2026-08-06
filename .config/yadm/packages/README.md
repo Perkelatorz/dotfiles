@@ -35,6 +35,22 @@ yadm remote set-url origin git@github.com:perkelatorz/dotfiles.git
 #   https://localhost:47990
 ```
 
+**Syncthing** (all machines) needs a one-time pairing per new box — bootstrap
+enables the unit but cannot know about your other devices:
+
+```sh
+systemctl --user start syncthing        # bootstrap enables it; start it now
+xdg-open http://127.0.0.1:8384          # GUI (localhost only by default)
+```
+
+In the GUI: **Actions → Show ID**, then on an already-paired machine **Add
+Remote Device** and paste it. Use the peer's *Tailscale* IP (`100.x.y.z`) or
+MagicDNS name as the address so it works off-LAN — Syncthing's local discovery
+won't find a tailnet peer. Then share the `notes` folder (`~/notes`) with it.
+
+The vault ships a `.stignore` that excludes `.git` and Obsidian's
+`workspace.json`; see the comments in `~/notes/.stignore` for why.
+
 ### What to expect on first boot
 
 - **GPU**: chwd + the class list install the right driver (`nvidia-open-dkms`
@@ -55,7 +71,7 @@ yadm remote set-url origin git@github.com:perkelatorz/dotfiles.git
 
 | File | Applies to | Contents |
 |---|---|---|
-| `base.pkgs` | all machines | network, shell, core CLI, yadm |
+| `base.pkgs` | all machines | network, shell, core CLI, yadm, syncthing |
 | `hyprland.pkgs` | all machines | SDDM, Hyprland stack, pipewire, portals, fonts, theming, kitty |
 | `apps.pkgs` | all machines | firefox, thunar, imv/mpv, vesktop, obsidian, bitwarden |
 | `dev.pkgs` | all machines | neovim, go/rust/npm, ripgrep/fd/fzf, gh |
@@ -147,6 +163,8 @@ file, it wins.
 ## Other bootstrap steps
 
 - Enables NetworkManager, bluetooth, tailscaled now; **sddm on next boot**.
+- Enables the `syncthing` **user** unit (not started — pair it after login, see
+  above) and turns on lingering so it keeps replicating `~/notes` after logout.
 - Sets zsh as login shell.
 - Stubs `~/.config/nvim/secrets.lua` (add real API keys after).
 - Clones matugen-themes, installs Claude Code CLI (`CLAUDE_CODE_SKIP=1` to skip),
