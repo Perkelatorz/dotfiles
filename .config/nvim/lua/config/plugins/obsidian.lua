@@ -56,7 +56,9 @@ function M.setup()
 		},
 
 		templates = {
-			folder = "templates",
+			-- Under meta/ with the rest of the notes-about-the-notes. `daily_notes.template`
+			-- above is resolved relative to this folder, so it stays a bare filename.
+			folder = "meta/templates",
 			date_format = "%Y-%m-%d",
 			time_format = "%H:%M",
 		},

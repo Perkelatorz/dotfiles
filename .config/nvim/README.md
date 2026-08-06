@@ -106,7 +106,7 @@ between machines by **Syncthing** over the tailnet; `.stignore` there excludes
 `.git` and Obsidian's `workspace.json`.
 
 From a shell, **`notes`** / **`nn`** (`~/.config/zsh/notes.zsh`) is the other front
-end: bare `notes` cd's the shell into the vault and opens the index with Neo-tree;
+end: bare `notes` cd's the shell into the vault and opens `todo.md` with Neo-tree;
 `notes <words>` fuzzy-picks, `notes grep <pat>` opens on a matching line, plus
 `notes today` / `notes new <title>` / `notes cd`. The targeted forms launch Nvim
 *inside* the vault (in a subshell, so your cwd is untouched) — Telescope's
@@ -115,10 +115,25 @@ New notes go through `:Obsidian new` so filenames match ones made in-editor.
 `notes help` lists everything. **`st`** (`syncthing.zsh`) covers sync: status,
 pairing, conflicts, `.stversions` restore.
 
-**Vault layout** — `ref/` (how things work, transferable), `homelab/` and `work/`
-(deployment detail for each context), `notes/` (inbox), plus `daily/`,
-`templates/`, `attachments/`. Folders say *where it applies*; tags say *what it is
-about*. A path in the title creates the folders: `:Obsidian new homelab/caddy`.
+**Vault layout** — `todo.md` (landing page, what `nn` opens), `ref/` (how things
+work, transferable), `homelab/` and `work/` (deployment detail per context),
+`meta/` (notes on the notes: manifest, how-to, sync, and `meta/templates/`),
+`notes/` (inbox), plus `daily/` and `attachments/`. Folders say *where it
+applies*; tags say *what it is about*. A path in the title creates the folders:
+`:Obsidian new homelab/caddy`.
+
+**Auto-commit** — `lua/config/plugins/notes_git.lua` commits the vault the way
+Obsidian's Git plugin does, since `.git` is excluded from Syncthing and history is
+a per-machine undo net that only works if commits happen. Writes inside the vault
+start a **debounced** timer (30s), so a burst of saves is one commit, and
+everything runs through `vim.system` so git never blocks the UI. `:NotesCommit`
+commits now, `:NotesLog` shows recent ones. Quitting commits anything outstanding
+— but only if *that session* wrote a vault file, otherwise every `nvim main.go`
+would sweep up whatever state the vault happened to be in, including another
+session's edits or a Syncthing pull in flight.
+
+`.obsidian/` is configured to match (new notes to `notes/`, absolute wiki links,
+templates at `meta/templates`), so the desktop app and Neovim agree.
 
 > `link.format` is **`absolute`** (vault-relative: `[[homelab/caddy]]`), not
 > upstream's `shortest`. The layout puts the same basename under more than one

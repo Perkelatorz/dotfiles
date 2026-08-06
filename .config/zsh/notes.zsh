@@ -39,9 +39,14 @@ _notes_nvim() {
 # Unlike the targeted forms it cd's the *caller's* shell into the vault, so
 # quitting nvim leaves you there rather than back wherever you started, and it
 # opens the file tree since browsing is the point when you have not named a note.
+#
+# Lands on todo.md, not index.md: the running list is what you actually want in
+# front of you on arrival. `notes index` still opens the map.
 _notes_enter() {
     cd -- "${NOTES:-$HOME/notes}" || return
-    nvim index.md -c 'Neotree show position=left'
+    local landing=todo.md
+    [[ -f $landing ]] || landing=index.md
+    nvim "$landing" -c 'Neotree show position=left'
 }
 
 # Fuzzy-pick a note by filename. Listed newest-first: the `(.omN)` glob
@@ -80,7 +85,8 @@ _notes_grep() {
 _notes_help() {
     print -r -- "notes — ${NOTES:-$HOME/notes}
 
-  notes                 cd into the vault + open the index with the file tree
+  notes                 cd into the vault + open the running todo, file tree open
+  notes index           the vault map
   notes <words>         fuzzy-pick a note, seeded with <words>
   notes cd              cd into the vault, no editor
   notes today|d         today's daily note      (also: yesterday|y, tomorrow|t)
@@ -103,7 +109,8 @@ notes() {
     (( $# )) && shift
 
     case $cmd in
-        ''|index)          _notes_enter ;;
+        ''|todo)           _notes_enter ;;
+        index)             _notes_nvim index.md ;;
         cd)                cd -- "$vault" ;;   # a function, so this sticks
         d|today)           _notes_nvim +'Obsidian today' ;;
         y|yesterday)       _notes_nvim +'Obsidian yesterday' ;;
@@ -131,7 +138,8 @@ _notes() {
     (( CURRENT == 2 )) || return 0
 
     local -a subs=(
-        'index:cd in + open the index with the file tree'
+        'todo:cd in + open the running todo, file tree open'
+        'index:the vault map'
         'cd:cd into the vault, no editor'
         'today:daily note for today'
         'yesterday:daily note for yesterday'
