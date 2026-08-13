@@ -15,3 +15,6 @@ fd
 jq
 unzip
 github-cli
+
+# --- AI coding agent (config: ~/.config/opencode/opencode.json → Spark GX10) ---
+opencode

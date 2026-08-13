@@ -1,0 +1,40 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "spark": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Spark GX10",
+      "options": {
+        "baseURL": "{env:SPARK_BASE_URL}"
+      },
+      "models": {
+        "Intel/Qwen3-Coder-Next-int4-AutoRound": {
+          "name": "Qwen3 Coder Next (GX10)"
+        }
+      }
+    }
+  },
+  "model": "spark/Intel/Qwen3-Coder-Next-int4-AutoRound",
+  "mcp": {
+    "websearch": {
+      "type": "local",
+      "command": ["npx", "-y", "@oevortex/ddg_search"],
+      "enabled": true
+    },
+    "supabase": {
+      "type": "remote",
+      "url": "http://localhost:54321/mcp",
+      "enabled": true
+    },
+    "svelte": {
+      "type": "remote",
+      "url": "https://mcp.svelte.dev/mcp",
+      "enabled": true
+    },
+    "browser": {
+      "type": "local",
+      "command": ["npx", "-y", "@playwright/mcp@latest"],
+      "enabled": true
+    }
+  }
+}

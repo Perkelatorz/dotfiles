@@ -96,7 +96,9 @@ log_iotc.txt
 .config/qt5ct/
 .config/qt6ct/
 .config/gh/
-.config/opencode/
+.config/opencode/*
+!.config/opencode/opencode.json
+!.config/opencode/skills
 .config/go/
 .config/systemd/
 .config/xfce4/
@@ -104,6 +106,7 @@ log_iotc.txt
 .pki/
 
 # Local secrets / state
+.zshrc.local
 .docker/
 .ssh/
 .gnupg/

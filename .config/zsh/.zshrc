@@ -91,3 +91,6 @@ case ":$PATH:" in
     *":$HOME/.opencode/bin:"*) ;;
     *) export PATH="$HOME/.opencode/bin:$PATH" ;;
 esac
+
+# Machine-local overrides / secrets (untracked; see gitignore "Local secrets")
+[[ -r ~/.zshrc.local ]] && source ~/.zshrc.local
