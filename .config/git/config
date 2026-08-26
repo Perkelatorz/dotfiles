@@ -13,5 +13,14 @@
 
 [includeIf "gitdir:~/code/work/**"]
     path = ~/.config/git/config-work
+
 [credential "https://git.gvltest.local"]
 	provider = generic
+
+[credential "https://github.com"]
+	helper = 
+	helper = !/usr/bin/gh auth git-credential
+
+[credential "https://gist.github.com"]
+	helper = 
+	helper = !/usr/bin/gh auth git-credential
