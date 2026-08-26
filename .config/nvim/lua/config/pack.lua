@@ -48,6 +48,7 @@ function M.setup()
 			gh("lukas-reineke/indent-blankline.nvim"),
 			gh("otavioschwanck/arrow.nvim"),
 			gh("s1n7ax/nvim-window-picker"),
+			gh("Perkelatorz/tsk.nvim"),
 			-- Pinned to 3.x: 4.0 drops |legacy_commands| and reworks options (see the
 			-- upstream "Breaking changes" wiki page before widening this range).
 			{ src = gh("obsidian-nvim/obsidian.nvim"), version = vim.version.range("3") },

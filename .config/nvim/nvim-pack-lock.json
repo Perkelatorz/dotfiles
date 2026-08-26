@@ -150,6 +150,10 @@
       "rev": "bd67efe408d4816e25e8491cc5ad4088e708a69a",
       "src": "https://github.com/folke/trouble.nvim"
     },
+    "tsk.nvim": {
+      "rev": "abb0999f20ab6d5f2e20020106e4db21af5ddea3",
+      "src": "https://github.com/Perkelatorz/tsk.nvim"
+    },
     "vim-table-mode": {
       "rev": "bb025308a45c67c7c8f0763ba37bc2ee3f534df0",
       "src": "https://github.com/dhruvasagar/vim-table-mode"
