@@ -160,3 +160,19 @@ _notes() {
     (( $#titles )) && _describe -t notes 'note' titles
 }
 compdef _notes notes
+
+# ------------------------------------------------------------------
+# Alvar-method tutoring (learnsing)
+#
+# The teach/probe/learn-* skills persist to `.alvar/` *relative to Claude's
+# cwd*, so launching from anywhere else scatters LEARNER.md, maps, and session
+# logs outside the vault. Same cwd trap as Telescope above, different tool.
+#
+# Subshell, like _notes_nvim: quitting Claude leaves the caller where they
+# started. Use `notes cd` when the point is to stay in the vault.
+#
+# Args pass through, so `learnsing /teach docker networking` works.
+# ------------------------------------------------------------------
+learnsing() {
+    ( cd -- "${NOTES:-$HOME/notes}" && claude "$@" )
+}
