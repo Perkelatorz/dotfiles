@@ -101,5 +101,11 @@ case ":$PATH:" in
     *) export PATH="$HOME/.opencode/bin:$PATH" ;;
 esac
 
-# Machine-local overrides / secrets (untracked; see gitignore "Local secrets")
+# nvm, from the Arch package rather than the upstream installer, so the init
+# script lives under /usr/share instead of ~/.nvm. Defines the `nvm` function
+# and puts the active node on PATH; without it `nvm` is simply not a command.
+source /usr/share/nvm/init-nvm.sh
+
+# Machine-local overrides / secrets (untracked; see gitignore "Local secrets").
+# Last, so a box can override anything set above it.
 [[ -r ~/.zshrc.local ]] && source ~/.zshrc.local
