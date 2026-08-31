@@ -48,6 +48,9 @@ function M.setup()
 			gh("lukas-reineke/indent-blankline.nvim"),
 			gh("otavioschwanck/arrow.nvim"),
 			gh("s1n7ax/nvim-window-picker"),
+			-- Mine, and the one plugin here that does not sit at its locked revision:
+			-- |config.plugins.tsk| updates it from the remote on each interactive
+			-- start, so the lockfile entry moves whenever I have pushed something.
 			gh("Perkelatorz/tsk.nvim"),
 			-- Pinned to 3.x: 4.0 drops |legacy_commands| and reworks options (see the
 			-- upstream "Breaking changes" wiki page before widening this range).

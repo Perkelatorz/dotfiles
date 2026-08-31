@@ -41,6 +41,38 @@ function M.setup()
 	map("<leader>bh", "<cmd>Tsk home<cr>", "Board: home board")
 	map("<leader>ba", "<cmd>TskAgenda<cr>", "Board: agenda (all boards)")
 	map("<leader>bf", "<cmd>TskFind<cr>", "Board: find card")
+
+	-- Track the remote rather than sitting at whatever revision the lockfile
+	-- last pinned. This one is mine and changes often, so a pinned copy means
+	-- editing the plugin, pushing, and then remembering to run vim.pack.update
+	-- before the fix is actually in the editor -- which is how a month-boundary
+	-- bug in the date picker stayed live locally after it was already fixed.
+	--
+	-- Deferred off the startup path because vim.pack.update reaches the network,
+	-- and that must never sit between :e and the first keystroke. `force` skips
+	-- the confirmation buffer; reviewing a diff of my own commits is theatre.
+	--
+	-- Skipped without a UI: headless runs are scripts and tests, and they should
+	-- neither reach the network nor rewrite the lockfile under a test. The check
+	-- has to happen in the timer rather than out here -- the TUI has not attached
+	-- while init.lua is still being sourced, so nvim_list_uis() is empty at this
+	-- point even for an ordinary interactive session.
+	--
+	-- The lockfile only changes when the remote actually moved, so this does not
+	-- leave yadm permanently dirty -- it bumps on exactly the starts where a new
+	-- commit landed.
+	vim.api.nvim_create_autocmd("VimEnter", {
+		once = true,
+		group = vim.api.nvim_create_augroup("config.tsk_autoupdate", { clear = true }),
+		callback = function()
+			vim.defer_fn(function()
+				if #vim.api.nvim_list_uis() == 0 then
+					return
+				end
+				pcall(vim.pack.update, { "tsk.nvim" }, { force = true })
+			end, 2000)
+		end,
+	})
 end
 
 return M
