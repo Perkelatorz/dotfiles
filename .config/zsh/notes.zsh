@@ -176,3 +176,36 @@ compdef _notes notes
 learnsing() {
     ( cd -- "${NOTES:-$HOME/notes}" && claude "$@" )
 }
+
+# ------------------------------------------------------------------
+# Boards: `todo` opens the default board, `todo <name>` opens or creates one.
+#
+# A thin wrapper over `:Todo` in the Neovim config. The "unknown name means a
+# new board" logic lives there rather than here, because tsk writes the file
+# from its own template on first open -- so `todo garden` is how a board gets
+# created, not something to set up first. Doing it in the shell would mean
+# hand-rolling the frontmatter and the **Complete** marker and getting them
+# subtly wrong.
+#
+# Subshell with the vault as cwd, like _notes_nvim and for the same two
+# reasons: quitting the board leaves you where you started, and Telescope
+# inside nvim searches the vault instead of wherever you happened to be.
+#
+# $TODO_BOARD is what a bare `todo` opens.
+# ------------------------------------------------------------------
+: "${TODO_BOARD:=work}"
+
+todo() {
+    ( cd -- "${NOTES:-$HOME/notes}" && nvim -c "Todo ${*:-$TODO_BOARD}" )
+}
+
+# Complete on the boards that exist. The glob qualifiers are (N) no error when
+# nothing matches, (:t) tail, (:r) drop the extension -- so todo/work.md offers
+# `work`. A name that does not exist is still valid input; it just makes a new
+# board, so this completes rather than restricts.
+_todo() {
+    local -a boards
+    boards=( "${NOTES:-$HOME/notes}"/todo/*.md(N:t:r) )
+    (( $#boards )) && _describe -t boards 'board' boards
+}
+compdef _todo todo

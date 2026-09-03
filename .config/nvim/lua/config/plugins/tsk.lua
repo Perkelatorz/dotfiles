@@ -7,12 +7,30 @@
 
 local M = {}
 
+local TODO_DIR = vim.fn.expand("~/notes/todo")
+
+--- Every .md under the todo directory is a board.
+---
+--- Listing them by hand meant this file had to be edited to add one, and the
+--- agenda silently skipped any board that had not been. Discovering them means
+--- creating the file is enough -- and `:Todo <name>` below creates the file --
+--- so a new board never involves touching config.
+local function discover_boards()
+	local boards = {}
+	if vim.fn.isdirectory(TODO_DIR) == 0 then
+		return boards
+	end
+	for name, kind in vim.fs.dir(TODO_DIR) do
+		if kind == "file" and name:sub(-3) == ".md" then
+			boards[name:sub(1, -4)] = TODO_DIR .. "/" .. name
+		end
+	end
+	return boards
+end
+
 function M.setup()
 	require("tsk").setup({
-		boards = {
-			work = vim.fn.expand("~/notes/todo/work.md"),
-			home = vim.fn.expand("~/notes/todo/home.md"),
-		},
+		boards = discover_boards(),
 		board = {
 			-- Column tints, keyed by column title.
 			column_colors = {
@@ -41,6 +59,34 @@ function M.setup()
 	map("<leader>bh", "<cmd>Tsk home<cr>", "Board: home board")
 	map("<leader>ba", "<cmd>TskAgenda<cr>", "Board: agenda (all boards)")
 	map("<leader>bf", "<cmd>TskFind<cr>", "Board: find card")
+
+	--- `:Todo [name]` -- what the `todo` shell function calls.
+	---
+	--- Unlike `:Tsk`, an unknown name is not an error: it is registered against
+	--- <todo dir>/<name>.md and opened, and tsk writes the file from its
+	--- template on first open. So `:Todo garden` is how a board gets created,
+	--- and there is no separate "add a board" step.
+	---
+	--- nargs is "*" rather than "?" so a name containing a space survives; the
+	--- args are rejoined below.
+	vim.api.nvim_create_user_command("Todo", function(cmd)
+		local name = #cmd.fargs > 0 and table.concat(cmd.fargs, " ") or "work"
+		local cfg = require("tsk.config")
+		if not cfg.options.boards[name] then
+			-- Nothing in tsk creates intermediate directories, so a first board
+			-- on a fresh machine needs the folder to exist before the template
+			-- can be written.
+			vim.fn.mkdir(TODO_DIR, "p")
+			cfg.options.boards[name] = TODO_DIR .. "/" .. name .. ".md"
+		end
+		require("tsk").board(name)
+	end, {
+		nargs = "*",
+		desc = "Open a todo board, creating it if it does not exist",
+		complete = function()
+			return require("tsk.config").board_names()
+		end,
+	})
 
 	-- Track the remote rather than sitting at whatever revision the lockfile
 	-- last pinned. This one is mine and changes often, so a pinned copy means
