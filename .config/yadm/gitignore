@@ -164,3 +164,8 @@ log_iotc.txt
 # Quickshell runtime state (written by settings toggles / weather widget)
 .config/quickshell/bar-widgets.json
 .config/quickshell/weather-location.txt
+
+# Stock CachyOS mango config, left on disk from the pre-dotfiles install.
+# config.conf sources its own modules and never touches these, so they are dead
+# reference material — kept for comparison, not tracked.
+.config/mango/cfg
