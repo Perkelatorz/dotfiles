@@ -16,11 +16,6 @@ output_path = "~/.config/quickshell/Colors.qml"
 input_path = "~/.config/mango/matugen-colors.conf.tmpl"
 output_path = "~/.config/mango/matugen-colors.conf"
 
-# --- Hyprland ---
-[templates.hyprland]
-input_path = "~/.config/matugen-themes/templates/hyprland-colors.conf"
-output_path = "~/.config/hypr/matugen-colors.conf"
-
 # --- Kitty ---
 [templates.kitty]
 input_path = "~/.config/matugen-themes/templates/kitty-colors.conf"

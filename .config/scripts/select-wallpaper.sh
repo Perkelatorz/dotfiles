@@ -103,9 +103,9 @@ WALLPAPER_DIR="${WALLPAPER_DIR:-$HOME/Pictures}"
 WALLPAPER_DIRS="${WALLPAPER_DIRS:-$WALLPAPER_DIR}"
 QUICKSHELL_DIR="${QUICKSHELL_DIR:-$HOME/.config/quickshell}"
 MATUGEN_CONFIG="$HOME/.config/matugen/config.toml"
-LOG_FILE="$HOME/.cache/hypr/wallpaper.log"
-CURRENT_WALLPAPER_FILE="$HOME/.cache/hypr/current-wallpaper.txt"
-CURRENT_THEME_FILE="$HOME/.cache/hypr/current-theme.txt"
+LOG_FILE="$HOME/.cache/wallpaper/wallpaper.log"
+CURRENT_WALLPAPER_FILE="$HOME/.cache/wallpaper/current-wallpaper.txt"
+CURRENT_THEME_FILE="$HOME/.cache/wallpaper/current-theme.txt"
 VERBOSE="${VERBOSE:-false}"
 
 # Matugen Settings (can be overridden by env vars)
@@ -299,7 +299,7 @@ WALLPAPER_FOR_MATUGEN="$FINAL_WALLPAPER"
 
 if [ "$PREPROCESS_FOR_PYWAL" = "true" ]; then
   log "INFO" "🎨 [Preprocessing] Creating pywal-style color extraction image..."
-  TMP_WP="$HOME/.cache/hypr/matugen-input.png"
+  TMP_WP="$HOME/.cache/wallpaper/matugen-input.png"
   mkdir -p "$(dirname "$TMP_WP")"
   
   # Try magick first, fall back to convert
@@ -372,7 +372,7 @@ fi
 # Add config file if it exists (expand ~ to $HOME on path lines only; matugen does not expand tilde)
 MATUGEN_CONFIG_FINAL=""
 if [ -f "$MATUGEN_CONFIG" ]; then
-  MATUGEN_CONFIG_EXPANDED="${MATUGEN_CONFIG_EXPANDED:-$HOME/.cache/hypr/matugen-config-expanded.toml}"
+  MATUGEN_CONFIG_EXPANDED="${MATUGEN_CONFIG_EXPANDED:-$HOME/.cache/wallpaper/matugen-config-expanded.toml}"
   mkdir -p "$(dirname "$MATUGEN_CONFIG_EXPANDED")"
   sed '/input_path\s*=\|output_path\s*=/ s|"~|"'$HOME'|g' "$MATUGEN_CONFIG" > "$MATUGEN_CONFIG_EXPANDED"
   MATUGEN_CONFIG_FINAL="$MATUGEN_CONFIG_EXPANDED"
@@ -428,7 +428,7 @@ MATUGEN_EXIT=${MATUGEN_EXIT:-0}
 if [ "$MATUGEN_EXIT" -ne 0 ]; then
   # If config/templates failed (e.g. missing matugen-themes input files), retry with Quickshell-only config
   if echo "$MATUGEN_OUTPUT" | grep -qiE "Failed to read config file|Failed to get the input and output paths"; then
-    MATUGEN_MINIMAL_CONF="$HOME/.cache/hypr/matugen-config-minimal.toml"
+    MATUGEN_MINIMAL_CONF="$HOME/.cache/wallpaper/matugen-config-minimal.toml"
     mkdir -p "$(dirname "$MATUGEN_MINIMAL_CONF")"
     QUICKSHELL_TMPL="$QUICKSHELL_DIR/Colors.qml.tmpl"
     if [ -f "$QUICKSHELL_TMPL" ]; then

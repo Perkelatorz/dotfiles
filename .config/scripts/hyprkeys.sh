@@ -1,6 +1,5 @@
 #!/bin/bash
-# Shortcut cheat sheet. Reads whichever binds.conf belongs to the running
-# compositor and renders it through rofi.
+# Shortcut cheat sheet. Reads mango's binds.conf and renders it through rofi.
 #
 # Hyprland format:  bind = MOD, KEY, action, args   # trailing description
 #                   sections marked  # --- Name ---
@@ -11,10 +10,7 @@
 # shellcheck source=/dev/null
 . "$(dirname "$0")/_compositor.sh"
 
-case "$COMPOSITOR" in
-  mango) CONFIG_FILE="$HOME/.config/mango/binds.conf" ;;
-  *)     CONFIG_FILE="$HOME/.config/hypr/binds.conf" ;;
-esac
+CONFIG_FILE="$HOME/.config/mango/binds.conf"
 
 CATEGORY=""
 PENDING_COMMENT=""
