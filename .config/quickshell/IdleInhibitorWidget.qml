@@ -14,6 +14,9 @@ BarPill {
 
     // F0F4 = coffee (stay-awake), F236 = bed (idle-allowed)
     icon: inhibited ? "\uF0F4" : "\uF236"
+    // Conditional tier: only worth pixels while you are actively holding the
+    // machine awake — that is a state you chose and want confirmed.
+    present: inhibited
     active: inhibited
     activeColor: colors.urgent
     activeTextColor: colors.textOnUrgent

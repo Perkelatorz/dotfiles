@@ -15,9 +15,9 @@ BarPill {
 
     // This monitor's entry out of MangoIpc.monitors.
     property var mangoMonitor: null
-    property string compositorName: "hyprland"
+    property string compositorName: "mango"
 
-    // Hyprland exposes no equivalent through this data path, so the pill
+    // Nothing to show without a mango monitor payload, so the pill
     // collapses to zero width there instead of showing a stale value.
     present: compositorName === "mango" && mangoMonitor !== null
 

@@ -5,6 +5,13 @@ Colors 1.0 Colors.qml
 PollingProcess 1.0 PollingProcess.qml
 PopupPanel 1.0 PopupPanel.qml
 BarPill 1.0 BarPill.qml
+BatteryContent 1.0 BatteryContent.qml
+SystemContent 1.0 SystemContent.qml
+SystemClusterWidget 1.0 SystemClusterWidget.qml
+VolumeContent 1.0 VolumeContent.qml
+Sparkline 1.0 Sparkline.qml
+BarSeparator 1.0 BarSeparator.qml
+Island 1.0 Island.qml
 OsdOverlay 1.0 OsdOverlay.qml
 PrivacyIndicatorWidget 1.0 PrivacyIndicatorWidget.qml
 IdleInhibitorWidget 1.0 IdleInhibitorWidget.qml

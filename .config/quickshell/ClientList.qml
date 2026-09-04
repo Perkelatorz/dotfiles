@@ -1,6 +1,5 @@
 import QtQuick
 import Quickshell
-import Quickshell.Hyprland
 
 import "."
 
@@ -12,7 +11,7 @@ Row {
     required property var colors
     required property var clientList
     required property string activeWindowAddress
-    property string compositorName: "hyprland"
+    property string compositorName: "mango"
 
     spacing: 4
     anchors.verticalCenter: parent.verticalCenter
@@ -31,11 +30,17 @@ Row {
             Rectangle {
                 anchors.fill: parent
                 radius: 6
+                // Accent rule: the focused window gets a faint wash of the
+                // accent, never a solid slab of it. A solid primary fill behind
+                // a title is the single loudest thing the bar used to draw.
                 color: {
-                    if (clientMouse.pressed) return isFocusedWindow ? Qt.darker(colors.primary, 1.15) : Qt.darker(colors.surfaceBright, 1.15)
-                    if (isFocusedWindow) return colors.primary
-                    if (clientMouse.containsMouse) return colors.surfaceBright
-                    return colors.surfaceContainer
+                    var a = colors.primary
+                    if (clientMouse.pressed)
+                        return Qt.rgba(a.r, a.g, a.b, isFocusedWindow ? 0.26 : 0.12)
+                    if (isFocusedWindow) return Qt.rgba(a.r, a.g, a.b, 0.16)
+                    if (clientMouse.containsMouse)
+                        return Qt.rgba(colors.textMain.r, colors.textMain.g, colors.textMain.b, 0.07)
+                    return "transparent"
                 }
                 scale: clientMouse.pressed ? 0.94 : 1.0
                 Behavior on color { ColorAnimation { duration: 100 } }
@@ -65,7 +70,7 @@ Row {
                         anchors.verticalCenter: parent.verticalCenter
                         elide: Text.ElideMiddle
                         text: modelData.title || modelData.class || "?"
-                        color: isFocusedWindow ? colors.textOnPrimary : (clientMouse.containsMouse ? colors.textMain : colors.textDim)
+                        color: isFocusedWindow ? colors.primary : (clientMouse.containsMouse ? colors.textMain : colors.textDim)
                         font.pixelSize: 11
                     }
                 }
@@ -86,11 +91,6 @@ Row {
                             // dispatchers take it as a `client,<id>` target.
                             MangoIpc.dispatch(close ? "killclient" : "focusid",
                                               "client," + modelData.address)
-                        } else {
-                            if (close)
-                                Hyprland.dispatch("closewindow address:" + modelData.address)
-                            else
-                                Hyprland.dispatch("focuswindow address:" + modelData.address)
                         }
                     }
                 }

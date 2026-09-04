@@ -7,7 +7,7 @@ Item {
     id: sessionRunner
     width: 0; height: 0; visible: false
 
-    property string compositorName: "hyprland"
+    property string compositorName: "mango"
 
     Process {
         id: proc
@@ -16,13 +16,11 @@ Item {
     }
 
     function run(cmd) {
-        if (compositorName === "hyprland") {
-            proc.command = ["hyprctl", "dispatch", "exec", cmd]
-        } else if (compositorName === "mango") {
+        if (compositorName === "mango") {
             // Hand it to the compositor rather than `sh -c` so the app is
             // reparented to mango, not to quickshell — otherwise restarting the
             // bar takes every app it launched down with it. spawn_shell (not
-            // spawn) so pipes and quoting behave like the Hyprland exec path.
+            // spawn) so pipes and quoting behave as they would in a shell.
             proc.command = ["mmsg", "dispatch", "spawn_shell," + cmd]
         } else {
             proc.command = ["sh", "-c", cmd]

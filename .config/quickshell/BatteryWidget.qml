@@ -6,6 +6,9 @@ BarPill {
     id: batteryWidget
     pillIndex: 5
 
+    // The only widget in the bar with no click action at all until now.
+    signal panelToggleRequested()
+
     readonly property bool hasBattery: SystemServices.batteryHas
     readonly property int capacity: SystemServices.batteryCapacity
     readonly property string status: SystemServices.batteryStatus
@@ -34,4 +37,6 @@ BarPill {
         NumberAnimation { target: batteryWidget; property: "opacity"; from: 0.5; to: 1; duration: 800; easing.type: Easing.InOutSine }
         onRunningChanged: if (!running) batteryWidget.opacity = 1
     }
+
+    onClicked: mouse => batteryWidget.panelToggleRequested()
 }

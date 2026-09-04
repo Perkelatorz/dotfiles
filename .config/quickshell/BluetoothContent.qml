@@ -33,7 +33,7 @@ Item {
             radius: 10
             color: bt.powered ? bt.colors.primaryContainer : bt.colors.surfaceBright
             border.width: 1
-            border.color: bt.powered ? bt.colors.primary : bt.colors.borderSubtle
+            border.color: bt.powered ? bt.colors.primary : Qt.rgba(bt.colors.textMain.r, bt.colors.textMain.g, bt.colors.textMain.b, 0.10)
             Text {
                 id: btPowerIcon
                 anchors.left: parent.left

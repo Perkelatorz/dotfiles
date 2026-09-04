@@ -96,7 +96,7 @@ Item {
                 radius: 10
                 color: wifi.enabledNow ? wifi.colors.primaryContainer : wifi.colors.surfaceBright
                 border.width: 1
-                border.color: wifi.enabledNow ? wifi.colors.primary : wifi.colors.borderSubtle
+                border.color: wifi.enabledNow ? wifi.colors.primary : Qt.rgba(wifi.colors.textMain.r, wifi.colors.textMain.g, wifi.colors.textMain.b, 0.10)
                 Text {
                     id: wifiPowerIcon
                     anchors.left: parent.left
@@ -127,7 +127,7 @@ Item {
                 radius: 10
                 color: rescanMa.containsMouse ? wifi.colors.surfaceBright : "transparent"
                 border.width: 1
-                border.color: wifi.colors.borderSubtle
+                border.color: Qt.rgba(wifi.colors.textMain.r, wifi.colors.textMain.g, wifi.colors.textMain.b, 0.10)
                 Text {
                     anchors.centerIn: parent
                     text: "\uF021"

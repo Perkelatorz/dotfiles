@@ -7,7 +7,7 @@ Column {
     id: toolsMenu
     required property var colors
     required property var onClose
-    property string compositorName: "hyprland"
+    property string compositorName: "mango"
 
     spacing: 0
     width: 180

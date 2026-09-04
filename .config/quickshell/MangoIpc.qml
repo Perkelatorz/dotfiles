@@ -7,9 +7,8 @@ import Quickshell.Io
 //
 // mango ships `mmsg`, whose `watch` mode holds a socket open and pushes one
 // unformatted JSON object per line — an initial snapshot on subscribe, then a
-// fresh one on every change. Two long-lived subscriptions replace the polled
-// `hyprctl clients -j` / `hyprctl activewindow -j` pair used on Hyprland, and
-// living in a singleton means one pair total rather than one per monitor.
+// fresh one on every change. Two long-lived subscriptions, and living in a
+// singleton means one pair total rather than one per monitor.
 //
 // Inert (processes never start) unless mango is actually the running compositor.
 Singleton {
@@ -21,9 +20,17 @@ Singleton {
     property var monitors: []
     property var clients: []
 
+    // Dropped-line counters. A failed parse used to vanish into an empty catch,
+    // which made a stale bar impossible to tell apart from a quiet compositor.
+    // SplitParser cuts on newlines, so a window title containing one splits its
+    // JSON object across two lines and both halves fail. Non-zero here after a
+    // stale strip is the confirmation; `qs log` shows the warning.
+    property int monitorParseErrors: 0
+    property int clientParseErrors: 0
+
     // Names of outputs showing a genuinely fullscreen window, for bar hiding.
     // mango separates is_fullscreen (covers the bar) from is_maximized (does
-    // not), so unlike Hyprland's numeric mode there's nothing to decode.
+    // not), so there's nothing to decode.
     readonly property var fullscreenMonitorNames: {
         var names = []
         for (var i = 0; i < root.clients.length; i++) {
@@ -44,7 +51,7 @@ Singleton {
     }
 
     // Windows worth showing in the bar for one output: skip minimized and
-    // scratchpad clients the way `hyprctl clients` skips special workspaces.
+    // scratchpad clients.
     function clientsOn(monitorName) {
         var out = []
         if (!monitorName) return out
@@ -152,7 +159,11 @@ Singleton {
                 try {
                     var o = JSON.parse(line)
                     if (o && Array.isArray(o.monitors)) root.monitors = o.monitors
-                } catch (_) { }
+                } catch (e) {
+                    root.monitorParseErrors++
+                    console.warn("MangoIpc: dropped all-monitors line #"
+                        + root.monitorParseErrors + ":", e)
+                }
             }
         }
     }
@@ -166,7 +177,11 @@ Singleton {
                 try {
                     var o = JSON.parse(line)
                     if (o && Array.isArray(o.clients)) root.clients = o.clients
-                } catch (_) { }
+                } catch (e) {
+                    root.clientParseErrors++
+                    console.warn("MangoIpc: dropped all-clients line #"
+                        + root.clientParseErrors + ":", e)
+                }
             }
         }
     }

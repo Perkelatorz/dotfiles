@@ -1,6 +1,6 @@
 # Copy the sections you need into ~/.config/matugen/config.toml (create the file if needed).
 # select-wallpaper.sh runs matugen with this config and expands "~ to your home path
-# (matugen does not expand ~ itself, so the script writes an expanded copy to ~/.cache/hypr/).
+# (matugen does not expand ~ itself, so the script writes an expanded copy to ~/.cache/wallpaper/).
 #
 # Get official templates:
 #   git clone https://github.com/InioX/matugen-themes.git ~/.config/matugen-themes

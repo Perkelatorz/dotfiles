@@ -43,6 +43,12 @@ Singleton {
         var secs = batteryStatus === "Charging" ? _bat.timeToFull : _bat.timeToEmpty
         return secs > 0 ? Math.round(secs / 60) : 0
     }
+    // Draw/charge rate in watts, and cell health. Both come straight off the
+    // UPower device — nothing extra is polled for them.
+    readonly property real batteryRateW: batteryHas && _bat.changeRate ? _bat.changeRate : 0
+    readonly property bool batteryHealthKnown: batteryHas && _bat.healthSupported
+    readonly property int batteryHealth: batteryHealthKnown ? Math.round(_bat.healthPercentage) : 0
+
     readonly property string batteryTimeText: {
         if (!batteryHas || batteryTimeMinutes <= 0) return ""
         var h = Math.floor(batteryTimeMinutes / 60)
@@ -265,13 +271,103 @@ Singleton {
         }
     }
 
+    // ===== CPU / MEMORY HISTORY =====
+    // Sampled continuously, in the singleton, so the performance panel can show
+    // the last two minutes the moment it opens instead of drawing in from empty.
+    //
+    // This adds no polling: PerformanceWidget was already reading both files
+    // every 2s whenever it sat in the bar and simply discarding each sample. It
+    // costs LESS than before — FileView reads /proc directly, where the widget
+    // spawned `sh -c head -1 /proc/stat` and an awk over /proc/meminfo, so two
+    // subprocesses every 2s become two file reads.
+    readonly property int historyLength: 60      // 60 x 2s = 2 minutes
+    property int cpuPercent: 0
+    property int memPercent: 0
+    property var cpuHistory: []
+    property var memHistory: []
+
+    property int _lastCpuBusy: -1
+    property int _lastCpuTotal: -1
+
+    // Reassigned wholesale, never mutated: QML re-evaluates a `var` binding on
+    // assignment only, so an in-place push would never repaint the chart.
+    function _push(buf, v) {
+        var out = buf.slice(buf.length >= historyLength ? buf.length - historyLength + 1 : 0)
+        out.push(v)
+        return out
+    }
+
+    FileView {
+        id: procStat
+        path: "/proc/stat"
+        onLoadFailed: console.warn("SystemServices: /proc/stat read failed")
+    }
+
+    FileView {
+        id: procMeminfo
+        path: "/proc/meminfo"
+        onLoadFailed: console.warn("SystemServices: /proc/meminfo read failed")
+    }
+
+    Timer {
+        interval: 2000
+        running: true
+        repeat: true
+        triggeredOnStart: true
+        onTriggered: {
+            procStat.reload()
+            procMeminfo.reload()
+            root._sampleCpu()
+            root._sampleMem()
+        }
+    }
+
+    function _sampleCpu() {
+        var line = (procStat.text() || "").split("\n")[0]
+        if (!line) return
+        var p = line.trim().split(/\s+/)
+        if (p.length < 9) return
+        var idle = parseInt(p[4]) + parseInt(p[5])
+        var total = 0
+        for (var i = 1; i < p.length; i++) {
+            var n = parseInt(p[i])
+            if (!isNaN(n)) total += n
+        }
+        var busy = total - idle
+        if (root._lastCpuTotal >= 0) {
+            var dt = total - root._lastCpuTotal
+            var db = busy - root._lastCpuBusy
+            if (dt > 0) {
+                root.cpuPercent = Math.max(0, Math.min(100, Math.round(100 * db / dt)))
+                root.cpuHistory = root._push(root.cpuHistory, root.cpuPercent)
+            }
+        }
+        root._lastCpuTotal = total
+        root._lastCpuBusy = busy
+    }
+
+    function _sampleMem() {
+        var t = 0, a = 0
+        var lines = (procMeminfo.text() || "").split("\n")
+        for (var i = 0; i < lines.length && (t === 0 || a === 0); i++) {
+            var m = lines[i].match(/^(MemTotal|MemAvailable):\s+(\d+)/)
+            if (!m) continue
+            if (m[1] === "MemTotal") t = parseInt(m[2])
+            else a = parseInt(m[2])
+        }
+        if (t > 0) {
+            root.memPercent = Math.max(0, Math.min(100, Math.round(100 * (t - a) / t)))
+            root.memHistory = root._push(root.memHistory, root.memPercent)
+        }
+    }
+
     // ===== THEME (FileView watch — replaces a cat every 2 seconds) =====
     readonly property string themeStatus: _themeStatus
     property string _themeStatus: "…"
     property string _themeRaw: ""
     property string _colorsRaw: ""
     FileView {
-        path: (Quickshell.env("XDG_CACHE_HOME") || Quickshell.env("HOME") + "/.cache") + "/hypr/current-theme.txt"
+        path: (Quickshell.env("XDG_CACHE_HOME") || Quickshell.env("HOME") + "/.cache") + "/wallpaper/current-theme.txt"
         watchChanges: true
         onFileChanged: reload()
         onLoaded: { root._themeRaw = text(); root._recomputeTheme() }
@@ -493,6 +589,17 @@ Singleton {
         default: return "\uF24E"
         }
     }
+    // Direct set, for a picker. cyclePowerProfile below is what the bar widget
+    // uses; a panel showing all three wants to jump straight to one.
+    function setPowerProfile(name) {
+        if (!_powerHas) return
+        switch (name) {
+        case "performance": PowerProfiles.profile = PowerProfile.Performance; break
+        case "power-saver": PowerProfiles.profile = PowerProfile.PowerSaver; break
+        default:            PowerProfiles.profile = PowerProfile.Balanced; break
+        }
+    }
+
     function cyclePowerProfile() {
         if (!_powerHas) return
         switch (PowerProfiles.profile) {
@@ -518,6 +625,15 @@ Singleton {
     readonly property real rxRate: _rxRate
     readonly property real txRate: _txRate
     readonly property string netSpeed: _netSpeed
+
+    // Rates scaled to a percentage of a rolling ceiling, so the sparkline has a
+    // 0-100 axis like the CPU and memory ones. An absolute axis is useless here:
+    // idle traffic and a download differ by four orders of magnitude, and a
+    // fixed ceiling would flatten one or clip the other.
+    property var rxHistory: []
+    property var txHistory: []
+    property real netCeiling: 65536      // floor of 64 KB/s so idle stays flat
+    function _netPct(v) { return Math.max(0, Math.min(100, (v / netCeiling) * 100)) }
     property string _netIface: ""
     property real _rxRate: 0
     property real _txRate: 0
@@ -526,6 +642,8 @@ Singleton {
     property real _lastNetTs: 0
     property bool _netHasData: false
     property string _netSpeed: "—"
+    // Public: the cluster widget formats its own summary rate.
+    function formatSpeed(bps) { return _formatSpeed(bps) }
     function _formatSpeed(bps) {
         if (bps < 1024) return Math.round(bps) + " B/s"
         if (bps < 1024 * 1024) return Math.round(bps / 1024) + " KB/s"
@@ -563,6 +681,12 @@ Singleton {
                     root._rxRate = Math.max(0, (rx - root._lastRx) / dt)
                     root._txRate = Math.max(0, (tx - root._lastTx) / dt)
                     root._netSpeed = "↓ " + root._formatSpeed(root._rxRate) + "  ↑ " + root._formatSpeed(root._txRate)
+                    // Ceiling tracks the recent peak and decays, so the shape
+                    // stays readable whether you are idle or saturating a link.
+                    var peak = Math.max(root._rxRate, root._txRate)
+                    root.netCeiling = Math.max(65536, Math.max(peak, root.netCeiling * 0.97))
+                    root.rxHistory = root._push(root.rxHistory, root._netPct(root._rxRate))
+                    root.txHistory = root._push(root.txHistory, root._netPct(root._txRate))
                 }
                 root._lastRx = rx
                 root._lastTx = tx

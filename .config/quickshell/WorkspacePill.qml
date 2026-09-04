@@ -3,10 +3,20 @@ import Quickshell
 
 import "."
 
-// One workspace/tag indicator. Purely presentational: it takes already-resolved
-// booleans and a plain client array, so Hyprland workspaces and mango tags can
-// both feed it without this file knowing which compositor is running.
-// Client entries only need { class, title }.
+// One workspace/tag indicator.
+//
+//   empty     a 6px dot
+//   occupied  the icons of the apps living there
+//   focused   the same, on a wash of the accent
+//
+// The icons are the point — they are how you know which tag holds what without
+// switching to it. What they lost in the redesign is the coloured disc that
+// used to sit behind each one: workspaceSlotColors put up to five different
+// hues inside a single pill, which is what made the left end of the bar shout.
+// An app icon is already its own colour and needs no plate under it.
+//
+// Purely presentational: it takes already-resolved booleans, so it never
+// touches compositor state.
 Item {
     id: pill
 
@@ -18,125 +28,111 @@ Item {
     property var wsClients: []
 
     property int maxAppIndicators: 5
-    property int appIconSize: 18
-    property int slotPadding: 6
+    property int appIconSize: 16
+    property int slotPadding: 8
 
     signal activated()
 
-    readonly property int displayCount: Math.min(wsClients.length, maxAppIndicators)
-    readonly property int slotWidth: displayCount > 0
-        ? slotPadding * 2 + displayCount * (appIconSize + 2) + (displayCount - 1) * 2
-        : 28
+    readonly property int displayCount: Math.min(wsClients ? wsClients.length : 0, maxAppIndicators)
+    readonly property bool expanded: displayCount > 0
+    readonly property int dot: 6
+    readonly property int iconGap: 4
 
-    width: slotWidth
-    height: 24
+    readonly property color _accent: hasUrgent ? colors.urgent : colors.primary
+
+    implicitHeight: 22
+    implicitWidth: expanded
+        ? slotPadding * 2 + displayCount * appIconSize + (displayCount - 1) * iconGap
+        : dot
 
     Rectangle {
-        anchors.fill: parent
-        radius: 6
-        border.width: pill.isFocused ? 1 : 0
-        border.color: pill.colors.primary
+        id: ground
+        anchors.centerIn: parent
+        width: pill.implicitWidth
+        height: pill.expanded ? pill.implicitHeight : pill.dot
+        radius: pill.expanded ? 8 : pill.dot / 2
         color: {
-            if (pill.hasUrgent) return pill.colors.urgent
-            if (!pill.isActive && !wsMouse.containsMouse) return "transparent"
-            if (!pill.isActive && wsMouse.containsMouse) return pill.colors.borderSubtle
-            return pill.isFocused ? pill.colors.primary : pill.colors.surfaceContainer
+            var a = pill._accent
+            if (pill.hasUrgent) return Qt.rgba(a.r, a.g, a.b, 0.22)
+            if (pill.isFocused) return Qt.rgba(a.r, a.g, a.b, 0.18)
+            if (wsMouse.containsMouse)
+                return Qt.rgba(pill.colors.textMain.r, pill.colors.textMain.g,
+                               pill.colors.textMain.b, 0.10)
+            if (pill.isActive) return Qt.rgba(a.r, a.g, a.b, 0.08)
+            if (pill.expanded)
+                return Qt.rgba(pill.colors.textMain.r, pill.colors.textMain.g,
+                               pill.colors.textMain.b, 0.05)
+            // Collapsed: the dot is the mark.
+            return pill.occupied
+                ? pill.colors.textMuted
+                : Qt.rgba(pill.colors.textMain.r, pill.colors.textMain.g,
+                          pill.colors.textMain.b, 0.14)
         }
-        scale: wsMouse.pressed ? 0.90 : 1.0
-        Behavior on color { ColorAnimation { duration: 100 } }
-        Behavior on border.width { NumberAnimation { duration: 100 } }
-        Behavior on scale { NumberAnimation { duration: 80; easing.type: Easing.OutCubic } }
+        Behavior on width  { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
+        Behavior on height { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
+        Behavior on color  { ColorAnimation  { duration: 120 } }
 
         Row {
             anchors.centerIn: parent
-            spacing: 2
-            layoutDirection: Qt.LeftToRight
+            spacing: pill.iconGap
+            visible: pill.expanded
             Repeater {
                 model: pill.displayCount
                 delegate: Item {
-                    width: pill.appIconSize + 2
-                    height: pill.appIconSize + 2
+                    width: pill.appIconSize
+                    height: pill.appIconSize
                     anchors.verticalCenter: parent ? parent.verticalCenter : undefined
                     readonly property var client: pill.wsClients[index]
+                    readonly property string iconPath: (client && client.class)
+                        ? Quickshell.iconPath(String(client.class).toLowerCase(), true) : ""
+                    readonly property bool hasIcon: iconPath !== ""
                     readonly property string letter: {
                         if (!client) return "?"
                         var s = (client.class || client.title || "?").toString().trim()
                         return (s.charAt(0) || "?").toUpperCase()
                     }
-                    readonly property string iconPath: (client && client.class) ? Quickshell.iconPath(String(client.class).toLowerCase(), true) : ""
-                    readonly property bool hasIcon: iconPath !== ""
-                    readonly property color badgeColor: {
-                        var arr = pill.colors.workspaceSlotColors || [pill.colors.surfaceBright]
-                        var i = index % Math.max(1, arr.length)
-                        return arr[i] || pill.colors.surfaceBright
+                    // Letter fallback, shown only when there is genuinely no icon.
+                    Text {
+                        anchors.centerIn: parent
+                        visible: !parent.hasIcon
+                        text: parent.letter
+                        color: pill.colors.textDim
+                        font.pixelSize: Math.max(9, pill.appIconSize - 6)
+                        font.bold: true
                     }
-                    readonly property color badgeOnColor: {
-                        var arr = pill.colors.workspaceSlotOnColors || [pill.colors.textMain]
-                        var i = index % Math.max(1, arr.length)
-                        return arr[i] || pill.colors.textMain
-                    }
-                    readonly property color letterColor: badgeOnColor !== badgeColor ? badgeOnColor : pill.colors.textMain
-                    Rectangle {
+                    Image {
                         anchors.centerIn: parent
                         width: pill.appIconSize
                         height: pill.appIconSize
-                        radius: width / 2
-                        color: badgeColor
-                        border.width: 1
-                        border.color: pill.isActive ? (pill.colors.textOnPrimary || pill.colors.textMain) : pill.colors.borderSubtle
-                        Text {
-                            anchors.centerIn: parent
-                            text: letter
-                            color: letterColor
-                            font.pixelSize: Math.max(9, pill.appIconSize - 5)
-                            font.bold: true
-                            z: 0
-                        }
-                        Image {
-                            anchors.centerIn: parent
-                            width: pill.appIconSize - 2
-                            height: pill.appIconSize - 2
-                            source: iconPath
-                            sourceSize.width: pill.appIconSize - 2
-                            sourceSize.height: pill.appIconSize - 2
-                            visible: hasIcon && source !== "" && status === Image.Ready
-                            smooth: true
-                            mipmap: true
-                            z: 1
-                        }
+                        source: parent.iconPath
+                        sourceSize.width: pill.appIconSize
+                        sourceSize.height: pill.appIconSize
+                        // Not `=== Ready`: that blanks the icon for any frame a
+                        // reload is in flight, which is visible as a flicker.
+                        visible: parent.hasIcon && status !== Image.Error
+                        smooth: true
+                        mipmap: true
                     }
                 }
             }
         }
 
-        Rectangle {
-            anchors.centerIn: parent
-            width: pill.isActive ? 20 : 12
-            height: 12
-            radius: 6
-            visible: pill.displayCount === 0 && !pill.hasUrgent
-            color: pill.occupied ? (pill.isActive ? pill.colors.textOnPrimary : pill.colors.textMain) : "transparent"
-            border.width: pill.occupied ? 0 : 1
-            border.color: pill.isActive ? pill.colors.textOnPrimary : pill.colors.border
-            Behavior on width { NumberAnimation { duration: 120 } }
-        }
         Text {
             anchors.centerIn: parent
-            visible: pill.hasUrgent
+            visible: pill.hasUrgent && !pill.expanded
             text: "!"
             color: pill.colors.textOnUrgent
-            font.pixelSize: 14
+            font.pixelSize: 12
             font.bold: true
-            font.family: pill.colors.fontMain || "sans-serif"
         }
+    }
 
-        MouseArea {
-            id: wsMouse
-            anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            acceptedButtons: Qt.LeftButton
-            onClicked: pill.activated()
-        }
+    MouseArea {
+        id: wsMouse
+        anchors.fill: parent
+        anchors.margins: -4          // a 6px dot is not a hit target
+        hoverEnabled: true
+        cursorShape: Qt.PointingHandCursor
+        onClicked: pill.activated()
     }
 }

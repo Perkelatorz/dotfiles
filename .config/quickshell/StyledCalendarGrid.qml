@@ -56,7 +56,11 @@ Item {
                         if (modelData === 0)
                             return "transparent"
                         if (root.calendarIsCurrentMonth && modelData === root.calendarTodayDay)
-                            return root.colors.calendarCurrentDayBg
+                            // Was `colors.calendarCurrentDayBg`, which is not
+                            // defined in Colors.qml or any of its templates —
+                            // today silently had no highlight at all.
+                            return Qt.rgba(root.colors.primary.r, root.colors.primary.g,
+                                           root.colors.primary.b, 0.20)
                         return "transparent"
                     }
                     radius: 3

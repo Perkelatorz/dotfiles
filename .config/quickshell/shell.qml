@@ -2,7 +2,6 @@
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
-import Quickshell.Hyprland
 import Quickshell.Io
 import Quickshell.Services.SystemTray
 import Quickshell.Wayland
@@ -17,66 +16,17 @@ ShellRoot {
     // the wrong compositor before async detection lands.
     readonly property string compositorName: {
         var s = (Quickshell.env("XDG_CURRENT_DESKTOP") || "").toLowerCase()
-        if (s.indexOf("hyprland") >= 0) return "hyprland"
-        if (s.indexOf("niri") >= 0) return "niri"
         // mango setenv()s XDG_CURRENT_DESKTOP=mango itself during startup.
         if (s.indexOf("mango") >= 0) return "mango"
         return "other"
     }
 
-    // Compositors that can tell the bar about workspaces, windows and focus.
-    readonly property bool hasWindowIpc: compositorName === "hyprland" || compositorName === "mango"
+    // The only compositor this shell speaks to. Everything workspace- and
+    // window-related hides on anything else rather than guessing.
+    readonly property bool hasWindowIpc: compositorName === "mango"
 
-    function refreshFullscreenMonitors() {
-        if (compositorName === "hyprland" && !fullscreenProcess.running)
-            fullscreenProcess.running = true
-    }
-
-    Process {
-        id: fullscreenProcess
-        command: ["hyprctl", "clients", "-j"]
-        running: false
-        stdout: StdioCollector {
-            onStreamFinished: {
-                if (shellRoot.compositorName !== "hyprland") {
-                    fullscreenProcess.running = false
-                    return
-                }
-                var names = []
-                try {
-                    var clients = JSON.parse(this.text)
-                    if (Array.isArray(clients)) {
-                        for (var i = 0; i < clients.length; i++) {
-                            var c = clients[i]
-                            // 1 = maximize, 2 = fullscreen (entire screen), 3 = both — hide bar for 2 and 3
-                            var fs = c.fullscreen
-                            if ((fs === 2 || fs === 3) && c.monitor != null) {
-                                var mon = String(c.monitor)
-                                if (names.indexOf(mon) < 0)
-                                    names.push(mon)
-                            }
-                        }
-                    }
-                } catch (_) { }
-                shellRoot.fullscreenMonitorNames = names
-                fullscreenProcess.running = false
-            }
-        }
-    }
-
-    Connections {
-        target: Hyprland
-        enabled: shellRoot.compositorName === "hyprland"
-        function onRawEvent(event) {
-            var n = event.name || ""
-            if (n === "fullscreen") {
-                shellRoot.refreshFullscreenMonitors()
-            }
-        }
-    }
-
-    // mango needs no equivalent poke: MangoIpc.fullscreenMonitorNames is derived
-    // straight off the all-clients subscription, so it updates on its own.
+    // fullscreenMonitorNames is derived straight off MangoIpc's all-clients
+    // subscription, so it updates on its own — nothing to poll or poke.
     Connections {
         target: MangoIpc
         enabled: shellRoot.compositorName === "mango"
@@ -97,8 +47,6 @@ ShellRoot {
             shellRoot.osdBrightnessNonce++
         }
     }
-
-    Component.onCompleted: Qt.callLater(shellRoot.refreshFullscreenMonitors)
 
     // Colors from matugen: Colors.qml is loaded as a QML component. Restart quickshell after wallpaper change to pick up new theme.
     Colors {
@@ -143,6 +91,12 @@ ShellRoot {
             property bool weatherForecastVisible: false
             property int weatherForecastMarginRight: 0
             property bool performancePanelVisible: false
+            property bool volumePanelVisible: false
+            property int volumePanelMarginRight: 0
+            property bool systemPanelVisible: false
+            property int systemPanelMarginRight: 0
+            property bool batteryPanelVisible: false
+            property int batteryPanelMarginRight: 0
             property int performancePanelMarginRight: 0
             property bool tailscalePanelVisible: false
             property int tailscalePanelMarginRight: 0
@@ -154,29 +108,40 @@ ShellRoot {
                 toolsMenuVisible = false
                 weatherForecastVisible = false
                 performancePanelVisible = false
+                volumePanelVisible = false
+                systemPanelVisible = false
+                batteryPanelVisible = false
                 tailscalePanelVisible = false
             }
             property int calendarMarginLeft: 0
             property int nowPlayingMarginLeft: 0
-            // Widget visibility (toggle from settings menu)
+            // Widget visibility (toggle from settings menu).
+            //
+            // Three tiers. ALWAYS: workspaces, focused window, volume, battery,
+            // clock, notifications, quick settings, tray — things you act on at
+            // a glance. CONDITIONAL: updates, mic, idle inhibitor, battery-low —
+            // default true here, but each widget's own `present` keeps it out of
+            // the bar until it has something to say. PANEL: performance, net
+            // speed, brightness — default false; you go and look at those, and
+            // PerformanceContent / QuickSettings already hold them.
             property bool volumeWidgetVisible: true
             property bool nowPlayingWidgetVisible: true
             property bool performanceWidgetVisible: true
             property bool batteryWidgetVisible: true
-            property bool brightnessWidgetVisible: true
+            property bool brightnessWidgetVisible: false
             property bool microphoneWidgetVisible: true
             property bool ipAddressWidgetVisible: false
             property bool clockWidgetVisible: true
+            property bool systemClusterVisible: true
             property bool weatherWidgetVisible: false
             property bool updatesWidgetVisible: true
-            property bool netSpeedWidgetVisible: true
+            property bool netSpeedWidgetVisible: false
             property bool notificationsWidgetVisible: true
             property bool powerProfileWidgetVisible: false
             property bool idleInhibitorWidgetVisible: true
             property bool tailscaleWidgetVisible: true
-            // Self-hides on compositors that don't report a layout, so it can
-            // default on without cluttering a Hyprland session.
-            property bool layoutWidgetVisible: true
+            // Self-hides on compositors that don't report a layout.
+            property bool layoutWidgetVisible: false
 
             function loadBarWidgets() {
                 loadBarWidgetsProc.running = true
@@ -299,15 +264,11 @@ ShellRoot {
                 id: bar
                 property var modelData: screenDelegate.modelData
                 property string compositorName: shellRoot.compositorName
-                property var hyprMonitor: bar.compositorName === "hyprland" ? Hyprland.monitorFor(modelData) : null
                 // mango's own view of this output, from the all-monitors stream.
                 property var mangoMonitor: bar.compositorName === "mango" ? MangoIpc.monitorFor(bar.monitorName) : null
                 // Output name, however the running compositor names it.
-                readonly property string monitorName: {
-                    if (bar.compositorName === "hyprland")
-                        return bar.hyprMonitor ? String(bar.hyprMonitor.name) : ""
-                    return bar.modelData && bar.modelData.name ? String(bar.modelData.name) : ""
-                }
+                readonly property string monitorName:
+                    bar.modelData && bar.modelData.name ? String(bar.modelData.name) : ""
                 readonly property bool panelsVisible: {
                     if (!shellRoot.hasWindowIpc || !bar.monitorName) return true
                     return shellRoot.fullscreenMonitorNames.indexOf(bar.monitorName) < 0
@@ -328,7 +289,32 @@ ShellRoot {
                     right: true
                     top: true
                 }
-                implicitHeight: 30
+                // --- Geometry (BarStyle.geometry) ---
+                // edge     flush, square, full width
+                // capsule  one inset rounded bar
+                // islands  three detached rounded groups
+                readonly property string geo: BarStyle.geometry
+                // 32 for the full-width bar. The floating geometries need more
+                // because their ground is inset from the window on every side;
+                // edge spends the whole window on the bar itself.
+                readonly property int barThickness: geo === "edge" ? 32 : 40
+                // A floating shape needs air above it or its top corners get
+                // sliced off by the screen edge. So the gap and the rounding go
+                // together: `edge` is the flush, square, no-gap option, and the
+                // two floating geometries pay 6px at the top to be fully round.
+                readonly property int barTopGap: geo === "edge" ? 0 : 6
+                readonly property int barBottomGap: geo === "edge" ? 1 : 6
+                readonly property int barSideInset: geo === "edge" ? 0 : 10
+                // Padding from the screen edge to the first/last widget.
+                readonly property int contentInset: geo === "edge" ? 12 : 4
+                readonly property int groundRadius: geo === "edge" ? 0
+                    : geo === "capsule" ? 14 : 19
+
+                implicitHeight: barTopGap + barThickness + barBottomGap
+                // Reserve the full height explicitly rather than leaving it to
+                // the automatic anchor-derived zone — that is what keeps tiled
+                // windows below the bar instead of sliding under it.
+                exclusiveZone: implicitHeight
                 color: "transparent"
 
                 Component.onCompleted: {
@@ -338,33 +324,91 @@ ShellRoot {
                     }
                 }
 
+                // Ground for the two single-piece geometries. Islands paints
+                // its own three instead (below), so this is hidden there.
+                Rectangle {
+                    visible: bar.geo !== "islands"
+                    anchors.fill: parent
+                    anchors.topMargin: bar.barTopGap
+                    anchors.bottomMargin: bar.barBottomGap
+                    anchors.leftMargin: bar.barSideInset
+                    anchors.rightMargin: bar.barSideInset
+                    radius: bar.groundRadius
+                    // Wallpaper-derived near-black, held just off opaque so the
+                    // background still reads through it.
+                    color: Qt.rgba(shellRoot.shellColors.background.r,
+                                   shellRoot.shellColors.background.g,
+                                   shellRoot.shellColors.background.b, 0.93)
+                    border.width: bar.geo === "edge" ? 0 : 1
+                    border.color: Qt.rgba(shellRoot.shellColors.textMain.r,
+                                          shellRoot.shellColors.textMain.g,
+                                          shellRoot.shellColors.textMain.b, 0.07)
+
+                    // Full width has no outline; it gets a hairline along the
+                    // one edge that touches the desktop instead.
+                    Rectangle {
+                        visible: bar.geo === "edge"
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.bottom: parent.bottom
+                        height: 1
+                        color: Qt.rgba(shellRoot.shellColors.primary.r,
+                                       shellRoot.shellColors.primary.g,
+                                       shellRoot.shellColors.primary.b, 0.16)
+                    }
+                }
+
                 Item {
                     id: root
                     anchors.fill: parent
-                    property var hyprMonitor: bar.hyprMonitor
                     property var clientList: []
                     property var occupiedWorkspaceIds: ({})
                     property var clientsByWorkspace: ({})
                     property string activeWindowAddress: ""
 
-                    function refreshClients() {
-                        if (root.hyprMonitor) {
-                            if (!clientsProcess.running) clientsProcess.running = true
-                            if (!activeWindowProcess.running) activeWindowProcess.running = true
+                    // The four properties the bar renders from, filled off the
+                    // pushed MangoIpc subscriptions rather than a polled process.
+                    // Signature of the last workspace-strip model, so an
+                    // unchanged rebuild is not reassigned. mango re-pushes the
+                    // whole client list on every title change, and an animated
+                    // terminal title (a spinner) alone drives ~1.4 pushes/sec:
+                    // measured 11 pushes carrying only 2 distinct payloads over
+                    // 8s. Reassigning `var` properties on each of those makes
+                    // every binding downstream re-evaluate for nothing.
+                    property string _wsSig: ""
+
+                    // Title deliberately excluded: the strip keys off `class`,
+                    // and including it would defeat the dedupe entirely. The
+                    // only consumer of title here is WorkspacePill's letter
+                    // fallback for a window with no class, which may therefore
+                    // lag one structural change behind. Nothing else reads it.
+                    function _wsSignature(occ, by) {
+                        var keys = Object.keys(by).sort()
+                        var parts = []
+                        for (var i = 0; i < keys.length; i++) {
+                            var list = by[keys[i]] || []
+                            var ids = []
+                            for (var j = 0; j < list.length; j++)
+                                ids.push(list[j].address + ":" + list[j].class)
+                            parts.push(keys[i] + "=" + ids.join(","))
                         }
+                        return Object.keys(occ).sort().join(",") + "|" + parts.join(";")
                     }
 
-                    // mango fills the same four properties, but off the pushed
-                    // MangoIpc subscriptions rather than a polled process. Only
-                    // one compositor is live per session, so both writing to
-                    // these imperatively is safe.
                     function refreshMangoModel() {
                         if (bar.compositorName !== "mango") return
                         var m = bar.monitorName
+                        // ClientList shows titles, so this one always updates.
                         root.clientList = MangoIpc.visibleClientsOn(m)
-                        root.occupiedWorkspaceIds = MangoIpc.occupiedTags(m)
-                        root.clientsByWorkspace = MangoIpc.clientsByTag(m)
                         root.activeWindowAddress = MangoIpc.activeClientId(m)
+
+                        var occ = MangoIpc.occupiedTags(m)
+                        var by = MangoIpc.clientsByTag(m)
+                        var sig = root._wsSignature(occ, by)
+                        if (sig === root._wsSig) return
+                        root._wsSig = sig
+                        root.occupiedWorkspaceIds = occ
+                        root.clientsByWorkspace = by
                     }
 
                     Connections {
@@ -374,153 +418,105 @@ ShellRoot {
                         function onMonitorsChanged() { root.refreshMangoModel() }
                     }
 
-                    Connections {
-                        target: Hyprland
-                        enabled: bar.compositorName === "hyprland"
-                        function onRawEvent(event) {
-                            var n = event.name || ""
-                            if (n === "workspace" || n === "workspacev2") {
-                                Hyprland.refreshWorkspaces()
-                                root.refreshClients()
-                            } else if (n === "openwindow" || n === "closewindow" || n === "activewindow" || n === "activewindowv2") {
-                                root.refreshClients()
-                            }
-                        }
-                    }
-
-                    // Fallback only — Hyprland raw events (above) drive refreshes;
-                    // this just catches anything an event miss could leave stale.
+                    // Safety net. MangoIpc's two SplitParser handlers count and
+                    // log a failed JSON.parse, but the update itself is still
+                    // lost — one malformed line (a window title containing a
+                    // newline splits an object across two) would otherwise leave
+                    // the strip stale until the next push happened to arrive.
                     Timer {
                         interval: 10000
                         repeat: true
-                        running: root.hyprMonitor != null
-                        onTriggered: root.refreshClients()
+                        running: bar.compositorName === "mango"
+                        onTriggered: root.refreshMangoModel()
                     }
 
-                    Process {
-                        id: activeWindowProcess
-                        command: ["hyprctl", "activewindow", "-j"]
-                        stdout: StdioCollector {
-                            onStreamFinished: {
-                                if (bar.compositorName !== "hyprland") {
-                                    activeWindowProcess.running = false
-                                    return
-                                }
-                                try {
-                                    var obj = JSON.parse(this.text)
-                                    root.activeWindowAddress = obj && obj.address ? String(obj.address) : ""
-                                } catch (_) {
-                                    root.activeWindowAddress = ""
-                                }
-                                activeWindowProcess.running = false
-                            }
-                        }
-                    }
-
-                    Process {
-                        id: clientsProcess
-                        command: ["hyprctl", "clients", "-j"]
-                        stdout: StdioCollector {
-                            onStreamFinished: {
-                                if (bar.compositorName !== "hyprland") {
-                                    root.clientList = []
-                                    root.occupiedWorkspaceIds = {}
-                                    root.clientsByWorkspace = {}
-                                    clientsProcess.running = false
-                                    return
-                                }
-                                var list = []
-                                var occ = {}
-                                var byWs = {}
-                                try {
-                                    var clients = JSON.parse(this.text)
-                                    if (Array.isArray(clients)) {
-                                        var ws = root.hyprMonitor && root.hyprMonitor.activeWorkspace
-                                        for (var i = 0; i < clients.length; i++) {
-                                            var c = clients[i]
-                                            var cws = c.workspace
-                                            if (cws) {
-                                                var cwsId = cws.id
-                                                var cwsName = cws.name != null ? String(cws.name) : (cwsId != null ? String(cwsId) : "")
-                                                occ[cwsId] = true
-                                                occ[cwsName] = true
-                                                var entry = { address: c.address, title: c.title || "", class: c.class || "" }
-                                                if (ws && (cwsId === ws.id || cwsName === String(ws.name)))
-                                                    list.push(entry)
-                                                var key = cwsId != null ? cwsId : cwsName
-                                                if (!byWs[key]) byWs[key] = []
-                                                byWs[key].push(entry)
-                                                var arr = byWs[key]
-                                                if (cwsId != null) byWs[String(cwsId)] = arr
-                                                if (cwsName) byWs[cwsName] = arr
-                                            }
-                                        }
-                                    }
-                                } catch (_) { }
-                                root.clientList = list
-                                root.occupiedWorkspaceIds = occ
-                                root.clientsByWorkspace = byWs
-                                clientsProcess.running = false
-                            }
-                        }
-                    }
-
-                    Component.onCompleted: {
-                        if (root.hyprMonitor) {
-                            if (!clientsProcess.running) clientsProcess.running = true
-                            if (!activeWindowProcess.running) activeWindowProcess.running = true
-                        }
-                        root.refreshMangoModel()
-                    }
+                    Component.onCompleted: root.refreshMangoModel()
 
                     RowLayout {
                         id: barLayout
                         anchors.fill: parent
+                        anchors.topMargin: bar.barTopGap
+                        anchors.bottomMargin: bar.barBottomGap
+                        anchors.leftMargin: bar.barSideInset + bar.contentInset
+                        anchors.rightMargin: bar.barSideInset + bar.contentInset
                         spacing: 0
 
-                        Workspaces {
-                            id: workspaceRow
-                            visible: shellRoot.hasWindowIpc
-                            colors: shellRoot.shellColors
-                            compositorName: bar.compositorName
-                            hyprMonitor: root.hyprMonitor
-                            mangoMonitor: bar.mangoMonitor
-                            occupiedWorkspaceIds: root.occupiedWorkspaceIds
-                            clientsByWorkspace: root.clientsByWorkspace
-                            Layout.leftMargin: 0
-                            Layout.rightMargin: 4
-                        }
-                        LayoutWidget {
-                            colors: shellRoot.shellColors
-                            compositorName: bar.compositorName
-                            mangoMonitor: bar.mangoMonitor
-                            visible: screenDelegate.layoutWidgetVisible
+                        Item {
+                            id: leftSection
+                            implicitWidth: leftRow.implicitWidth
+                            Layout.fillHeight: true
                             Layout.alignment: Qt.AlignVCenter
-                            Layout.rightMargin: 4
-                        }
-                        NowPlayingWidget {
-                            id: nowPlayingWidget
-                            colors: shellRoot.shellColors
-                            Layout.alignment: Qt.AlignVCenter
-                            Layout.leftMargin: 4
-                            Layout.rightMargin: 4
-                            visible: screenDelegate.nowPlayingWidgetVisible
-                            onOpenMiniPlayerRequested: {
-                                var wasOpen = screenDelegate.nowPlayingPopupVisible
-                                screenDelegate.closeAllPanels()
-                                var pt = nowPlayingWidget.mapToItem(root, 0, 0)
-                                screenDelegate.nowPlayingMarginLeft = Math.max(8, Math.floor(pt.x))
-                                screenDelegate.nowPlayingPopupVisible = !wasOpen
+                            Layout.rightMargin: bar.geo === "islands" ? 14 : 0
+
+                            // Not a layout child: anchoring inside a RowLayout is
+                            // undefined behaviour, so the ground and the widget run
+                            // both live in this plain Item instead.
+                            Island {
+                                colors: shellRoot.shellColors
+                                enabled: bar.geo === "islands"
+                                groundRadius: bar.groundRadius
+                                anchors.fill: leftRow
+                                anchors.topMargin: -9
+                                anchors.bottomMargin: -8
+                                anchors.leftMargin: -13
+                                anchors.rightMargin: -13
+                            }
+
+                            RowLayout {
+                                id: leftRow
+                                anchors.verticalCenter: parent.verticalCenter
+                                anchors.left: parent.left
+                                spacing: 0
+
+                                Workspaces {
+                                    id: workspaceRow
+                                    visible: shellRoot.hasWindowIpc
+                                    colors: shellRoot.shellColors
+                                    compositorName: bar.compositorName
+                                    mangoMonitor: bar.mangoMonitor
+                                    occupiedWorkspaceIds: root.occupiedWorkspaceIds
+                                    clientsByWorkspace: root.clientsByWorkspace
+                                    Layout.leftMargin: 0
+                                }
+                                LayoutWidget {
+                                    colors: shellRoot.shellColors
+                                    compositorName: bar.compositorName
+                                    mangoMonitor: bar.mangoMonitor
+                                    visible: screenDelegate.layoutWidgetVisible
+                                    Layout.alignment: Qt.AlignVCenter
+                                }
+                                NowPlayingWidget {
+                                    id: nowPlayingWidget
+                                    colors: shellRoot.shellColors
+                                    Layout.alignment: Qt.AlignVCenter
+                                    visible: screenDelegate.nowPlayingWidgetVisible
+                                    onOpenMiniPlayerRequested: {
+                                        var wasOpen = screenDelegate.nowPlayingPopupVisible
+                                        screenDelegate.closeAllPanels()
+                                        var pt = nowPlayingWidget.mapToItem(root, 0, 0)
+                                        screenDelegate.nowPlayingMarginLeft = Math.max(8, Math.floor(pt.x))
+                                        screenDelegate.nowPlayingPopupVisible = !wasOpen
+                                    }
+                                }
                             }
                         }
 
                         Item {
                             Layout.fillWidth: true
                             Layout.fillHeight: true
-                            Layout.leftMargin: 4
-                            Layout.rightMargin: 4
                             visible: shellRoot.hasWindowIpc
+                            Island {
+                                colors: shellRoot.shellColors
+                                enabled: bar.geo === "islands" && clientList.width > 0
+                                groundRadius: bar.groundRadius
+                                anchors.fill: clientList
+                                anchors.topMargin: -9
+                                anchors.bottomMargin: -8
+                                anchors.leftMargin: -16
+                                anchors.rightMargin: -16
+                            }
                             ClientList {
+                                id: clientList
                                 anchors.centerIn: parent
                                 colors: shellRoot.shellColors
                                 compositorName: bar.compositorName
@@ -537,13 +533,23 @@ ShellRoot {
                             Layout.rightMargin: 8
                             z: 2
 
+                            Island {
+                                colors: shellRoot.shellColors
+                                enabled: bar.geo === "islands"
+                                groundRadius: bar.groundRadius
+                                anchors.fill: rightSectionLayout
+                                anchors.topMargin: -9
+                                anchors.bottomMargin: -8
+                                anchors.leftMargin: -10
+                                anchors.rightMargin: -10
+                            }
                             RowLayout {
                                 id: rightSectionLayout
                                 anchors.right: parent.right
                                 anchors.verticalCenter: parent.verticalCenter
                                 // Blocks style abuts widgets into one segmented
                                 // strip; every other style keeps breathing room.
-                                spacing: BarStyle.style === "blocks" ? 1 : 6
+                                spacing: 0
                                 layoutDirection: Qt.LeftToRight
 
                                 WeatherWidget {
@@ -624,20 +630,42 @@ ShellRoot {
                                     colors: shellRoot.shellColors
                                     Layout.alignment: Qt.AlignVCenter
                                     visible: screenDelegate.batteryWidgetVisible
+                                                                    onPanelToggleRequested: function() {
+                                        var wasOpen = screenDelegate.batteryPanelVisible
+                                        screenDelegate.closeAllPanels()
+                                        screenDelegate.batteryPanelVisible = !wasOpen
+                                        if (screenDelegate.batteryPanelVisible) {
+                                            var pt = batteryWidget.mapToItem(root, 0, 0)
+                                            screenDelegate.batteryPanelMarginRight = Math.max(0,
+                                                Math.floor(bar.width - pt.x - batteryWidget.width / 2 - 150))
+                                        }
+                                    }
                                 }
 
                                 BrightnessWidget {
                                     colors: shellRoot.shellColors
                                     Layout.alignment: Qt.AlignVCenter
                                     visible: screenDelegate.brightnessWidgetVisible
-                                    outputName: bar.hyprMonitor ? bar.hyprMonitor.name : ""
+                                    outputName: bar.monitorName
                                     screenIndex: bar.screenIndex
                                 }
 
                                 VolumeWidget {
+                                    id: volumeWidget
                                     colors: shellRoot.shellColors
                                     Layout.alignment: Qt.AlignVCenter
                                     visible: screenDelegate.volumeWidgetVisible
+                                                                    onVolumePanelToggleRequested: function() {
+                                        var wasOpen = screenDelegate.volumePanelVisible
+                                        screenDelegate.closeAllPanels()
+                                        screenDelegate.volumePanelVisible = !wasOpen
+                                        if (screenDelegate.volumePanelVisible) {
+                                            var pt = volumeWidget.mapToItem(root, 0, 0)
+                                            var screenW = bar.width
+                                            screenDelegate.volumePanelMarginRight = Math.max(0,
+                                                Math.floor(screenW - pt.x - volumeWidget.width / 2 - 160))
+                                        }
+                                    }
                                 }
 
                                 MicrophoneWidget {
@@ -652,6 +680,23 @@ ShellRoot {
                                     visible: screenDelegate.ipAddressWidgetVisible
                                 }
 
+                                SystemClusterWidget {
+                                    id: systemCluster
+                                    colors: shellRoot.shellColors
+                                    visible: screenDelegate.systemClusterVisible
+                                    Layout.alignment: Qt.AlignVCenter
+                                    onPanelToggleRequested: function() {
+                                        var wasOpen = screenDelegate.systemPanelVisible
+                                        screenDelegate.closeAllPanels()
+                                        screenDelegate.systemPanelVisible = !wasOpen
+                                        if (screenDelegate.systemPanelVisible) {
+                                            var pt = systemCluster.mapToItem(root, 0, 0)
+                                            screenDelegate.systemPanelMarginRight = Math.max(0,
+                                                Math.floor(bar.width - pt.x - systemCluster.width / 2 - 160))
+                                        }
+                                    }
+                                }
+                                BarSeparator { colors: shellRoot.shellColors }
                                 ToolsMenuWidget {
                                     id: toolsMenuWidget
                                     colors: shellRoot.shellColors
@@ -705,6 +750,7 @@ ShellRoot {
                                     visible: !screenDelegate.isVerticalScreen
                                 }
 
+                                BarSeparator { colors: shellRoot.shellColors }
                                 NotificationWidget {
                                     colors: shellRoot.shellColors
                                     Layout.alignment: Qt.AlignVCenter
@@ -901,6 +947,66 @@ ShellRoot {
                     anchors.fill: parent
                     colors: shellRoot.shellColors
                     onClose: function() { screenDelegate.weatherForecastVisible = false }
+                }
+            }
+
+            PopupPanel {
+                id: batteryPanel
+                screen: screenDelegate.modelData
+                visible: screenDelegate.batteryPanelVisible && bar.panelsVisible
+                colors: shellRoot.shellColors
+                layershellNamespace: "quickshell-battery"
+                barHeight: bar.implicitHeight
+                containerX: batteryPanel.width - 300 - screenDelegate.batteryPanelMarginRight
+                containerWidth: 300
+                containerHeight: batteryContentItem.implicitHeight
+                onCloseRequested: screenDelegate.closeAllPanels()
+
+                BatteryContent {
+                    id: batteryContentItem
+                    colors: shellRoot.shellColors
+                    panelOpen: batteryPanel.visible
+                    onClose: function() { screenDelegate.batteryPanelVisible = false }
+                }
+            }
+
+            PopupPanel {
+                id: systemPanel
+                screen: screenDelegate.modelData
+                visible: screenDelegate.systemPanelVisible && bar.panelsVisible
+                colors: shellRoot.shellColors
+                layershellNamespace: "quickshell-system"
+                barHeight: bar.implicitHeight
+                containerX: systemPanel.width - 320 - screenDelegate.systemPanelMarginRight
+                containerWidth: 320
+                containerHeight: systemContentItem.implicitHeight
+                onCloseRequested: screenDelegate.closeAllPanels()
+
+                SystemContent {
+                    id: systemContentItem
+                    colors: shellRoot.shellColors
+                    panelOpen: systemPanel.visible
+                    onClose: function() { screenDelegate.systemPanelVisible = false }
+                }
+            }
+
+            PopupPanel {
+                id: volumePanel
+                screen: screenDelegate.modelData
+                visible: screenDelegate.volumePanelVisible && bar.panelsVisible
+                colors: shellRoot.shellColors
+                layershellNamespace: "quickshell-volume"
+                barHeight: bar.implicitHeight
+                containerX: volumePanel.width - 320 - screenDelegate.volumePanelMarginRight
+                containerWidth: 320
+                containerHeight: volumeContentItem.implicitHeight
+                onCloseRequested: screenDelegate.closeAllPanels()
+
+                VolumeContent {
+                    id: volumeContentItem
+                    colors: shellRoot.shellColors
+                    panelOpen: volumePanel.visible
+                    onClose: function() { screenDelegate.volumePanelVisible = false }
                 }
             }
 

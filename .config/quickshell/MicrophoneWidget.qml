@@ -18,6 +18,10 @@ BarPill {
     icon: muted ? "\uF131" : "\uF130"
     label: muted ? "Muted" : (levelPct + "%")
     // Muted mic is the state worth noticing.
+    // Conditional tier: an unmuted mic is the normal case and says nothing, so
+    // the widget collapses to zero width. `present` (not `visible`) because the
+    // user's toggle in settings drives `visible` independently.
+    present: muted
     active: muted
 
     // Direct Pipewire mute toggle — no wpctl process, no stale-state race.

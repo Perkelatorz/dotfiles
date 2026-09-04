@@ -15,6 +15,8 @@ Column {
     property string ramUsed: ""
     property string ramTotal: ""
     property var sensorGroups: []
+
+
     property string lastError: ""
     property bool loading: true
 
@@ -229,10 +231,10 @@ Column {
 
     Rectangle { width: parent.width - 20; height: 1; color: perfContent.colors.borderSubtle }
 
-    // CPU / RAM bars
+    // CPU / RAM — value plus two minutes of history
     Column {
         width: parent.width - 20
-        spacing: 6
+        spacing: 12
 
         Column {
             width: parent.width
@@ -254,16 +256,12 @@ Column {
                     font.pixelSize: 11
                 }
             }
-            Rectangle {
-                width: parent.width; height: 4; radius: 2
-                color: perfContent.colors.surfaceBright
-                Rectangle {
-                    width: parent.width * (perfContent.cpuUsage / 100.0)
-                    height: parent.height
-                    radius: parent.radius
-                    color: perfContent.colors.primary
-                    Behavior on width { NumberAnimation { duration: 250 } }
-                }
+            Sparkline {
+                width: parent.width
+                colors: perfContent.colors
+                values: SystemServices.cpuHistory
+                maxSamples: SystemServices.historyLength
+                lineColor: perfContent.colors.primary
             }
         }
 
@@ -287,16 +285,14 @@ Column {
                     font.pixelSize: 11
                 }
             }
-            Rectangle {
-                width: parent.width; height: 4; radius: 2
-                color: perfContent.colors.surfaceBright
-                Rectangle {
-                    width: parent.width * (perfContent.ramPercent / 100.0)
-                    height: parent.height
-                    radius: parent.radius
-                    color: perfContent.colors.primary
-                    Behavior on width { NumberAnimation { duration: 250 } }
-                }
+            Sparkline {
+                width: parent.width
+                colors: perfContent.colors
+                values: SystemServices.memHistory
+                maxSamples: SystemServices.historyLength
+                // A second hue only because these are two charts side by side,
+                // not two series in one — nothing has to be told apart here.
+                lineColor: perfContent.colors.tertiary
             }
         }
     }

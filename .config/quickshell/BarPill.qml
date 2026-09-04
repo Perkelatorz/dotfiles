@@ -2,17 +2,18 @@ import QtQuick
 
 import "."
 
-// The one bar pill — shared by every bar widget. Its look is driven by the
-// global BarStyle singleton, so a single toggle restyles the whole bar:
-//   pill      — filled, rounded, per-widget hue (the original)
-//   neon      — transparent, glowing accent outline + icon
-//   glass      — translucent frosted fill, big radius, soft drop shadow
-//   underline — no box, just icon + text over an accent underline
-//   blocks    — solid saturated fill, square corners (pair with tight spacing)
-// The theme accent lives in the icon; `active: true` lights the whole pill with
-// the accent container for states that deserve attention (muted, low battery,
-// pending updates) — that filled treatment overrides the style so urgent
-// states always read clearly.
+// The one bar pill — shared by every bar widget. The bar's geometry paints a
+// wallpaper-tinted near-black ground (BarStyle.geometry); a pill draws ON that
+// ground rather than carrying a fill of its own, so the default state is just
+// dim ink and the eye has nothing to sort through.
+//
+// Colour is reserved for meaning. `active: true` is the only thing that spends
+// it, and BarStyle.style picks how:
+//   flat      — accent ink on a faint accent wash
+//   underline — accent ink over an accent rule
+//   filled    — accent container behind accent-on-container ink
+// Widgets set activeColor/activeTextColor to override the accent (a muted mic
+// passes `urgent`), so an urgent state still outranks an ordinary active one.
 Item {
     id: pill
     required property var colors
@@ -36,112 +37,84 @@ Item {
     signal clicked(var mouse)
     signal wheelMoved(var wheel)
 
-    // Wallpaper-derived pill color (matugen's widgetPillColors array) — each
-    // widget picks a slot so the bar carries the background's palette.
-    // pillIndex -1 = quiet surface tone. Active states always override with
-    // the accent/urgent container so meaningful states still stand out.
+    // Selects which of the palette's accents this widget's ICON wears. It no
+    // longer picks a background — widgetPillColors as 13 competing fills is what
+    // made the bar read as noise — but the icon carrying colour is what keeps
+    // the bar from going flat monochrome, since `active` states almost never
+    // fire and would otherwise be the only colour on screen.
+    //
+    // The index is fixed per widget, so a given widget always wears the same
+    // hue; the rotation is over the palette's three accents, all wallpaper-
+    // derived, so it stays a family rather than a scatter.
     property int pillIndex: -1
-    readonly property bool _colored: pillIndex >= 0 && colors.widgetPillColors !== undefined && pillIndex < colors.widgetPillColors.length
-    readonly property color _baseBg: _colored ? colors.widgetPillColors[pillIndex] : colors.surfaceContainer
-    readonly property color _baseFg: _colored ? colors.widgetTextOnPillColors[pillIndex] : colors.textMain
-
-    // The vivid per-widget hue the accent styles paint with (outline, glass
-    // tint, underline). Falls back to the theme primary for quiet widgets.
-    readonly property color _hue: _colored ? _baseBg : colors.primary
 
     // ===== STYLE-DERIVED VISUALS =====
     readonly property string _style: BarStyle.style
 
-    readonly property color _fill: active ? activeColor
-        : _style === "pill"   ? _baseBg
-        : _style === "blocks" ? _hue
-        : _style === "glass"  ? Qt.rgba(_hue.r, _hue.g, _hue.b, 0.20)
-        : "transparent"          // neon, underline
+    // The hue an active pill spends. activeColor is the widget's override.
+    readonly property color _accent: active ? activeColor : _iconAccent
 
-    readonly property int _radius: _style === "glass" ? 13
-        : (_style === "underline" || _style === "blocks") ? 0
-        : colors.widgetPillRadius
+    readonly property var _accents: [colors.primary, colors.secondary, colors.tertiary]
+    readonly property color _iconAccent: pillIndex >= 0
+        ? (_accents[pillIndex % _accents.length] || colors.primary)
+        : colors.primary
 
-    readonly property int _borderW: active ? 0
-        : _style === "neon"  ? 2
-        : _style === "pill"  ? 1
-        : _style === "glass" ? 1
-        : 0                      // underline, blocks
+    readonly property int _radius: colors.widgetPillRadius + 1
 
-    readonly property color _borderCol: _style === "neon" ? _hue
-        : _style === "glass" ? Qt.rgba(1, 1, 1, 0.18)
-        : _colored ? Qt.lighter(_baseBg, 1.25) : colors.borderSubtle
+    // Deliberately not colors.widgetPillPaddingH/spacing (8 and 5). Those were
+    // sized for pills that carried a visible fill and needed to stay compact;
+    // with no fill, the padding IS the separation between widgets, so it does
+    // the work the old borders used to.
+    readonly property int _padH: 10
+    readonly property int _gap: 7
 
-    readonly property color iconFg: active ? activeTextColor
-        : _style === "pill"   ? (_colored ? _baseFg : colors.primary)
-        : _style === "blocks" ? _baseFg
-        : _hue                   // neon, glass, underline
+    readonly property color _fill: {
+        if (active)
+            return _style === "filled"    ? activeColor
+                 : _style === "underline" ? "transparent"
+                 : Qt.rgba(_accent.r, _accent.g, _accent.b, 0.14)   // flat
+        if (ma.containsMouse && interactive)
+            return Qt.rgba(colors.textMain.r, colors.textMain.g, colors.textMain.b, 0.13)
+        return "transparent"
+    }
 
-    readonly property color fg: active ? activeTextColor
-        : (_style === "pill" || _style === "blocks") ? _baseFg
-        : (_style === "glass" || _style === "underline") ? colors.textMain
-        : _hue                   // neon
+    // Ink. Inactive widgets are deliberately uniform — no per-widget hue.
+    // Label: neutral ink. The value is what you read, so it wants contrast,
+    // not hue — and a coloured icon beside it already carries the identity.
+    readonly property color fg: active
+        ? (_style === "filled" ? activeTextColor : _accent)
+        : (ma.containsMouse && interactive ? colors.textMain : colors.textDim)
+
+    // Icon: always its accent, not only when active. This is the colour in the
+    // bar. Hover lifts it toward white so the widget still answers the pointer.
+    readonly property color iconFg: active
+        ? (_style === "filled" ? activeTextColor : _accent)
+        : (ma.containsMouse && interactive
+            ? Qt.lighter(_iconAccent, 1.35)
+            : _iconAccent)
 
     implicitWidth: present ? bgRect.width : 0
-    implicitHeight: present ? 28 : 0
+    implicitHeight: present ? 26 : 0
     visible: present
-
-    // Soft drop shadow — glass only, so widgets float above the bar.
-    Rectangle {
-        visible: pill.present && pill._style === "glass"
-        anchors.fill: bgRect
-        anchors.topMargin: 2
-        anchors.leftMargin: 1
-        radius: pill._radius
-        color: pill.colors.panelShadow
-        z: -2
-    }
-
-    // Outer glow — neon only. Faked with a soft accent-bordered halo that
-    // brightens on hover (no shader dependency).
-    Rectangle {
-        id: glowRect
-        visible: pill.present && pill._style === "neon"
-        anchors.fill: bgRect
-        anchors.margins: -2
-        radius: pill._radius + 2
-        color: "transparent"
-        border.width: 2
-        border.color: pill._hue
-        opacity: ma.containsMouse && pill.interactive ? 0.55 : 0.25
-        z: -1
-        Behavior on opacity { NumberAnimation { duration: 120 } }
-    }
 
     Rectangle {
         id: bgRect
         visible: pill.present
         height: pill.implicitHeight - colors.widgetPillPaddingV * 2
-        width: contentRow.implicitWidth + colors.widgetPillPaddingH * 2
+        width: contentRow.implicitWidth + pill._padH * 2
         anchors.verticalCenter: parent.verticalCenter
         radius: pill._radius
-        // Hover/press modulation. Transparent styles have no fill to lighten,
-        // so they gain a faint hue tint instead.
-        color: {
-            var base = pill._fill
-            if (!pill.interactive) return base
-            var transparent = base.a === 0
-            if (ma.pressed)
-                return transparent ? Qt.rgba(pill._hue.r, pill._hue.g, pill._hue.b, 0.18) : Qt.darker(base, 1.12)
-            if (ma.containsMouse)
-                return transparent ? Qt.rgba(pill._hue.r, pill._hue.g, pill._hue.b, 0.10) : Qt.lighter(base, 1.25)
-            return base
-        }
-        border.width: pill._borderW
-        border.color: ma.containsMouse && pill.interactive && pill._style === "pill" ? colors.border : pill._borderCol
-        scale: ma.pressed && pill.interactive ? 0.95 : 1.0
-        Behavior on color { ColorAnimation { duration: 100 } }
-        Behavior on border.color { ColorAnimation { duration: 100 } }
+        color: ma.pressed && pill.interactive
+            ? Qt.darker(pill._fill.a > 0 ? pill._fill : pill.colors.surfaceContainer, 1.15)
+            : pill._fill
+        border.width: 0
+        scale: ma.pressed && pill.interactive ? 0.96 : 1.0
+        Behavior on color { ColorAnimation { duration: 110 } }
         Behavior on scale { NumberAnimation { duration: 80; easing.type: Easing.OutCubic } }
 
         // Accent underline — underline style only.
         Rectangle {
-            visible: pill._style === "underline"
+            visible: pill._style === "underline" && (pill.active || (ma.containsMouse && pill.interactive))
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.bottom: parent.bottom
@@ -149,7 +122,7 @@ Item {
             anchors.rightMargin: 4
             height: ma.containsMouse && pill.interactive ? 3 : 2
             radius: 1
-            color: pill._hue
+            color: pill._accent
             Behavior on height { NumberAnimation { duration: 100 } }
         }
 
@@ -166,11 +139,12 @@ Item {
         Row {
             id: contentRow
             anchors.centerIn: parent
-            spacing: 5
+            spacing: pill._gap
             Text {
                 visible: pill.icon !== ""
                 text: pill.icon
                 color: pill.iconFg
+                Behavior on color { ColorAnimation { duration: 110 } }
                 font.pixelSize: colors.cpuFontSize
                 font.family: colors.widgetIconFont
                 anchors.verticalCenter: parent.verticalCenter
@@ -179,6 +153,7 @@ Item {
                 visible: pill.label !== ""
                 text: pill.label
                 color: pill.fg
+                Behavior on color { ColorAnimation { duration: 110 } }
                 font.pixelSize: colors.cpuFontSize
                 anchors.verticalCenter: parent.verticalCenter
             }

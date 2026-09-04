@@ -49,7 +49,7 @@ Item {
                 radius: 6
                 color: colors.surface
                 border.width: 1
-                border.color: colors.borderSubtle
+                border.color: Qt.rgba(colors.textMain.r, colors.textMain.g, colors.textMain.b, 0.10)
                 anchors.verticalCenter: parent.verticalCenter
 
                 Image {
@@ -255,7 +255,7 @@ Item {
             radius: 4
             color: colors.surface
             border.width: 1
-            border.color: colors.borderSubtle
+            border.color: Qt.rgba(colors.textMain.r, colors.textMain.g, colors.textMain.b, 0.10)
             visible: miniPlayerContent.sourceDropdownOpen && miniPlayerContent.player && miniPlayerContent.player.playerList && miniPlayerContent.player.playerList.length > 0
             z: 100
                 Column {

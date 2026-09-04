@@ -102,51 +102,34 @@ BarPill {
         else perfWidget.toggleRequested()
     }
 
-    // Segmented CPU | RAM | TEMP content (icons accent-tinted like BarPill's own).
-    Row {
-        spacing: 3
+    // Collapsed to one reading, the way the System cluster is. This used to
+    // draw four segments — CPU, RAM, temp, GPU — separated by │ glyphs: eight
+    // Text elements and by far the widest thing in the bar, for numbers you
+    // cannot act on at a glance anyway.
+    //
+    // CPU is the label because it is the one that moves. The rest is a click
+    // away in the panel, where it now has two minutes of history behind it.
+    icon: "\uF2DB"
+    label: cpuUsage + "%"
+
+    // Goes urgent when the machine is genuinely working, so a hot box still
+    // announces itself without four numbers sitting there permanently.
+    readonly property bool underLoad: cpuUsage >= 85 || (gpuHas && gpuUsage >= 85)
+    readonly property bool runningHot: cpuTempC >= 85 || gpuTempC >= 85
+    active: underLoad || runningHot
+    activeColor: runningHot ? colors.urgent : colors.primaryContainer
+    activeTextColor: runningHot ? colors.textOnUrgent : colors.textOnPrimaryContainer
+
+    // Second reading, shown only when it has something to say: memory pressure
+    // is worth surfacing without a permanent seat.
+    Rectangle {
+        visible: perfWidget.ramPercent >= 80
+        width: visible ? 6 : 0
+        height: 6
+        radius: 3
         anchors.verticalCenter: parent.verticalCenter
-        Text { text: "\uF2DB"; color: perfWidget.iconFg; font.pixelSize: colors.cpuFontSize; font.family: colors.widgetIconFont }
-        Text { text: perfWidget.cpuUsage + "%"; color: perfWidget.fg; font.pixelSize: colors.cpuFontSize }
-    }
-    Text {
-        text: "│"
-        anchors.verticalCenter: parent.verticalCenter
-        color: Qt.rgba(perfWidget.fg.r, perfWidget.fg.g, perfWidget.fg.b, 0.35)
-        font.pixelSize: colors.cpuFontSize
-    }
-    Row {
-        spacing: 3
-        anchors.verticalCenter: parent.verticalCenter
-        Text { text: "\uF538"; color: perfWidget.iconFg; font.pixelSize: colors.cpuFontSize; font.family: colors.widgetIconFont }
-        Text { text: perfWidget.ramPercent + "%"; color: perfWidget.fg; font.pixelSize: colors.cpuFontSize }
-    }
-    Text {
-        text: "│"
-        anchors.verticalCenter: parent.verticalCenter
-        visible: perfWidget.cpuTempC > 0
-        color: Qt.rgba(perfWidget.fg.r, perfWidget.fg.g, perfWidget.fg.b, 0.35)
-        font.pixelSize: colors.cpuFontSize
-    }
-    Row {
-        spacing: 3
-        visible: perfWidget.cpuTempC > 0
-        anchors.verticalCenter: parent.verticalCenter
-        Text { text: "\uF2C7"; color: perfWidget.iconFg; font.pixelSize: colors.cpuFontSize; font.family: colors.widgetIconFont }
-        Text { text: perfWidget.cpuTempC + "°"; color: perfWidget.fg; font.pixelSize: colors.cpuFontSize }
-    }
-    Text {
-        text: "\u2502"
-        anchors.verticalCenter: parent.verticalCenter
-        visible: perfWidget.gpuHas
-        color: Qt.rgba(perfWidget.fg.r, perfWidget.fg.g, perfWidget.fg.b, 0.35)
-        font.pixelSize: colors.cpuFontSize
-    }
-    Row {
-        spacing: 3
-        visible: perfWidget.gpuHas
-        anchors.verticalCenter: parent.verticalCenter
-        Text { text: "GPU"; color: perfWidget.iconFg; font.pixelSize: colors.cpuFontSize - 2; font.bold: true; anchors.verticalCenter: parent.verticalCenter }
-        Text { text: perfWidget.gpuUsage + "%" + (perfWidget.gpuTempC > 0 ? " " + perfWidget.gpuTempC + "\u00B0" : ""); color: perfWidget.fg; font.pixelSize: colors.cpuFontSize; anchors.verticalCenter: parent.verticalCenter }
+        color: perfWidget.ramPercent >= 92
+            ? perfWidget.colors.urgent
+            : perfWidget.colors.secondary
     }
 }

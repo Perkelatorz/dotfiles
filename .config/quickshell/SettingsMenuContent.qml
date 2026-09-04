@@ -25,6 +25,46 @@ Item {
             spacing: 8
 
             Text {
+                text: "Bar shape"
+                color: colors.textDim
+                font.pixelSize: colors.clockFontSize - 1
+            }
+
+            Flow {
+                width: parent.width - 20
+                spacing: 6
+                Repeater {
+                    model: BarStyle.geometries
+                    delegate: Rectangle {
+                        id: geoChip
+                        property bool selected: BarStyle.geometry === modelData.id
+                        width: geoLabel.implicitWidth + 22
+                        height: 26
+                        radius: 13
+                        color: selected ? colors.primary
+                             : geoMa.containsMouse ? colors.surfaceBright : "transparent"
+                        border.width: 1
+                        border.color: selected ? colors.primary : Qt.rgba(colors.textMain.r, colors.textMain.g, colors.textMain.b, 0.10)
+                        Behavior on color { ColorAnimation { duration: 100 } }
+                        Text {
+                            id: geoLabel
+                            anchors.centerIn: parent
+                            text: modelData.label
+                            color: geoChip.selected ? colors.textOnPrimary : colors.textMain
+                            font.pixelSize: colors.clockFontSize - 1
+                        }
+                        MouseArea {
+                            id: geoMa
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: BarStyle.setGeometry(modelData.id)
+                        }
+                    }
+                }
+            }
+
+            Text {
                 text: "Bar style"
                 color: colors.textDim
                 font.pixelSize: colors.clockFontSize - 1
@@ -44,7 +84,7 @@ Item {
                         color: selected ? colors.primary
                              : chipMa.containsMouse ? colors.surfaceBright : "transparent"
                         border.width: 1
-                        border.color: selected ? colors.primary : colors.borderSubtle
+                        border.color: selected ? colors.primary : Qt.rgba(colors.textMain.r, colors.textMain.g, colors.textMain.b, 0.10)
                         Behavior on color { ColorAnimation { duration: 100 } }
                         Text {
                             id: chipLabel

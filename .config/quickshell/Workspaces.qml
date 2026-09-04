@@ -1,25 +1,20 @@
 import QtQuick
 import Quickshell
-import Quickshell.Hyprland
 
 import "."
 
-// Workspace strip. Two data sources, one visual (WorkspacePill):
-//   hyprland — Hyprland.workspaces, filtered to this monitor
-//   mango    — the monitor's `tags` array from `mmsg watch all-monitors`
-// The Hyprland branch is unchanged in behaviour from before the mango port.
+// Workspace strip: the monitor's `tags` array from `mmsg watch all-monitors`,
+// rendered through WorkspacePill.
 Row {
     id: workspaceRow
     required property var colors
     required property string compositorName
-    // Hyprland monitor object; null under mango.
-    required property var hyprMonitor
-    // mango: this monitor's entry out of shellRoot.mangoMonitors.
+    // This monitor's entry out of shellRoot.mangoMonitors.
     property var mangoMonitor: null
     required property var occupiedWorkspaceIds
     property var clientsByWorkspace: ({})
 
-    spacing: 6
+    spacing: 7
     leftPadding: 8
     rightPadding: 8
     height: parent ? parent.height : 24
@@ -29,10 +24,10 @@ Row {
     readonly property int slotPadding: 6
 
     // mango hardcodes 9 tags at compile time (src/config/preset.h), and there's
-    // no runtime option to shrink that. Only 1-5 are bound in binds.conf, to
-    // match the 5 Hyprland workspaces, so the rest are shown only when
-    // something is actually on them — a window can never end up stranded on an
-    // invisible tag, but the strip stays five wide in normal use.
+    // no runtime option to shrink that. Only 1-5 are bound in binds.conf, so the
+    // rest are shown only when something is actually on them — a window can
+    // never end up stranded on an invisible tag, but the strip stays five wide
+    // in normal use.
     property int visibleTagCount: 5
 
     readonly property var mangoTags: {
@@ -63,46 +58,9 @@ Row {
         return !!(occ[key] || occ[String(key)] || (altKey !== undefined && (occ[altKey] || occ[String(altKey)])))
     }
 
-    // --- Hyprland ---------------------------------------------------------
-    Repeater {
-        model: workspaceRow.compositorName === "hyprland" ? Hyprland.workspaces : null
-        delegate: Item {
-            readonly property var workspace: modelData
-            readonly property bool onThisMonitor: workspace.monitor === workspaceRow.hyprMonitor
-            readonly property bool isActive: workspaceRow.hyprMonitor && workspaceRow.hyprMonitor.activeWorkspace && (
-                workspaceRow.hyprMonitor.activeWorkspace.id === workspace.id ||
-                workspaceRow.hyprMonitor.activeWorkspace.name === workspace.name
-            )
-
-            width: onThisMonitor ? hyprPill.width : 0
-            height: onThisMonitor ? hyprPill.height : 0
-            visible: onThisMonitor
-
-            WorkspacePill {
-                id: hyprPill
-                colors: workspaceRow.colors
-                isActive: parent.isActive
-                isFocused: !!(workspaceRow.hyprMonitor && workspaceRow.hyprMonitor.focused && parent.isActive)
-                hasUrgent: !!workspace.urgent
-                occupied: workspaceRow.occupiedFor(workspace.id, String(workspace.name))
-                wsClients: parent.onThisMonitor ? workspaceRow.clientsFor(workspace.id, workspace.name) : []
-                maxAppIndicators: workspaceRow.maxAppIndicators
-                appIconSize: workspaceRow.appIconSize
-                slotPadding: workspaceRow.slotPadding
-                onActivated: {
-                    if (workspaceRow.hyprMonitor) {
-                        Hyprland.dispatch("focusmonitor " + workspaceRow.hyprMonitor.name)
-                        workspace.activate()
-                    }
-                }
-            }
-        }
-    }
-
-    // --- mango ------------------------------------------------------------
-    // `tags` is a fixed-length array (one entry per configured tag), so unlike
-    // Hyprland there is nothing to filter by monitor — the array already
-    // belongs to this output.
+    // `tags` is a fixed-length array (one entry per configured tag), so there
+    // is nothing to filter by monitor — the array already belongs to this
+    // output.
     Repeater {
         model: workspaceRow.mangoTags
         delegate: WorkspacePill {
@@ -124,8 +82,7 @@ Row {
             slotPadding: workspaceRow.slotPadding
             onActivated: {
                 if (!workspaceRow.mangoMonitor) return
-                // Focus the output first so the tag switch lands there, mirroring
-                // the focusmonitor + activate pair on the Hyprland side. The
+                // Focus the output first so the tag switch lands there. The
                 // singleton serialises the two so the second can't clobber the first.
                 MangoIpc.dispatch("focusmon," + workspaceRow.mangoMonitor.name)
                 MangoIpc.dispatch("view," + tagIndex + ",0")

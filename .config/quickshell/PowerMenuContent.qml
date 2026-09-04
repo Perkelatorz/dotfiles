@@ -8,7 +8,7 @@ Column {
     required property var colors
     required property var onClose
 
-    property string compositorName: "hyprland"
+    property string compositorName: "mango"
     property string lockCommand: "hyprlock"
     property string suspendCommand: "systemctl suspend"
     property string hibernateCommand: "systemctl hibernate"

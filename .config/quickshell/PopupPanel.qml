@@ -73,21 +73,30 @@ PanelWindow {
         Rectangle {
             anchors.fill: parent
             anchors.leftMargin: 2
-            anchors.topMargin: 3
+            anchors.topMargin: 4
             z: -1
-            radius: 14
+            radius: 20
             color: root.colors.panelShadow
             // No floating shadow behind transparent-content popups.
             visible: root.showBackground
         }
 
+        // Same ground as the bar: the wallpaper-derived near-black, not
+        // surfaceContainer. A panel that drops out of a bar should read as the
+        // same surface arriving, and surfaceContainer (#291c22) is two steps
+        // lighter than the bar — which is what made the menus look bolted on.
         Rectangle {
             visible: root.showBackground
             anchors.fill: parent
-            radius: 12
-            color: root.colors.surfaceContainer
+            // 20, not 12. The rounder, softer shape is most of what separates
+            // the reference rices from "clean but plain"; caelestia's default is
+            // 25, which is too much at this panel size.
+            radius: 20
+            color: Qt.rgba(root.colors.background.r, root.colors.background.g,
+                           root.colors.background.b, 0.93)
             border.width: 1
-            border.color: root.colors.borderSubtle
+            border.color: Qt.rgba(root.colors.textMain.r, root.colors.textMain.g,
+                                  root.colors.textMain.b, 0.10)
         }
 
         Item {

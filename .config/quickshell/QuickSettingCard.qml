@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Layouts
 
 import "."
 
@@ -18,6 +19,10 @@ Rectangle {
     readonly property bool hasProgress: progress >= 0
     readonly property bool hasPalette: paletteColors != null && paletteColors.length > 0
 
+    // Fill the grid column rather than sitting at a fixed 168. The panel is
+    // 440 wide, so two columns give ~204 each — the fixed width was leaving
+    // ~36px of the panel unused per column and squeezing every label.
+    Layout.fillWidth: true
     implicitWidth: 168
     implicitHeight: hasPalette ? 66 : (hasProgress ? 70 : 62)
     radius: 10
@@ -61,7 +66,9 @@ Rectangle {
         anchors.margins: 10
         spacing: hasPalette ? 4 : (hasProgress ? 4 : 0)
         Row {
-            width: parent.width - 20
+            // parent is already inset by anchors.margins:10 on both sides; the
+            // extra -20 here was a second inset that nothing asked for.
+            width: parent.width
             spacing: 10
             Text {
                 text: card.icon
@@ -73,7 +80,8 @@ Rectangle {
             Column {
                 spacing: 2
                 anchors.verticalCenter: parent.verticalCenter
-                width: parent.width - 40
+                // Exactly the icon (20) plus the Row spacing (10).
+                width: parent.width - 30
                 Text {
                     text: card.title
                     color: active ? colors.textOnPrimaryContainer : (card.enabled ? colors.textMain : colors.textDim)
@@ -124,7 +132,7 @@ Rectangle {
                     radius: 5
                     color: modelData
                     border.width: 1
-                    border.color: colors.borderSubtle
+                    border.color: Qt.rgba(colors.textMain.r, colors.textMain.g, colors.textMain.b, 0.10)
                 }
             }
         }

@@ -8,8 +8,11 @@ BarPill {
     id: volumeWidget
     pillIndex: 7
 
-    // Volume control app on right-click ("pulsemixer"/"ncpamixer" work too).
+    // Left click opens the shell's own audio panel; right click still reaches
+    // for the full mixer when you need routing or per-device settings.
     property string volumeControlCommand: "pavucontrol"
+
+    signal volumePanelToggleRequested()
 
     property var sink: Pipewire.defaultAudioSink
     PwObjectTracker {
@@ -38,6 +41,7 @@ BarPill {
         if (mouse.button === Qt.RightButton) runVolumeControl.running = true
         else if (mouse.button === Qt.MiddleButton && sink && sink.audio)
             sink.audio.muted = !sink.audio.muted
+        else volumeWidget.volumePanelToggleRequested()
     }
     // Direct Pipewire adjustment — no wpctl process per scroll tick.
     onWheelMoved: wheel => {

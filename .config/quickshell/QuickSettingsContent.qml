@@ -7,7 +7,7 @@ ColumnLayout {
     id: quickSettingsRoot
     required property var colors
     required property var onClose
-    property string compositorName: "hyprland"
+    property string compositorName: "mango"
     property int screenIndex: 0
 
     signal openPowerRequested()
