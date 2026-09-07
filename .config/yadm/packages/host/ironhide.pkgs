@@ -1,0 +1,20 @@
+# Ironhide — ASUS laptop: RTX 4060 Max-Q (dGPU) + AMD Phoenix1 iGPU.
+#
+# The iGPU is primary for battery; run apps on the dGPU with: prime-run <app>
+#
+# Userspace only. The kernel MODULE and matching headers are derived at
+# bootstrap time by resolve_kernel_packages, which now reads the PCI vendor IDs
+# rather than guessing from the class — so a laptop without an NVIDIA card gets
+# no NVIDIA modules even though it is also class=laptop.
+
+# --- NVIDIA dGPU (userspace) ---
+nvidia-utils
+libva-nvidia-driver
+nvidia-prime
+
+# --- AMD iGPU ---
+vulkan-radeon
+
+# --- 32-bit halves, for Steam/Proton through prime-run ---
+lib32-nvidia-utils
+lib32-vulkan-radeon

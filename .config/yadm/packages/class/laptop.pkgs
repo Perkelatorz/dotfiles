@@ -1,16 +1,8 @@
-# Laptop (Ironhide): hybrid AMD iGPU (primary, low power) + RTX dGPU (offload).
-# Run apps on the dGPU with: prime-run <app>
-
-# --- GPU userspace (kernel module + headers resolved at bootstrap time; see
-#     the note in class/desktop.pkgs for why they are not hardcoded here) ---
-nvidia-utils
-libva-nvidia-driver
-vulkan-radeon
-nvidia-prime
-
-# 32-bit drivers for Steam/Proton (dGPU offload via prime-run + AMD iGPU).
-lib32-nvidia-utils
-lib32-vulkan-radeon
+# Role: laptop. Anything EVERY laptop wants, regardless of which one it is.
+#
+# GPU packages deliberately live in host/<name>.pkgs, not here — that is the
+# thing two laptops are most likely to disagree about, and duplicating the rest
+# of this file to fork the class would be the wrong trade.
 
 # --- Power ---
 power-profiles-daemon

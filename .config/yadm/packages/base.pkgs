@@ -30,6 +30,10 @@ bat
 # --- System plumbing ---
 base-devel
 pacman-contrib
+# pciutils: bootstrap's resolve_kernel_packages reads `lspci` vendor IDs to
+# decide whether this machine wants NVIDIA kernel modules. It usually arrives
+# as someone else's dependency; declared here so that stays true.
+pciutils
 xdg-utils
 xdg-user-dirs
 yadm

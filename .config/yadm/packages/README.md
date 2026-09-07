@@ -82,10 +82,9 @@ The vault ships a `.stignore` that excludes `.git` and Obsidian's
 | `mango.pkgs` | all machines | the mango compositor + its screencast portal |
 | `apps.pkgs` | all machines | firefox, thunar, imv/mpv, vesktop, obsidian, bitwarden |
 | `dev.pkgs` | all machines | neovim, go/rust/npm, ripgrep/fd/fzf, gh |
-| `class/desktop.pkgs` | class `desktop` | NVIDIA userspace, Sunshine (game-stream host), gpu-screen-recorder |
-| `class/laptop.pkgs` | class `laptop` | NVIDIA + AMD hybrid userspace (prime-run), power-profiles, lib32 drivers |
-| `class/work.pkgs` | class `work` | nvidia-580xx (Pascal Quadros), Xorg + XFCE for RDP |
-| `class/work.aur` | class `work` | xrdp, xorgxrdp — the only packages with no non-AUR source |
+| `class/<role>.pkgs` | matching class | role: what every desktop / laptop / work box wants |
+| `class/<role>.aur` | matching class | AUR half of the same (work: xrdp, xorgxrdp) |
+| `host/<name>.pkgs` | matching hostname | machine: what makes THIS box different (GPU, dock, fingerprint reader) |
 | `gaming.pkgs` | opt-in (any class) | CachyOS gaming bundle: Steam/Proton/gamescope/MangoHud/Lutris/Heroic + gamemode |
 | `gaming.aur` | opt-in (any class) | commented extras (vkBasalt, game-devices-udev) — off by default |
 | `baseline.ignore` | not a list | the ISO's own package set, so `pkgs drift` can ignore it |
@@ -190,16 +189,64 @@ other machines too, so `xrdp` (work) and `sunshine` (desktop) will always show
 up on a laptop. The list each package came from is printed alongside it for
 exactly that reason.
 
-## Machine classes
+## Profiles: role vs machine
 
-The class set via `yadm config local.class` drives two things:
+Lists compose in **three layers**, all installed together:
 
-1. **Packages** — bootstrap installs all top-level `*.pkgs` plus
-   `class/$CLASS.pkgs` / `class/$CLASS.aur`.
-2. **Config alternates** — yadm materializes `file##class.<name>` variants,
-   e.g. `~/.config/mango/monitors.conf##class.desktop` becomes
-   `monitors.conf` on the desktop. (Copies, not symlinks: `yadm.alt-copy` is
-   set so the compositor's inotify watch survives a re-alt.)
+| Layer | File | Selected by | Holds |
+|---|---|---|---|
+| every machine | `*.pkgs` | always | the shell, the compositor, apps, dev tools |
+| **role** | `class/<role>.pkgs` | `yadm config local.class` | what every desktop / laptop / work box wants |
+| **machine** | `host/<name>.pkgs` | short hostname | what makes *this* box different |
+
+The two-laptop case is exactly why the host layer exists. An ASUS TUF with a
+discrete NVIDIA card and an ultrabook on Intel graphics are both
+`class=laptop` — they genuinely share the role (power profiles, lid handling)
+and genuinely disagree about drivers. Forking the class into `tuf` and
+`ultrabook` would duplicate everything they agree on, and the duplicates would
+drift apart. So:
+
+```
+class/laptop.pkgs     power-profiles-daemon          # every laptop
+host/ironhide.pkgs    nvidia-utils, vulkan-radeon…   # this laptop
+host/zenbook.pkgs     intel-media-driver…            # the other one
+```
+
+Nothing to configure for the host layer — it keys on `hostname -s`, and your
+machines are already named. A machine with no host list simply gets base +
+class.
+
+### Adding one
+
+```sh
+pkgs lists                                  # every list, and which apply here
+pkgs add -l host/$(hostname -s).pkgs foo    # file it against this machine
+pkgs add foo                                # or pick from a menu
+```
+
+The picker marks which lists apply to the machine you are on, and offers
+`host/<thisbox>` even before the file exists — that friction is otherwise
+exactly why machine-specific packages end up dumped in a class list. New lists
+are created with a header explaining what belongs in them.
+
+### The same two axes apply to config files
+
+yadm materializes `file##class.<name>` and `file##hostname.<name>` variants, so
+config splits the same way packages do — `mango/monitors.conf##class.desktop`
+becomes `monitors.conf` on the desktop, and a per-machine variant would be
+`##hostname.ironhide`. (Copies, not symlinks: `yadm.alt-copy` is set so the
+compositor's inotify watch survives a re-alt.)
+
+That means a second laptop needs no new mechanism for either half — name it,
+add `host/<name>.pkgs`, and add `##hostname.<name>` config variants if its
+displays or GPU env differ.
+
+### GPU drivers are not chosen by class
+
+`resolve_kernel_packages` reads **PCI vendor IDs** via `lspci`, not the class,
+so an Intel-only laptop gets no NVIDIA kernel modules even though it is also
+`class=laptop`. Class-based GPU logic breaks the moment two machines share a
+role and not a GPU — which is the situation the host layer exists for.
 
 ## GPU driver map
 

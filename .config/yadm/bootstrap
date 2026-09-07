@@ -77,6 +77,7 @@ VAULT="${NOTES:-$HOME/notes}"
 SYNCTHING_FOLDER_ID="notes"
 
 CLASS=""
+HOST=""                   # short hostname; selects packages/host/<HOST>.pkgs
 GAMING=false
 DISTRO=""                 # cachyos | arch | arch-like | other
 HAVE_CACHYOS_REPO=false   # is the [cachyos] repo configured?
@@ -120,6 +121,16 @@ ensure_class() {
         yadm config local.class "$CLASS"
     fi
     ok "machine class: $CLASS"
+    # Short hostname, the second selector. Class is the ROLE (every laptop
+    # wants power-profiles-daemon); host is the MACHINE (this laptop's GPU).
+    # Two laptops with different GPUs share class/laptop.pkgs and diverge in
+    # host/<name>.pkgs, instead of forking the class and duplicating the rest.
+    HOST=$(hostname -s 2>/dev/null || uname -n | cut -d. -f1)
+    if [[ -f "$PKG_DIR/host/$HOST.pkgs" || -f "$PKG_DIR/host/$HOST.aur" ]]; then
+        ok "machine host: $HOST"
+    else
+        ok "machine host: $HOST (no host list; add one with: pkgs add -l host/$HOST.pkgs <pkg>)"
+    fi
     # Copy alternates instead of symlinking: yadm's auto-alt (runs on most yadm
     # commands) recreates symlinks, and the delete+create gap breaks a
     # compositor's inotify watch on sourced config files. A copy is overwritten
@@ -303,8 +314,22 @@ resolve_kernel_packages() {
     fi
     mapfile -t kernels < <(printf '%s\n' "${kernels[@]}" | sort -u)
 
+    # Ask the hardware, not the class. Deciding by class breaks as soon as two
+    # machines share a role but not a GPU -- two laptops, one NVIDIA/AMD hybrid
+    # and one Intel-only, are both class=laptop.
     local want_nvidia=false
-    case "$CLASS" in desktop|laptop) want_nvidia=true ;; esac
+    if lspci -n 2>/dev/null | awk '{print $3}' | grep -qi '^10de:'; then
+        want_nvidia=true
+        ok "NVIDIA GPU detected"
+    elif ! command -v lspci &>/dev/null; then
+        # pciutils missing (it is in base.pkgs, but this can run before that
+        # lands on a truly bare system): fall back to the old class guess
+        # rather than silently skipping the driver on a machine that needs it.
+        case "$CLASS" in desktop|laptop|work) want_nvidia=true ;; esac
+        warn "lspci unavailable; assuming NVIDIA from class=$CLASS"
+    else
+        ok "no NVIDIA GPU detected; skipping NVIDIA kernel modules"
+    fi
 
     local need_dkms=false
     for base in "${kernels[@]}"; do
@@ -393,14 +418,16 @@ install_aur_pkgs() {
 install_packages() {
     local -a repo_pkgs=() aur_pkgs=()
     local f
-    for f in "$PKG_DIR"/*.pkgs "$PKG_DIR/class/$CLASS.pkgs"; do
+    for f in "$PKG_DIR"/*.pkgs "$PKG_DIR/class/$CLASS.pkgs" "$PKG_DIR/host/$HOST.pkgs"; do
         [[ -f "$f" ]] || continue
         # gaming.pkgs is selection-gated and added explicitly below, never via
         # the glob. (mango.pkgs used to be gated too, back when Hyprland was an
         # alternative; it is now unconditional and rides the glob.)
         [[ "$(basename "$f")" == "gaming.pkgs" ]] && continue
         mapfile -t -O "${#repo_pkgs[@]}" repo_pkgs < <(read_pkg_file "$f")
-        ok "list: $(basename "$f")"
+        # Relative path, not basename: class/ and host/ lists can share a name
+        # (class/laptop.pkgs vs host/laptop.pkgs) and the log should say which.
+        ok "list: ${f#$PKG_DIR/}"
     done
 
     # Headers / NVIDIA modules for the kernels actually installed.
@@ -409,10 +436,12 @@ install_packages() {
         ok "list: kernel-derived (${#KERNEL_PKGS[@]})"
     fi
 
-    if [[ -f "$PKG_DIR/class/$CLASS.aur" ]]; then
-        mapfile -t aur_pkgs < <(read_pkg_file "$PKG_DIR/class/$CLASS.aur")
-        (( ${#aur_pkgs[@]} )) && ok "list: class/$CLASS.aur (AUR)"
-    fi
+    local af
+    for af in "$PKG_DIR/class/$CLASS.aur" "$PKG_DIR/host/$HOST.aur"; do
+        [[ -f "$af" ]] || continue
+        mapfile -t -O "${#aur_pkgs[@]}" aur_pkgs < <(read_pkg_file "$af")
+        ok "list: ${af#$PKG_DIR/} (AUR)"
+    done
 
     if [[ "$GAMING" == "true" ]]; then
         # cachyos-gaming-applications is in [cachyos] and NOWHERE else — not in
@@ -839,7 +868,7 @@ warm_neovim_plugins
 [[ "$CLASS" == "work" ]] && setup_rdp_session
 
 echo
-echo "✨ Bootstrap complete (class: $CLASS, distro: $DISTRO)"
+echo "✨ Bootstrap complete (class: $CLASS, host: $HOST, distro: $DISTRO)"
 if (( ${#FAILED_PKGS[@]} )); then
     echo "⚠️  ${#FAILED_PKGS[@]} package(s) failed:"
     printf '   ✗ %s\n' "${FAILED_PKGS[@]}"

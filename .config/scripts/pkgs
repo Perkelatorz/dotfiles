@@ -10,7 +10,19 @@
 #   pkgs missing      in a list but not installed
 #   pkgs status       counts for both, per list
 #   pkgs add PKG...   append to a list (asks which, or pass -l NAME)
+#   pkgs lists        every list, and which apply to this machine
 #   pkgs baseline     (re)generate the ISO baseline — see "Baseline" below
+#
+# Profiles
+#   Lists compose in three layers, all installed together:
+#     *.pkgs              every machine
+#     class/<role>.pkgs   the ROLE   — desktop | laptop | work  (yadm config local.class)
+#     host/<name>.pkgs    the MACHINE — keyed on the short hostname
+#
+#   Two laptops with different GPUs share class/laptop.pkgs and diverge in
+#   host/<name>.pkgs, rather than forking the class and duplicating the rest.
+#   The picker marks which lists apply here, so it is obvious whether you are
+#   filing a package for this machine or for every machine.
 #
 # Baseline
 #   A stock CachyOS install marks ~250 packages explicit before you ever log
@@ -26,6 +38,8 @@
 set -uo pipefail
 
 PKG_DIR="$HOME/.config/yadm/packages"
+CLASS=$(yadm config local.class 2>/dev/null || true)
+HOST=$(hostname -s 2>/dev/null || uname -n | cut -d. -f1)
 BASELINE="$PKG_DIR/baseline.ignore"
 PACLOG="/var/log/pacman.log"
 
@@ -97,8 +111,20 @@ baseline_pkgs() {
 list_blurb() {
     local f="$PKG_DIR/$1"
     local line
-    line=$(grep -m1 '^# .' "$f" 2>/dev/null | sed 's/^# *//' | cut -c1-58)
-    [[ -n "$line" ]] && printf '%s — %s\n' "$1" "$line" || printf '%s\n' "$1"
+    line=$(grep -m1 '^# .' "$f" 2>/dev/null | sed 's/^# *//' | cut -c1-52)
+    printf '%s%s%s\n' "$1" "$(applies_here "$1" && echo '  [this machine]')" "${line:+  — $line}"
+}
+
+# Does this list get installed on THIS box? Top-level lists always do; class/
+# and host/ lists only when they match. Adding a package to class/work.pkgs
+# from a laptop is legitimate but worth seeing, so it is labelled rather than
+# hidden.
+applies_here() {
+    case "$1" in
+        class/*) [[ "$1" == "class/$CLASS."* ]] ;;
+        host/*)  [[ "$1" == "host/$HOST."* ]] ;;
+        *)       true ;;
+    esac
 }
 
 # --- the three views --------------------------------------------------------
@@ -144,7 +170,34 @@ add_one() {
 
     if [[ ! -f "$target" ]]; then
         mkdir -p "$(dirname "$target")"
-        printf '# %s\n\n' "${list%.*}" > "$target"
+        # A stub that says what the list is FOR. A bare "# host/zenbook" tells
+        # the next reader nothing, and these files are read far more often than
+        # they are written.
+        case "$list" in
+            host/*)
+                cat > "$target" <<EOT
+# $(basename "${list%.*}") — packages for this machine specifically.
+#
+# Selected by short hostname. Installed on top of base + class/<role>, so put
+# only what makes THIS box different here: GPU userspace, a dock, a fingerprint
+# reader. Anything every machine of this role wants belongs in the class list.
+
+EOT
+                ;;
+            class/*)
+                cat > "$target" <<EOT
+# Role: $(basename "${list%.*}") — packages every machine of this role wants,
+# regardless of which machine it is.
+#
+# Selected by: yadm config local.class $(basename "${list%.*}")
+# Machine-specific differences (GPU, peripherals) go in host/<name>.pkgs.
+
+EOT
+                ;;
+            *)
+                printf '# %s — installed on every machine.\n\n' "${list%.*}" > "$target"
+                ;;
+        esac
         say "created $list"
     fi
 
@@ -203,6 +256,19 @@ cmd_status() {
         echo "missing (list shown; other machines' classes are expected here):"
         missing | sed 's/^/  /'
     fi
+}
+
+cmd_lists() {
+    local f n
+    printf '%-26s %-7s %s\n' "LIST" "PKGS" "APPLIES TO THIS MACHINE"
+    while read -r f; do
+        n=$(read_list "$PKG_DIR/$f" | wc -l)
+        printf '%-26s %-7s %s\n' "$f" "$n" "$(applies_here "$f" && echo yes || echo '-')"
+    done < <(all_lists both)
+    echo
+    echo "class = $CLASS    host = $HOST"
+    [[ -f "$PKG_DIR/host/$HOST.pkgs" ]] \
+        || echo "no host/$HOST.pkgs yet — create it with: pkgs add -l host/$HOST.pkgs <pkg>"
 }
 
 cmd_baseline() {
@@ -291,8 +357,15 @@ cmd_add() {
         # through paru for no reason.
         local ext=pkgs
         is_foreign "${want[0]}" && ext=aur
+        # Offer host/<this machine> even before the file exists, so filing a
+        # machine-specific package does not require creating the list by hand
+        # first -- that friction is why such packages end up in a class list.
+        local -a extra=()
+        [[ -f "$PKG_DIR/host/$HOST.$ext" ]] || extra+=("host/$HOST.$ext  [this machine, new]")
         local choice
-        choice=$( { all_lists "$ext" | while read -r f; do list_blurb "$f"; done; echo "+ new list"; } \
+        choice=$( { all_lists "$ext" | while read -r f; do list_blurb "$f"; done
+                    (( ${#extra[@]} )) && printf '%s\n' "${extra[@]}"
+                    echo "+ new list"; } \
                   | pick "Add ${want[*]} to" )
         [[ -z "$choice" ]] && exit 0
         if [[ "$choice" == "+ new list" ]]; then
@@ -332,10 +405,11 @@ cmd_interactive() {
 case "${1:-}" in
     ""|pick|interactive) cmd_interactive ;;
     drift)    drift ;;
+    lists)    cmd_lists ;;
     missing)  missing ;;
     status)   cmd_status ;;
     baseline) cmd_baseline ;;
     add)      shift; cmd_add "$@" ;;
-    -h|--help|help) sed -n '2,28p' "$0" | sed 's/^# \?//' ;;
+    -h|--help|help) sed -n '2,40p' "$0" | sed 's/^# \?//' ;;
     *) die "unknown command: $1 (try: pkgs --help)" ;;
 esac
