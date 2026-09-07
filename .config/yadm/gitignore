@@ -53,6 +53,13 @@ go/pkg/
 
 # Project workspaces (not dotfiles)
 code/
+dev/
+# The Obsidian vault. Syncthing replicates it between machines over the tailnet;
+# it is a git repo in its own right and must not be swept into this one.
+notes/
+# Snapshot of the pre-yadm CachyOS defaults, taken when these dotfiles were
+# first switched on. Kept as reference; nothing reads it.
+dotfiles-defaults-backup-*/
 svelte-auth-app/
 plc/
 go/
@@ -176,7 +183,6 @@ log_iotc.txt
 .config/quickshell/bar-widgets.json
 .config/quickshell/weather-location.txt
 
-# Stock CachyOS mango config, left on disk from the pre-dotfiles install.
-# config.conf sources its own modules and never touches these, so they are dead
-# reference material — kept for comparison, not tracked.
-.config/mango/cfg
+# pavucontrol remembers its window geometry here — per-machine runtime state,
+# not a preference worth syncing.
+.config/pavucontrol.ini

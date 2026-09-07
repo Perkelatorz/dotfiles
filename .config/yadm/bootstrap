@@ -496,6 +496,52 @@ install_packages() {
     ensure_aur_helper || true
 }
 
+# Mark everything the lists declare as explicitly installed.
+#
+# `pacman -S --needed` skips a package that is already present, and skipping it
+# leaves its install reason alone. So anything the ISO pulled in as a
+# dependency stays marked "dependency" forever, even though these lists now
+# declare it deliberately.
+#
+# That is not cosmetic. `pacman -Rs` removes dependencies that nothing else
+# needs, and on this machine that cascade would have taken mangowm -- the
+# compositor -- along with zsh, pipewire and curl, because they arrived as
+# dependencies of the ISO's desktop profile and were never re-marked. Declaring
+# a package and having pacman believe nothing wants it is the bug.
+#
+# Only lists that apply to THIS machine are marked; class/work.pkgs naming
+# xorg-server should not make it explicit on a laptop where it is genuinely
+# just somebody's dependency.
+converge_install_reasons() {
+    local -a declared=() fix=()
+    local f p
+    for f in "$PKG_DIR"/*.pkgs "$PKG_DIR"/*.aur \
+             "$PKG_DIR/class/$CLASS.pkgs" "$PKG_DIR/class/$CLASS.aur" \
+             "$PKG_DIR/host/$HOST.pkgs" "$PKG_DIR/host/$HOST.aur"; do
+        [[ -f "$f" ]] || continue
+        mapfile -t -O "${#declared[@]}" declared < <(read_pkg_file "$f")
+    done
+    (( ${#declared[@]} )) || return 0
+
+    # Intersect with what pacman currently calls a dependency.
+    local -A isdep=()
+    while read -r p; do isdep["$p"]=1; done < <(pacman -Qqd 2>/dev/null)
+    local -A seen=()
+    for p in "${declared[@]}"; do
+        [[ -n "${isdep[$p]:-}" && -z "${seen[$p]:-}" ]] || continue
+        seen["$p"]=1
+        fix+=("$p")
+    done
+    (( ${#fix[@]} )) || { ok "install reasons already correct"; return 0; }
+
+    info "Marking ${#fix[@]} declared package(s) as explicitly installed..."
+    if sudo pacman -D --asexplicit --noconfirm "${fix[@]}" &>/dev/null; then
+        ok "install reasons converged: ${fix[*]}"
+    else
+        warn "could not update install reasons"
+    fi
+}
+
 # --- services ---
 
 enable_system_service() {
@@ -857,6 +903,7 @@ fi
 
 resolve_kernel_packages
 install_packages
+converge_install_reasons
 setup_services
 setup_syncthing_vault
 setup_default_shell_zsh

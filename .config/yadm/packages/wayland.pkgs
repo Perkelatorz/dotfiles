@@ -90,6 +90,10 @@ libnotify
 imagemagick
 papirus-icon-theme
 adw-gtk-theme
+# capitaine-cursors: named by gtk-3.0/settings.ini. It used to arrive only as a
+# dependency of CachyOS's desktop profile, so removing that profile would have
+# left the cursor theme dangling.
+capitaine-cursors
 
 # --- Fonts (a no-desktop install has NO fonts; noto covers UI + emoji fallback) ---
 noto-fonts
