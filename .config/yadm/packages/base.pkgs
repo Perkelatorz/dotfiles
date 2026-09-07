@@ -30,6 +30,10 @@ bat
 # --- System plumbing ---
 base-devel
 pacman-contrib
+# paru: the AUR helper. bootstrap installs it anyway (ensure_aur_helper), but
+# the bar shells out to it too -- `paru -Qua` for the AUR update count, and the
+# tools menu opens `kitty -e paru`. Undeclared it showed up as drift forever.
+paru
 # pciutils: bootstrap's resolve_kernel_packages reads `lspci` vendor IDs to
 # decide whether this machine wants NVIDIA kernel modules. It usually arrives
 # as someone else's dependency; declared here so that stays true.

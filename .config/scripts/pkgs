@@ -152,7 +152,10 @@ missing() {
     for p in "${gone[@]}"; do
         # Name the list(s) so it is obvious whether this is another machine's.
         local where
-        where=$(grep -rlE "^[[:space:]]*${p}([[:space:]]*#.*)?$" "$PKG_DIR" 2>/dev/null \
+        # Search only real lists: baseline.ignore also contains package names,
+        # and naming it as the source of a "missing" package is nonsense.
+        where=$(grep -rlE "^[[:space:]]*${p}([[:space:]]*#.*)?$" \
+                    --include='*.pkgs' --include='*.aur' "$PKG_DIR" 2>/dev/null \
                 | sed "s#^$PKG_DIR/##" | paste -sd, -)
         printf '%-32s %s\n' "$p" "${where:-?}"
     done
