@@ -130,6 +130,26 @@ ensure_class() {
         ok "machine host: $HOST"
     else
         ok "machine host: $HOST (no host list; add one with: pkgs add -l host/$HOST.pkgs <pkg>)"
+        # A host list that ALMOST matches is worse than none: it is never
+        # installed and nothing says so. The CachyOS installer defaults to
+        # "<Name>-Linux", so a hand-written host/rodimus.pkgs on a box called
+        # Rodimus-Linux silently does nothing forever.
+        local near
+        near=$(find "$PKG_DIR/host" -maxdepth 1 \( -name '*.pkgs' -o -name '*.aur' \) \
+                    -printf '%f\n' 2>/dev/null \
+               | while read -r f; do
+                     b="${f%.*}"
+                     # case-insensitive, and ignoring a trailing -linux
+                     lb=$(tr '[:upper:]' '[:lower:]' <<<"$b"); lb="${lb%-linux}"
+                     lh=$(tr '[:upper:]' '[:lower:]' <<<"$HOST"); lh="${lh%-linux}"
+                     [[ "$lb" == "$lh" ]] && echo "$f"
+                 done | paste -sd, -)
+        if [[ -n "$near" ]]; then
+            warn "host list '$near' looks meant for this machine but will NEVER match"
+            echo "      hostname is '$HOST'; the file must be host/$HOST.pkgs"
+            echo "      either rename the file, or rename the host:"
+            echo "        sudo hostnamectl set-hostname ${HOST%-[Ll]inux}"
+        fi
     fi
     # Copy alternates instead of symlinking: yadm's auto-alt (runs on most yadm
     # commands) recreates symlinks, and the delete+create gap breaks a
