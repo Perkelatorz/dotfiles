@@ -1,0 +1,27 @@
+# -----------------------------------------------------
+# Monitors — laptop
+# -----------------------------------------------------
+# config.conf does `source=~/.config/mango/monitors.conf` unconditionally, and
+# only ##class.desktop / ##class.work existed, so on a laptop that source
+# pointed at nothing. mango tolerates a missing source silently, which is worse
+# than erroring: it looks fine right up until you add a rule here and wonder
+# why it has no effect.
+#
+# CONNECTOR NAMES ARE NOT STABLE. They change when the driver changes and when
+# cables move ports. Check the current set with:
+#     mmsg get all-monitors
+#
+# The internal panel deliberately has no monitorrule: with one built-in display
+# the EDID-preferred mode is the right answer, and hardcoding a mode here is how
+# you end up locked to the wrong refresh rate after a driver update. Add rules
+# only for external outputs you actually dock to.
+#
+# Example, if you dock:
+#     monitorrule=DP-1,0.5,1,tile,0,1,2560,1440,144
+#     (name, mfact, nmaster, layout, rotate, scale, width, height, refresh)
+
+# No rules: single internal panel, EDID-preferred mode.
+#
+# No game-placement windowrule either — see the note in gaming.conf. Pinning
+# games to a monitor only makes sense with more than one, and a rule naming an
+# output that does not exist silently swallows the window.

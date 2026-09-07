@@ -55,3 +55,14 @@ monitorrule=name:^DP-2$,width:3840,height:2160,refresh:239.99,x:1440,y:1440,scal
 #   matching the Hyprland side where the HDR line is currently commented out.
 # VRR : off deliberately — 3 mixed-refresh panels on NVIDIA black-screen when
 #   the surface set changes. Flip vrr:1 on DP-2 alone for a gaming session.
+
+# -----------------------------------------------------
+# Game placement
+# -----------------------------------------------------
+# Pin games to the gaming panel so they never open on DP-2/HDMI-A-2 by
+# accident, and go straight to fullscreen there. Lives here rather than in
+# gaming.conf because gaming.conf is shared by every machine and connector
+# names are not — see the note there.
+#
+# Change DP-3 to another output (or comment out) to game elsewhere.
+windowrule=appid:^(steam_app_\d+|gamescope|.*\.exe)$,monitor:DP-3,isfullscreen:1
