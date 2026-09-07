@@ -53,7 +53,16 @@ monitorrule=name:^DP-1$,width:3440,height:1440,refresh:164.9,x:1440,y:0,scale:1,
 # exactly 160/120, so both sides agree. Visually identical to 1.33 (0.25% apart).
 # Other exactly-representable values if you ever want them: 1.25 (150/120),
 # 1.5 (180/120) — any n/120.
-monitorrule=name:^DP-2$,width:3840,height:2160,refresh:239.99,x:1440,y:1440,scale:1.3333333,rr:0,vrr:0,hdr:0
+# vrr:1 here ONLY -- not on DP-1/HDMI-A-2. gaming.conf records why blanket VRR
+# was off: three mixed-refresh panels on NVIDIA black-screen/flicker whenever the
+# surface set changes. Confining it to the one panel games run on, plus
+# vrr_only_fullscreen on the game rule below, keeps VRR out of the desktop
+# compositing path where that churn happens.
+#
+# QD-OLED caveat: brightness can shift within the VRR range on near-static
+# scenes. If that shows up, set this back to vrr:0 -- the game rule keeps
+# working, it just stops engaging.
+monitorrule=name:^DP-2$,width:3840,height:2160,refresh:239.99,x:1440,y:1440,scale:1.3333333,rr:0,vrr:1,hdr:0
 
 # --- Notes on the two Hyprland params with no direct equivalent -------------
 # bitdepth,10 : mango exposes 10-bit only through the HDR path (hdr:1 on the
@@ -72,4 +81,4 @@ monitorrule=name:^DP-2$,width:3840,height:2160,refresh:239.99,x:1440,y:1440,scal
 # names are not — see the note there.
 #
 # Change DP-1 to another output (or comment out) to game elsewhere.
-windowrule=appid:^(steam_app_\d+|gamescope|.*\.exe)$,monitor:DP-1,isfullscreen:1
+windowrule=appid:^(steam_app_\d+|gamescope|.*\.exe)$,monitor:DP-1,isfullscreen:1,vrr_only_fullscreen:1
