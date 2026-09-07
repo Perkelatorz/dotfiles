@@ -1,0 +1,59 @@
+#!/bin/bash
+# One wrapper to paste into a launcher, instead of remembering the stack.
+#
+#   Steam   : per-game Launch Options ->  game-wrap %command%
+#   Lutris  : Preferences -> Advanced -> Command prefix ->  game-wrap
+#   Heroic  : Settings -> Game defaults -> Advanced -> wrapper ->  game-wrap
+#
+# Lutris and Heroic apply their setting globally, so those are genuinely
+# automatic. Steam has no global launch option -- it is per-game -- but pasting
+# one short word once per title means the composition itself lives here, and
+# changing this file changes every game at once.
+#
+# Order matters, and follows the CachyOS guide's [env] [wrappers] %command%:
+#
+#   game-performance   outermost: holds power-profiles-daemon at `performance`
+#                      and inhibits the screensaver for the life of the game.
+#   gamemoderun        activates Feral GameMode, which is what applies the
+#                      7950X3D V-Cache core pinning from ~/.config/gamemode.ini.
+#   gamescope          only when asked for -- it is a nested compositor, and
+#                      wrapping every game in one costs a frame of latency and
+#                      breaks some titles' own fullscreen handling.
+#
+# Opt into gamescope per game with env vars in the launch option:
+#   GAMEWRAP_HDR=1 game-wrap %command%          HDR via gamescope
+#   GAMEWRAP_GAMESCOPE=1 game-wrap %command%    gamescope, SDR
+#   GAMEWRAP_GAMESCOPE_ARGS='-W 3840 -H 2160'   extra gamescope flags
+#
+# Not handled here: the sched-ext scheduler. Switching it needs polkit admin
+# auth even from an active session (org.scx.loader.manage-schedulers is
+# auth_admin_keep), so it would prompt on every launch. scx_lavd runs from boot
+# instead -- see /etc/scx_loader.toml, written by yadm bootstrap.
+
+set -uo pipefail
+
+(( $# )) || { echo "usage: game-wrap <command> [args...]" >&2; exit 2; }
+
+cmd=()
+
+# Power profile. Skipped rather than failed if the wrapper is missing, so a
+# machine without cachyos-settings still launches the game.
+command -v game-performance >/dev/null 2>&1 && cmd+=(game-performance)
+
+# GameMode: the thing that actually pins to the V-Cache chiplet.
+command -v gamemoderun >/dev/null 2>&1 && cmd+=(gamemoderun)
+
+# gamescope, only on request.
+if [[ -n "${GAMEWRAP_HDR:-}" || -n "${GAMEWRAP_GAMESCOPE:-}" ]]; then
+    if command -v gamescope >/dev/null 2>&1; then
+        gs=(gamescope -f)
+        [[ -n "${GAMEWRAP_HDR:-}" ]] && gs+=(--hdr-enabled)
+        # Word-split deliberately: these are flags, not one argument.
+        [[ -n "${GAMEWRAP_GAMESCOPE_ARGS:-}" ]] && read -ra extra <<<"$GAMEWRAP_GAMESCOPE_ARGS" && gs+=("${extra[@]}")
+        cmd+=("${gs[@]}" --)
+    else
+        echo "game-wrap: gamescope requested but not installed; continuing without" >&2
+    fi
+fi
+
+exec "${cmd[@]}" "$@"

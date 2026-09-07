@@ -5,6 +5,9 @@ All user scripts live here. Referenced by Hyprland (autostart, keybinds) and Qui
 - `launch-quickshell.sh` – start Quickshell bar (Hyprland exec-once)
 - `select-wallpaper.sh` – wallpaper + matugen theming (Super+W, Quick Settings Theme)
 - `write-bar-widgets.sh` – persist bar widget toggles (Quickshell)
+- `game-wrap` – one launcher wrapper (`game-wrap %command%`) composing
+  game-performance + gamemoderun, with opt-in gamescope/HDR via
+  `GAMEWRAP_HDR=1`. Global in Lutris/Heroic; per-game in Steam.
 - `pkgs` – keep the yadm package lists in step with what is installed (Super+Z opens the picker). Also `pkgs drift` / `missing` / `status` / `add PKG` / `baseline` from a terminal.
 - `keybind-cheatsheet.sh` – show keybinds in rofi (Super+/)
 - `clipboard-rofi.sh` – cliphist+rofi clipboard manager (text/images/all)

@@ -668,6 +668,49 @@ setup_services() {
     fi
 }
 
+# sched-ext: run scx_lavd from boot.
+#
+# CachyOS ships scx-scheds and an on-demand D-Bus loader, but the loader starts
+# nothing on its own -- scx_loader can be enabled and active while
+# /sys/kernel/sched_ext/state still reads "disabled", which is how this machine
+# was found.
+#
+# It is configured here rather than switched per-game because switching needs
+# polkit admin auth even from an active local session
+# (org.scx.loader.manage-schedulers is auth_admin_keep), so a per-launch
+# `scxctl switch` would prompt for a password every time you start a game.
+#
+# Mode is Auto (scx_lavd's autopilot: it picks performance/balanced/powersave
+# from load) rather than Gaming, which pins that choice permanently and costs
+# throughput on everything else the box does. Change default_mode to "Gaming"
+# if this is a games-only machine.
+setup_scx() {
+    [[ "$GAMING" == "true" ]] || return 0
+    command -v scx_loader &>/dev/null || { warn "scx_loader not installed; skipping sched-ext"; return 0; }
+
+    local conf=/etc/scx_loader.toml
+    local want='default_sched = "scx_lavd"
+default_mode = "Auto"'
+    if [[ -f "$conf" ]] && grep -q 'default_sched' "$conf"; then
+        ok "sched-ext already configured ($conf)"
+    else
+        printf '%s\n' "$want" | sudo tee "$conf" >/dev/null \
+            && ok "wrote $conf (scx_lavd, Auto)" \
+            || { warn "could not write $conf"; return 0; }
+    fi
+    enable_system_service scx_loader --now
+    # The loader needs a moment to bring the scheduler up before we look.
+    sleep 2
+    local state
+    state=$(cat /sys/kernel/sched_ext/state 2>/dev/null || echo unknown)
+    if [[ "$state" == "enabled" ]]; then
+        ok "sched-ext running: $(cat /sys/kernel/sched_ext/root/ops 2>/dev/null)"
+    else
+        warn "scx_loader enabled but no scheduler running (state: $state)"
+        echo "      start it by hand with: scxctl start --sched lavd --mode auto"
+    fi
+}
+
 # --- one-time machine setup ---
 
 setup_syncthing_vault() {
@@ -944,6 +987,7 @@ resolve_kernel_packages
 install_packages
 converge_install_reasons
 setup_services
+setup_scx
 setup_syncthing_vault
 setup_default_shell_zsh
 setup_neovim_secrets
