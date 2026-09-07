@@ -704,6 +704,22 @@ EOF
     ok "created $SECRETS_FILE — add real keys"
 }
 
+# Real git identities are untracked (this repo is public). Seed them from the
+# tracked .example templates so `git config` under ~/code/{work,personal} has
+# something to include; git skips a missing includeIf path silently, so this is
+# a convenience, not a requirement.
+setup_git_identities() {
+    local which src dst
+    for which in work personal; do
+        src="$HOME/.config/git/config-$which.example"
+        dst="$HOME/.config/git/config-$which"
+        [[ -f "$src" ]] || continue
+        [[ -f "$dst" ]] && continue
+        cp "$src" "$dst"
+        ok "created ~/.config/git/config-$which — put your real $which identity in it"
+    done
+}
+
 setup_matugen_themes() {
     [[ -d "$MATUGEN_THEMES_DIR/.git" ]] && return
     if [[ -d "$MATUGEN_THEMES_DIR" ]]; then
@@ -816,6 +832,7 @@ setup_services
 setup_syncthing_vault
 setup_default_shell_zsh
 setup_neovim_secrets
+setup_git_identities
 setup_matugen_themes
 install_claude_code_cli
 warm_neovim_plugins

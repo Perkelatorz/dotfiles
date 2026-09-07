@@ -1,0 +1,7 @@
+# Personal git identity. Copied to `config-personal` by yadm bootstrap, then
+# edited locally — the real file is NOT tracked (see .config/yadm/gitignore).
+#
+# Applied only under ~/code/personal/** via the includeIf in ../git/config.
+[user]
+    name = Your Name
+    email = you@personal.example

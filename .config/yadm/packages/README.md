@@ -88,10 +88,12 @@ The vault ships a `.stignore` that excludes `.git` and Obsidian's
 | `class/work.aur` | class `work` | xrdp, xorgxrdp — the only packages with no non-AUR source |
 | `gaming.pkgs` | opt-in (any class) | CachyOS gaming bundle: Steam/Proton/gamescope/MangoHud/Lutris/Heroic + gamemode |
 | `gaming.aur` | opt-in (any class) | commented extras (vkBasalt, game-devices-udev) — off by default |
+| `baseline.ignore` | not a list | the ISO's own package set, so `pkgs drift` can ignore it |
 
 Format: one package per line; `#` comments and blank lines ignored (trailing
 comments too). Adding a machine type = add `class/<name>.pkgs` (and optionally
-`.aur`).
+`.aur`). Record new packages with `pkgs add` — see
+[Keeping the lists current](#keeping-the-lists-current).
 
 **Not in any list:** kernel headers and NVIDIA kernel modules. They depend on
 *which* kernel is installed, so bootstrap derives them — see
@@ -135,6 +137,58 @@ __GL_SYNC_TO_VBLANK=0 mangohud %command%    # let the tearing rule work (NVIDIA)
 **HDR** under mango needs the wl-only build (`mangowm-wlonly-git`, AUR) —
 scenefx, which the default build renders through, has no Vulkan renderer. See
 the worked notes in `mango/gaming.conf`.
+
+## Keeping the lists current
+
+Bootstrap installs from these lists, so anything you `pacman -S` by hand is
+missing from the next clean install unless it gets recorded. `~/.config/scripts/pkgs`
+is what records it — **Super+Z** opens a picker, or from a terminal:
+
+```sh
+pkgs status         # counts + both lists below
+pkgs drift          # installed by hand, not in any list  <- the one that matters
+pkgs missing        # in a list but not installed
+pkgs add neovim     # append to a list (asks which; -l dev.pkgs to skip the prompt)
+pkgs baseline       # regenerate baseline.ignore after a reinstall
+```
+
+It knows about `class/` lists, which the old `add-package.sh` did not, so a
+class package can actually be filed in the right place.
+
+### Why `baseline.ignore` exists
+
+A stock CachyOS install marks about **1100 packages** explicit before you ever
+log in. Raw `pacman -Qqe` minus the lists is therefore almost entirely
+Calamares' doing, and the handful you actually chose is invisible in it — on
+this machine the raw number was 161, of which 9 were real.
+
+`baseline.ignore` records that install set once so drift means *"I installed
+this"* rather than *"the ISO did"*. It is **not** a package list: bootstrap only
+globs `*.pkgs` / `*.aur` and never reads it.
+
+`pkgs baseline` derives it from `/var/log/pacman.log`. The rule is about intent
+rather than flags: **every automated command passes `--noconfirm`, because
+nothing is there to answer a prompt; a person at a terminal does not.** So the
+cut is the first pacman command that installs *named packages* without
+`--noconfirm` — which skips the installer's whole run and the bare `-Sy`/`-Su`
+syncs, and lands on the first thing typed by hand.
+
+Matching on the installer's *flags* instead does not hold up: Calamares uses
+`--sysroot` during the chroot phase but `--cachedir`/`-r /`/`--config`
+afterwards, and a bare `pacman -Sy` carries no marker at all — an earlier
+flag-based cut landed 6 minutes early and swallowed a third of the ISO set.
+
+### Reading the two lists
+
+`drift` is not always "add this". A package that is installed, deliberate, and
+absent from every list can equally mean *it should be uninstalled* — retiring
+Hyprland left `hyprland`, `hyprlock`, `xdg-desktop-portal-hyprland`, `uwsm` and
+`swaync` on disk with nothing declaring them.
+
+`missing` is expected to be non-empty on any machine: the class lists cover the
+other machines too, so `xrdp` (work) and `sunshine` (desktop) will always show
+up on a laptop. The list each package came from is printed alongside it for
+exactly that reason.
 
 ## Machine classes
 

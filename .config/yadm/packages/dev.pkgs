@@ -22,3 +22,4 @@ github-cli
 
 # --- AI coding agent (config: ~/.config/opencode/opencode.json → Spark GX10) ---
 opencode
+claude-code

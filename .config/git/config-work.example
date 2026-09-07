@@ -1,0 +1,10 @@
+# Work git identity. Copied to `config-work` by yadm bootstrap, then edited
+# locally — the real file is NOT tracked (see .config/yadm/gitignore), because
+# this repo is public and a work address does not belong in it.
+#
+# Applied only under ~/code/work/** via the includeIf in ../git/config.
+# If the file is absent git silently skips the include and you fall back to the
+# top-level identity, so a fresh clone is never broken by its absence.
+[user]
+    name = Your Name
+    email = you@employer.example

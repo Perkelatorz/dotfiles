@@ -1,0 +1,341 @@
+#!/bin/bash
+# pkgs — keep ~/.config/yadm/packages/ in step with what is actually installed.
+#
+# The bootstrap installs from those lists, so anything you `pacman -S` by hand
+# is missing from the next clean install unless it gets recorded. This finds
+# what has drifted and adds it.
+#
+#   pkgs              interactive picker (rofi with no TTY, fzf in a terminal)
+#   pkgs drift        explicitly installed, not in any list, not ISO baseline
+#   pkgs missing      in a list but not installed
+#   pkgs status       counts for both, per list
+#   pkgs add PKG...   append to a list (asks which, or pass -l NAME)
+#   pkgs baseline     (re)generate the ISO baseline — see "Baseline" below
+#
+# Baseline
+#   A stock CachyOS install marks ~250 packages explicit before you ever log
+#   in, so raw `pacman -Qqe` minus the lists is mostly Calamares' doing and
+#   drowns the handful you actually chose. baseline.ignore records that install
+#   set once so drift means "I installed this", not "the ISO did".
+#
+#   `pkgs baseline` derives it from /var/log/pacman.log: every package
+#   installed before the first human-run pacman command. The installer's own
+#   transactions are machine-written and land back to back at first boot, so
+#   the first command that isn't one of those is the cut.
+
+set -uo pipefail
+
+PKG_DIR="$HOME/.config/yadm/packages"
+BASELINE="$PKG_DIR/baseline.ignore"
+PACLOG="/var/log/pacman.log"
+
+# --- output -----------------------------------------------------------------
+
+# Launched from a keybind there is no terminal to print to, so that path
+# reports through notifications instead. Check stderr as well as stdout, so
+# `pkgs drift | wc -l` from a real terminal still counts as interactive rather
+# than silently firing a desktop notification at you.
+HAVE_TTY=false
+{ [[ -t 1 ]] || [[ -t 2 ]]; } && HAVE_TTY=true
+
+say()  { $HAVE_TTY && echo "$*"; }
+warn() { $HAVE_TTY && echo "warning: $*" >&2; }
+die()  {
+    if $HAVE_TTY; then echo "error: $*" >&2
+    else notify-send "pkgs" "$*" -i error 2>/dev/null
+    fi
+    exit 1
+}
+report() {
+    # $1 title, $2 body — terminal or notification depending on how we were run.
+    if $HAVE_TTY; then echo "$2"
+    else notify-send "$1" "$2" -i document-save 2>/dev/null
+    fi
+}
+
+# --- list handling ----------------------------------------------------------
+
+# Every list file, top-level and per-class, relative to PKG_DIR.
+# The old add-package.sh globbed only the top level, so class lists could never
+# be chosen from the picker.
+all_lists() {
+    local ext="$1"   # pkgs | aur | both
+    local -a pats=()
+    case "$ext" in
+        pkgs) pats=('*.pkgs') ;;
+        aur)  pats=('*.aur') ;;
+        both) pats=('*.pkgs' '*.aur') ;;
+    esac
+    local p
+    for p in "${pats[@]}"; do
+        find "$PKG_DIR" -maxdepth 2 -name "$p" -type f -printf '%P\n' 2>/dev/null
+    done | sort
+}
+
+# Strip comments (whole-line and trailing) and blanks — matching how the
+# bootstrap's read_pkg_file parses these, so the two never disagree.
+read_list() {
+    sed -E 's/[[:space:]]*#.*$//; s/[[:space:]]+$//' "$1" 2>/dev/null \
+        | grep -Ev '^[[:space:]]*$'
+}
+
+# Every package named by any list, deduped.
+declared() {
+    local f
+    while read -r f; do
+        read_list "$PKG_DIR/$f"
+    done < <(all_lists both) | sort -u
+}
+
+baseline_pkgs() {
+    [[ -f "$BASELINE" ]] && read_list "$BASELINE" | sort -u || true
+}
+
+# One-line description of a list, taken from its first comment line, for the
+# picker — so you are choosing "apps.pkgs — Desktop applications", not a
+# filename you have to remember the contents of.
+list_blurb() {
+    local f="$PKG_DIR/$1"
+    local line
+    line=$(grep -m1 '^# .' "$f" 2>/dev/null | sed 's/^# *//' | cut -c1-58)
+    [[ -n "$line" ]] && printf '%s — %s\n' "$1" "$line" || printf '%s\n' "$1"
+}
+
+# --- the three views --------------------------------------------------------
+
+# Installed on purpose, not recorded anywhere, and not just the ISO's doing.
+drift() {
+    comm -23 \
+        <(comm -23 <(pacman -Qqe | sort -u) <(declared)) \
+        <(baseline_pkgs)
+}
+
+# Recorded but absent. Class lists cover machines this is not, so a work-only
+# package missing on a laptop is expected, not a problem — hence the labels.
+missing() {
+    local -a gone=()
+    local p
+    while read -r p; do
+        pacman -Qq "$p" &>/dev/null && continue
+        # A group (xfce4) or a virtual provider is satisfied without a package
+        # of that literal name existing.
+        pacman -Sg "$p" &>/dev/null && continue
+        gone+=("$p")
+    done < <(declared)
+    (( ${#gone[@]} )) || return 0
+    for p in "${gone[@]}"; do
+        # Name the list(s) so it is obvious whether this is another machine's.
+        local where
+        where=$(grep -rlE "^[[:space:]]*${p}([[:space:]]*#.*)?$" "$PKG_DIR" 2>/dev/null \
+                | sed "s#^$PKG_DIR/##" | paste -sd, -)
+        printf '%-32s %s\n' "$p" "${where:-?}"
+    done
+}
+
+is_foreign() { pacman -Qqm 2>/dev/null | grep -qx "$1"; }
+
+# --- adding -----------------------------------------------------------------
+
+add_one() {
+    local pkg="$1" list="$2"
+    local target="$PKG_DIR/$list"
+
+    [[ "$pkg" =~ ^[a-zA-Z0-9@._+-]+$ ]] || { warn "skipping invalid name: $pkg"; return 1; }
+
+    if [[ ! -f "$target" ]]; then
+        mkdir -p "$(dirname "$target")"
+        printf '# %s\n\n' "${list%.*}" > "$target"
+        say "created $list"
+    fi
+
+    if read_list "$target" | grep -qx "$pkg"; then
+        report "pkgs" "$pkg is already in $list"
+        return 0
+    fi
+
+    # Keep the file ending in exactly one newline before appending.
+    [[ -s "$target" && -n "$(tail -c1 "$target")" ]] && printf '\n' >> "$target"
+    printf '%s\n' "$pkg" >> "$target"
+    report "pkgs" "added $pkg to $list"
+
+    command -v yadm &>/dev/null && yadm add -- "$target" &>/dev/null || true
+}
+
+# --- pickers ----------------------------------------------------------------
+
+pick_rofi() { rofi -dmenu -i -p "$1" ${2:+-no-custom}; }
+
+pick_tty() {
+    local prompt="$1"
+    if command -v fzf &>/dev/null; then
+        fzf --prompt="$prompt> " --height=40% --reverse --no-multi
+    else
+        local -a opts=(); local line i=1
+        while IFS= read -r line; do opts+=("$line"); done
+        (( ${#opts[@]} )) || return 1
+        for line in "${opts[@]}"; do printf '%3d) %s\n' "$i" "$line" >&2; ((i++)); done
+        local n; read -rp "$prompt [1-${#opts[@]}]: " n
+        [[ "$n" =~ ^[0-9]+$ ]] && (( n >= 1 && n <= ${#opts[@]} )) || return 1
+        printf '%s\n' "${opts[$((n-1))]}"
+    fi
+}
+
+pick() { $HAVE_TTY && pick_tty "$1" || pick_rofi "$1" "${2:-}"; }
+
+# --- commands ---------------------------------------------------------------
+
+cmd_status() {
+    local d m b
+    d=$(drift | wc -l)
+    b=$(baseline_pkgs | wc -l)
+    m=$(missing | wc -l)
+    echo "packages/     $(declared | wc -l) declared across $(all_lists both | wc -l) lists"
+    echo "baseline      $b from the ISO install$([[ -f $BASELINE ]] || echo '  (none yet — run: pkgs baseline)')"
+    echo "drift         $d installed by hand, not in any list"
+    echo "missing       $m declared but not installed"
+    if (( d )); then
+        echo
+        echo "drift:"
+        drift | sed 's/^/  /'
+    fi
+    if (( m )); then
+        echo
+        echo "missing (list shown; other machines' classes are expected here):"
+        missing | sed 's/^/  /'
+    fi
+}
+
+cmd_baseline() {
+    [[ -r "$PACLOG" ]] || die "cannot read $PACLOG"
+
+    # Where does the installer stop and the user begin?
+    #
+    # Enumerating the installer's flags does not hold up -- Calamares uses
+    # --sysroot in the chroot phase but --cachedir/-r //--config afterwards,
+    # and a bare `pacman -Sy` matches nothing at all. The reliable distinction
+    # is intent, not flags: every automated command passes --noconfirm, because
+    # nothing is there to answer a prompt. A person at a terminal does not.
+    #
+    # So the cut is the first pacman command that installs NAMED packages and
+    # does NOT pass --noconfirm. That skips the installer's whole run (all
+    # --noconfirm) and the bare -Sy/-Su syncs (no package arguments), and lands
+    # on the first thing typed by hand.
+    local cut
+    cut=$(awk '
+        /\[PACMAN\] Running .pacman /  {
+            line = $0
+            sub(/^.*Running \047/, "", line)
+            sub(/\047.*$/, "", line)
+            if (line ~ /--noconfirm/) next          # automated
+            if (line !~ /-[A-Za-z]*S/) next         # not an install
+            n = split(line, tok, /[ \t]+/)
+            named = 0
+            for (i = 2; i <= n; i++)
+                if (tok[i] !~ /^-/ && tok[i] !~ /^\//) named = 1
+            if (named) { print NR; exit }
+        }' "$PACLOG")
+
+    if [[ -z "$cut" ]]; then
+        warn "no human-run pacman command in the log; treating everything as baseline"
+        cut=$(( $(wc -l < "$PACLOG") + 1 ))
+    fi
+
+    local -a base=()
+    mapfile -t base < <(
+        head -n "$((cut - 1))" "$PACLOG" \
+            | sed -nE 's/^.*\[ALPM\] installed ([^ ]+) .*$/\1/p' \
+            | sort -u
+    )
+    (( ${#base[@]} )) || die "no installs found before the cut — is $PACLOG rotated?"
+
+    local firstcmd
+    firstcmd=$(sed -n "${cut}p" "$PACLOG" | sed "s/^.*Running '//; s/'.*$//")
+
+    {
+        cat <<EOF
+# ISO baseline — packages the installer put here before the first command run
+# by hand. NOT a package list: bootstrap never reads this file (it only globs
+# *.pkgs / *.aur). It exists so \`pkgs drift\` can tell "I installed this" from
+# "the ISO did", which is otherwise ~1100 packages of noise.
+#
+# Generated by \`pkgs baseline\` from $PACLOG.
+# Cut at log line $cut, the first pacman command that installs named packages
+# without --noconfirm: $firstcmd
+#
+# Regenerate after a reinstall. Deleting a line here makes that package show up
+# in \`pkgs drift\` again — the right move if you decide it belongs in a real list.
+
+EOF
+        printf '%s\n' "${base[@]}"
+    } > "$BASELINE"
+
+    say "wrote $BASELINE (${#base[@]} packages, cut at: $firstcmd)"
+    command -v yadm &>/dev/null && yadm add -- "$BASELINE" &>/dev/null || true
+}
+
+cmd_add() {
+    local list=""
+    local -a want=()
+    while (( $# )); do
+        case "$1" in
+            -l|--list) list="$2"; shift 2 ;;
+            -*) die "unknown flag: $1" ;;
+            *) want+=("$1"); shift ;;
+        esac
+    done
+    (( ${#want[@]} )) || die "nothing to add"
+
+    if [[ -z "$list" ]]; then
+        # Offer .aur lists when the package was actually built from the AUR,
+        # .pkgs otherwise — putting a repo package in a .aur list would send it
+        # through paru for no reason.
+        local ext=pkgs
+        is_foreign "${want[0]}" && ext=aur
+        local choice
+        choice=$( { all_lists "$ext" | while read -r f; do list_blurb "$f"; done; echo "+ new list"; } \
+                  | pick "Add ${want[*]} to" )
+        [[ -z "$choice" ]] && exit 0
+        if [[ "$choice" == "+ new list" ]]; then
+            local name
+            name=$($HAVE_TTY && { read -rp "New list name (without extension): " n; echo "$n"; } \
+                             || rofi -dmenu -p "New list name (no extension)")
+            [[ -z "$name" ]] && exit 0
+            list="${name%.pkgs}"; list="${list%.aur}.$ext"
+        else
+            list="${choice%% *}"
+        fi
+    fi
+
+    local p
+    for p in "${want[@]}"; do add_one "$p" "$list"; done
+}
+
+cmd_interactive() {
+    local -a candidates=()
+    mapfile -t candidates < <(drift)
+    if (( ! ${#candidates[@]} )); then
+        # Nothing has drifted — fall back to picking from everything installed,
+        # so the keybind is still useful for recording something deliberately.
+        report "pkgs" "No drift. Showing all installed packages."
+        mapfile -t candidates < <(pacman -Qqe | sort -u)
+    fi
+    local pkg
+    pkg=$(printf '%s\n' "${candidates[@]}" | pick "Package to record")
+    [[ -z "$pkg" ]] && exit 0
+    cmd_add "$pkg"
+}
+
+# --- dispatch ---------------------------------------------------------------
+
+[[ -d "$PKG_DIR" ]] || die "$PKG_DIR not found"
+
+case "${1:-}" in
+    ""|pick|interactive) cmd_interactive ;;
+    drift)    drift ;;
+    missing)  missing ;;
+    status)   cmd_status ;;
+    baseline) cmd_baseline ;;
+    add)      shift; cmd_add "$@" ;;
+    -h|--help|help) sed -n '2,28p' "$0" | sed 's/^# \?//' ;;
+    *) die "unknown command: $1 (try: pkgs --help)" ;;
+esac

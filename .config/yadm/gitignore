@@ -115,6 +115,13 @@ log_iotc.txt
 # clone onto one machine's identity. yadm writes it on `yadm config local.*`.
 .config/yadm/config
 
+# Real git identities. This repo is public, so the addresses live only on disk;
+# the tracked .example files are the templates bootstrap copies from. git
+# silently skips a missing includeIf path, so a clone without them still works
+# and just falls back to the top-level identity in .config/git/config.
+.config/git/config-work
+.config/git/config-personal
+
 # Local secrets / state
 .zshrc.local
 .docker/
