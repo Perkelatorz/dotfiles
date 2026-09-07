@@ -3,10 +3,17 @@
 #   BOOTSTRAP_GAMING=1 yadm bootstrap   (force-enable, non-interactive)
 #
 # Mirrors the CachyOS gaming guide: https://wiki.cachyos.org/configuration/gaming/
-# Repo-only. Multilib is enabled by default on CachyOS (the lib32-* deps below
-# need it). GPU-side 32-bit drivers (lib32-nvidia-utils / lib32-vulkan-radeon)
-# live in the class lists (desktop.pkgs / laptop.pkgs), not here — they differ
-# per machine.
+# Repo-only. Multilib is enabled by default on CachyOS; on plain Arch the
+# bootstrap uncomments [multilib] for you (the lib32-* deps below need it).
+# GPU-side 32-bit drivers (lib32-nvidia-utils / lib32-vulkan-radeon) live in the
+# class lists (desktop.pkgs / laptop.pkgs), not here — they differ per machine.
+#
+# PORTABILITY: cachyos-gaming-applications lives ONLY in the [cachyos] repo —
+# it is not in Arch and not in the AUR. On plain Arch the bootstrap offers to
+# add [cachyos]; if you decline, bootstrap skips this list and prints the
+# Arch-native equivalent to install by hand:
+#   steam lutris heroic-games-launcher gamescope goverlay mangohud lib32-mangohud
+#   wine winetricks protontricks umu-launcher vulkan-tools
 
 # --- CachyOS gaming bundle (the guide's one-shot meta) ---
 # cachyos-gaming-applications pulls the whole recommended set:

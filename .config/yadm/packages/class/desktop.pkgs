@@ -1,13 +1,19 @@
 # Home desktop (Rodimus): RTX 4080 SUPER + Ryzen iGPU.
 
-# --- GPU: current open kernel modules (matches chwd's nvidia-open-dkms profile) ---
-nvidia-open-dkms
+# --- GPU userspace (kernel-independent; the kernel MODULE and matching headers
+#     are resolved at bootstrap time by resolve_kernel_packages, because the
+#     right package depends on which kernel is installed:
+#       CachyOS kernel -> linux-cachyos-nvidia-open  (prebuilt, [cachyos])
+#       Arch kernel    -> nvidia-open-dkms           (built via DKMS, extra)
+#     Hardcoding nvidia-open-dkms here was a latent conflict: it Conflicts With
+#     NVIDIA-MODULE, which every prebuilt linux-*-nvidia-open Provides, so the
+#     list could never install cleanly on a CachyOS kernel. ---
 nvidia-utils
 lib32-nvidia-utils
 libva-nvidia-driver
-linux-cachyos-headers
 
 # --- Remote access: Sunshine game-stream host (connect with Moonlight) ---
+# [cachyos] repo, or AUR on plain Arch without it.
 sunshine
 
 # --- Instant replay (quickshell tools menu: replay buffer + save clip) ---

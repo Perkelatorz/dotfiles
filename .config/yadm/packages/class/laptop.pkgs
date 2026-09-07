@@ -1,16 +1,14 @@
-# Laptop: hybrid AMD iGPU (primary, low power) + RTX dGPU (offload).
+# Laptop (Ironhide): hybrid AMD iGPU (primary, low power) + RTX dGPU (offload).
 # Run apps on the dGPU with: prime-run <app>
 
-# --- GPU ---
-nvidia-open-dkms
+# --- GPU userspace (kernel module + headers resolved at bootstrap time; see
+#     the note in class/desktop.pkgs for why they are not hardcoded here) ---
 nvidia-utils
 libva-nvidia-driver
-linux-cachyos-headers
 vulkan-radeon
 nvidia-prime
 
 # 32-bit drivers for Steam/Proton (dGPU offload via prime-run + AMD iGPU).
-# Desktop ships lib32-nvidia-utils in its own list; the laptop needs both halves.
 lib32-nvidia-utils
 lib32-vulkan-radeon
 

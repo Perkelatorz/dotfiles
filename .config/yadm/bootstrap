@@ -1,26 +1,52 @@
 #!/bin/bash
 set -euo pipefail
 
-# yadm bootstrap — CachyOS (fresh, NO desktop selected) → Wayland workstation.
+# yadm bootstrap — bare Arch-family install (NO desktop) → Wayland workstation.
+#
+# Supported distros:
+#   CachyOS     — the reference target. Ships the [cachyos] repo already.
+#   Arch Linux  — fully supported. Bootstrap offers to add the [cachyos] repo
+#                 (see "The [cachyos] repo" below); without it the handful of
+#                 non-Arch packages are built from the AUR instead.
+#   Other Arch derivatives generally work, but are not tested.
 #
 # Fresh machine:
 #   sudo pacman -S --needed git yadm
 #   yadm clone https://github.com/perkelatorz/dotfiles
 #   yadm config local.class desktop|laptop|work     # (bootstrap prompts if unset)
 #   yadm bootstrap
-#   reboot                                          # lands in SDDM → pick a session
+#   reboot                                          # lands in SDDM → Mango
 #
-# Compositor (both are installed by default and selectable at the SDDM session
-# picker; the shared desktop stack in packages/wayland.pkgs serves either):
-#   yadm config local.compositor hyprland|mango|both
-#     hyprland — Hyprland + uwsm + xdph. Per-monitor workspaces need the
-#                split-monitor-workspaces plugin (built via hyprpm, prompted below).
-#     mango    — MangoWC + xdg-desktop-portal-wlr. Tags are per-monitor natively,
-#                so no plugin. Loses portal GlobalShortcuts (see mango.pkgs).
-#     both     — default; install both and choose per login.
+# The [cachyos] repo:
+#   Eight packages in this setup are not in the Arch repos — mangowm (the
+#   compositor itself), vesktop, sunshine, the nvidia-580xx branch, and the
+#   CachyOS gaming stack. All of them are in [cachyos], a single ordinary
+#   pacman repo (Include = /etc/pacman.d/cachyos-mirrorlist, ~840 packages).
+#
+#   On plain Arch, bootstrap offers to add it. It is appended BELOW core/extra,
+#   so Arch keeps priority for every package both carry — this is deliberately
+#   NOT what upstream's cachyos-repo.sh does. That script also layers
+#   cachyos-core-znver4 / cachyos-extra-znver4 ABOVE core/extra and swaps in a
+#   patched pacman, which replaces the base system with CachyOS rebuilds. We
+#   want the extra packages, not the base-system takeover.
+#
+#   Decline it and bootstrap falls back to the AUR for everything except
+#   cachyos-gaming-applications, which exists in neither Arch nor the AUR; the
+#   gaming list is skipped with a printed list of Arch-native equivalents.
+#
+# Compositor: mango (MangoWC) only. Hyprland was retired — there is no
+#   local.compositor setting any more, and packages/hyprland.pkgs is gone.
+#
+# Kernel-coupled packages (headers, NVIDIA modules) are NOT hardcoded in the
+# lists. resolve_kernel_packages() reads the pkgbase of every installed kernel
+# and derives them, because the correct package differs per kernel:
+#   linux-cachyos  → linux-cachyos-headers  + linux-cachyos-nvidia-open
+#   linux          → linux-headers          + nvidia-open-dkms
+# Hardcoding nvidia-open-dkms was an outright conflict on CachyOS: it Conflicts
+# With NVIDIA-MODULE, which every prebuilt linux-*-nvidia-open Provides.
 #
 # Classes (drive package lists in packages/class/ and ##class config alternates):
-#   desktop  — home desktop: nvidia-open, Sunshine game-stream host
+#   desktop  — home desktop: NVIDIA open modules, Sunshine game-stream host
 #   laptop   — hybrid AMD iGPU + NVIDIA dGPU (prime-run offload)
 #   work     — Pascal Quadros (legacy 580xx driver), xrdp for RDP access
 #
@@ -28,8 +54,8 @@ set -euo pipefail
 #   yadm config local.gaming true      Persist the choice; bootstrap then always
 #                                       installs the CachyOS gaming stack
 #                                       (Steam/Proton/gamescope/MangoHud, see
-#                                       packages/gaming.pkgs) + Hyprland gaming
-#                                       tweaks (hypr/gaming.conf: tearing/VRR/HDR).
+#                                       packages/gaming.pkgs) + mango gaming
+#                                       tweaks (mango/gaming.conf).
 #   (bootstrap prompts once on desktop/laptop if local.gaming is unset)
 #
 # Env flags:
@@ -38,9 +64,8 @@ set -euo pipefail
 #                              synced-but-not-upgraded system is a partial upgrade.
 #   BOOTSTRAP_GAMING=1         Force-enable the gaming stack non-interactively
 #                              (overrides local.gaming and the prompt).
-#   BOOTSTRAP_COMPOSITOR=...   hyprland|mango|both — overrides local.compositor.
+#   BOOTSTRAP_CACHYOS_REPO=1|0 Add / skip the [cachyos] repo non-interactively.
 #   CLAUDE_CODE_SKIP=1         Skip Claude Code CLI install.
-#
 # Idempotent: every step is safe to re-run; --needed skips installed packages.
 
 PKG_DIR="$HOME/.config/yadm/packages"
@@ -53,7 +78,9 @@ SYNCTHING_FOLDER_ID="notes"
 
 CLASS=""
 GAMING=false
-COMPOSITOR=""
+DISTRO=""                 # cachyos | arch | arch-like | other
+HAVE_CACHYOS_REPO=false   # is the [cachyos] repo configured?
+KERNEL_PKGS=()            # headers + NVIDIA modules, derived per installed kernel
 FAILED_PKGS=()
 
 info() { echo "🔷 $*"; }
@@ -94,16 +121,15 @@ ensure_class() {
     fi
     ok "machine class: $CLASS"
     # Copy alternates instead of symlinking: yadm's auto-alt (runs on most yadm
-    # commands) recreates symlinks, and the delete+create gap kills Hyprland's
-    # inotify watch on sourced files (latches "source= globbing error"). A copy
-    # is overwritten in place — same inode, watch survives.
+    # commands) recreates symlinks, and the delete+create gap breaks a
+    # compositor's inotify watch on sourced config files. A copy is overwritten
+    # in place — same inode, so the watch survives.
     yadm config yadm.alt-copy true
     # Wire the tracked ignore file (yadm clone doesn't set this).
     yadm gitconfig core.excludesFile "~/.config/yadm/gitignore"
-    # Materialize ##class./##hostname. alternates (e.g. hypr/env-gpu.conf) now
-    # that the class is known.
-    # (hooks/post_alt reloads Hyprland if live — alt's relink otherwise latches
-    # a "source= globbing error" until reload)
+    # Materialize ##class./##hostname. alternates (e.g. mango/monitors.conf)
+    # now that the class is known. (hooks/post_alt reloads the compositor if
+    # one is live, so the new files take effect without a logout.)
     yadm alt >/dev/null 2>&1 && ok "yadm alternates refreshed" || warn "yadm alt failed"
 }
 
@@ -133,29 +159,174 @@ resolve_gaming() {
     [[ "$GAMING" == "true" ]] && ok "gaming stack: enabled" || ok "gaming stack: disabled"
 }
 
-# --- compositor (hyprland | mango | both) ---
+# --- distro + repos ---
 
-# Which compositor package list(s) to install. Precedence:
-#   BOOTSTRAP_COMPOSITOR env  >  stored local.compositor  >  "both".
-# Deliberately never prompts: "both" is a safe superset, they coexist fine, and
-# SDDM lets you pick per login. The shared stack (wayland.pkgs) is installed
-# either way, so switching later is just a re-run with a different value.
-resolve_compositor() {
-    COMPOSITOR="${BOOTSTRAP_COMPOSITOR:-}"
-    [[ -z "$COMPOSITOR" ]] && COMPOSITOR=$(yadm config local.compositor 2>/dev/null || true)
-    [[ -z "$COMPOSITOR" ]] && COMPOSITOR="both"
-    case "$COMPOSITOR" in
-        hyprland|mango|both) ;;
-        *)
-            echo "❌ Invalid compositor '$COMPOSITOR' (want: hyprland|mango|both)"
-            exit 1
-            ;;
-    esac
-    ok "compositor: $COMPOSITOR"
+# Which Arch-family distro this is. Only two behaviours actually differ:
+# whether [cachyos] is already configured, and whether [multilib] is on.
+detect_distro() {
+    DISTRO=other
+    if [[ -r /etc/os-release ]]; then
+        # shellcheck disable=SC1091
+        local id id_like
+        id=$(. /etc/os-release && echo "${ID:-}")
+        id_like=$(. /etc/os-release && echo "${ID_LIKE:-}")
+        case "$id" in
+            cachyos) DISTRO=cachyos ;;
+            arch)    DISTRO=arch ;;
+            *) [[ "$id_like" == *arch* ]] && DISTRO=arch-like ;;
+        esac
+    fi
+    have_cachyos_repo && HAVE_CACHYOS_REPO=true || HAVE_CACHYOS_REPO=false
+    ok "distro: $DISTRO ([cachyos] repo: $HAVE_CACHYOS_REPO)"
 }
 
-want_hyprland() { [[ "$COMPOSITOR" == "hyprland" || "$COMPOSITOR" == "both" ]]; }
-want_mango()    { [[ "$COMPOSITOR" == "mango"    || "$COMPOSITOR" == "both" ]]; }
+# An enabled (not merely commented-out) [cachyos] section in pacman.conf.
+have_cachyos_repo() {
+    grep -qE '^[[:space:]]*\[cachyos\][[:space:]]*$' /etc/pacman.conf
+}
+
+# Add the plain [cachyos] repo — NOT the znver4/v4/v3 optimized rebuilds.
+#
+# Upstream's cachyos-repo.sh inserts cachyos-core-znver4 / cachyos-extra-znver4
+# ABOVE core/extra and installs a patched pacman, so the base system starts
+# coming from CachyOS rebuilds. That is a much larger commitment than "I want
+# mangowm as a binary". [cachyos] is an ordinary independent repo behind its own
+# mirrorlist, so we append just that, BELOW the Arch repos: pacman resolves
+# top-down, so anything Arch also ships keeps coming from Arch.
+#
+# Package filenames are discovered from the mirror index rather than pinned,
+# because the pinned versions in upstream's script go stale.
+ensure_cachyos_repo() {
+    have_cachyos_repo && { HAVE_CACHYOS_REPO=true; return 0; }
+
+    case "${BOOTSTRAP_CACHYOS_REPO:-}" in
+        0) ok "[cachyos] repo declined (BOOTSTRAP_CACHYOS_REPO=0)"; return 1 ;;
+        1) ;;
+        *)
+            if [[ ! -t 0 ]]; then
+                warn "no TTY to ask about the [cachyos] repo; falling back to the AUR"
+                return 1
+            fi
+            cat <<'EOF'
+
+   The [cachyos] repo carries the packages Arch does not have: mangowm (the
+   compositor), vesktop, sunshine, nvidia-580xx, and the gaming stack.
+   Adding it means those install as signed binaries instead of AUR builds.
+
+   This adds ONE repo, appended BELOW core/extra so Arch keeps priority.
+   It does NOT add the znver4 optimized rebuilds and does NOT replace pacman.
+   Undo later with: sudo sed -i '/^\[cachyos\]$/,+1d' /etc/pacman.conf
+
+EOF
+            local ans
+            read -rp "Add the [cachyos] repo? (Y/n): " ans
+            [[ "${ans,,}" == n* ]] && { ok "declined — using the AUR instead"; return 1; }
+            ;;
+    esac
+
+    info "Adding the [cachyos] repo..."
+    local mirror="https://mirror.cachyos.org/repo/x86_64/cachyos"
+    local keyid="F3B607488DB35A47"
+
+    sudo pacman-key --recv-keys "$keyid" --keyserver keyserver.ubuntu.com \
+        || { warn "could not fetch the CachyOS signing key; falling back to the AUR"; return 1; }
+    sudo pacman-key --lsign-key "$keyid" \
+        || { warn "could not locally sign the CachyOS key"; return 1; }
+
+    # Discover current filenames from the mirror index instead of pinning them.
+    local index keyring_pkg mirrorlist_pkg
+    index=$(curl -sfL "$mirror/") || { warn "mirror index unreachable"; return 1; }
+    keyring_pkg=$(grep -oE 'cachyos-keyring-[0-9][^"<]*\.pkg\.tar\.zst' <<<"$index" | sort -V | tail -1)
+    mirrorlist_pkg=$(grep -oE 'cachyos-mirrorlist-[0-9][^"<]*\.pkg\.tar\.zst' <<<"$index" | sort -V | tail -1)
+    [[ -n "$keyring_pkg" && -n "$mirrorlist_pkg" ]] \
+        || { warn "could not find keyring/mirrorlist on the mirror"; return 1; }
+
+    sudo pacman -U --needed --noconfirm "$mirror/$keyring_pkg" "$mirror/$mirrorlist_pkg" \
+        || { warn "installing cachyos-keyring/mirrorlist failed"; return 1; }
+
+    # Append below every existing repo section.
+    printf '\n[cachyos]\nInclude = /etc/pacman.d/cachyos-mirrorlist\n' \
+        | sudo tee -a /etc/pacman.conf >/dev/null
+    sudo pacman -Sy --noconfirm || { warn "pacman -Sy failed after adding [cachyos]"; return 1; }
+
+    HAVE_CACHYOS_REPO=true
+    ok "[cachyos] repo added (below core/extra)"
+}
+
+# The gaming stack and the 32-bit GPU drivers need [multilib]. CachyOS enables it
+# out of the box; a stock Arch install leaves it commented out.
+ensure_multilib() {
+    grep -qE '^[[:space:]]*\[multilib\][[:space:]]*$' /etc/pacman.conf && return 0
+    grep -qE '^[[:space:]]*#[[:space:]]*\[multilib\][[:space:]]*$' /etc/pacman.conf || {
+        warn "no [multilib] section in pacman.conf; 32-bit packages will fail"
+        return 1
+    }
+    info "Enabling [multilib] (32-bit packages need it)..."
+    # Uncomment the [multilib] header and the Include line that follows it.
+    sudo sed -i '/^[[:space:]]*#[[:space:]]*\[multilib\][[:space:]]*$/,+1 s/^[[:space:]]*#[[:space:]]*//' \
+        /etc/pacman.conf
+    sudo pacman -Sy --noconfirm >/dev/null 2>&1 || true
+    grep -qE '^[[:space:]]*\[multilib\][[:space:]]*$' /etc/pacman.conf \
+        && ok "[multilib] enabled" || warn "could not enable [multilib]"
+}
+
+# Is this package name resolvable by pacman (i.e. in some configured repo)?
+in_repos() { pacman -Si "$1" &>/dev/null; }
+
+# --- kernel-coupled packages ---
+
+# Headers and NVIDIA modules depend on WHICH kernel is installed, so they are
+# derived here instead of being hardcoded in the class lists.
+#
+# Every Arch kernel package drops /usr/lib/modules/<ver>/pkgbase naming the
+# package that owns it, which is the authoritative way to enumerate installed
+# kernels. For each one:
+#   <pkgbase>-headers        always (DKMS and out-of-tree modules need them)
+#   <pkgbase>-nvidia-open    if the repos have a prebuilt module for that kernel
+#                            (CachyOS ships these for every kernel flavour)
+#   nvidia-open-dkms         otherwise, once, as the portable fallback
+#
+# The prebuilt and DKMS variants BOTH satisfy NVIDIA-MODULE and conflict with
+# each other, so exactly one provider is emitted.
+resolve_kernel_packages() {
+    KERNEL_PKGS=()
+    local -a kernels=()
+    local d base
+    for d in /usr/lib/modules/*/; do
+        [[ -r "$d/pkgbase" ]] || continue
+        base=$(<"$d/pkgbase")
+        [[ -n "$base" ]] && kernels+=("$base")
+    done
+    if (( ! ${#kernels[@]} )); then
+        warn "no kernel pkgbase found under /usr/lib/modules; skipping headers"
+        return 0
+    fi
+    mapfile -t kernels < <(printf '%s\n' "${kernels[@]}" | sort -u)
+
+    local want_nvidia=false
+    case "$CLASS" in desktop|laptop) want_nvidia=true ;; esac
+
+    local need_dkms=false
+    for base in "${kernels[@]}"; do
+        in_repos "$base-headers" && KERNEL_PKGS+=("$base-headers") \
+            || warn "$base-headers not in any repo"
+        if [[ "$want_nvidia" == true ]]; then
+            if in_repos "$base-nvidia-open"; then
+                KERNEL_PKGS+=("$base-nvidia-open")
+            else
+                need_dkms=true
+            fi
+        fi
+    done
+    # One DKMS fallback covers every kernel that had no prebuilt module.
+    if [[ "$need_dkms" == true ]] && in_repos nvidia-open-dkms; then
+        KERNEL_PKGS+=(nvidia-open-dkms)
+    fi
+
+    ok "kernels: ${kernels[*]}"
+    (( ${#KERNEL_PKGS[@]} )) && ok "kernel packages: ${KERNEL_PKGS[*]}"
+}
+
 
 # --- package installation ---
 
@@ -177,12 +348,40 @@ install_repo_pkgs() {
     done
 }
 
-# AUR via paru. paru itself comes from the CachyOS repo — nothing is built
-# from the AUR except the listed packages themselves.
+# Make sure an AUR helper exists.
+#
+# paru is a repo package on CachyOS and in [cachyos], so on those it is a normal
+# pacman install. On plain Arch without that repo it is AUR-only, which is a
+# chicken-and-egg: you need an AUR helper to install the AUR helper. Break it
+# with a one-off makepkg from the git repo — the ONLY thing this setup ever
+# builds by hand.
+#
+# The bar also shells out to paru (`paru -Qua` for the AUR update count, and the
+# tools menu opens `kitty -e paru`), so it is wanted even when no AUR package is.
+ensure_aur_helper() {
+    command -v paru &>/dev/null && return 0
+    if in_repos paru; then
+        sudo pacman -S --needed --noconfirm paru && return 0
+    fi
+    info "Building paru from the AUR (one-time)..."
+    sudo pacman -S --needed --noconfirm base-devel git || return 1
+    local tmp
+    tmp=$(mktemp -d) || return 1
+    if git clone --depth 1 https://aur.archlinux.org/paru-bin.git "$tmp/paru-bin" &>/dev/null \
+        && (cd "$tmp/paru-bin" && makepkg -si --noconfirm &>/dev/null); then
+        rm -rf "$tmp"
+        ok "paru installed"
+        return 0
+    fi
+    rm -rf "$tmp"
+    warn "could not install paru — AUR packages will be skipped"
+    return 1
+}
+
 install_aur_pkgs() {
     local -a pkgs=("$@")
     (( ${#pkgs[@]} )) || return 0
-    command -v paru &>/dev/null || sudo pacman -S --needed --noconfirm paru
+    ensure_aur_helper || { FAILED_PKGS+=("${pkgs[@]}"); return 0; }
     info "Installing ${#pkgs[@]} AUR package(s)..."
     # --skipreview: paru's PKGBUILD review prompt stalls scripted runs.
     for p in "${pkgs[@]}"; do
@@ -196,41 +395,76 @@ install_packages() {
     local f
     for f in "$PKG_DIR"/*.pkgs "$PKG_DIR/class/$CLASS.pkgs"; do
         [[ -f "$f" ]] || continue
-        # Selection-gated lists are added explicitly below, never via the glob:
-        #   gaming.pkgs             -> resolve_gaming
-        #   hyprland/mango.pkgs     -> resolve_compositor
-        case "$(basename "$f")" in
-            gaming.pkgs|hyprland.pkgs|mango.pkgs) continue ;;
-        esac
+        # gaming.pkgs is selection-gated and added explicitly below, never via
+        # the glob. (mango.pkgs used to be gated too, back when Hyprland was an
+        # alternative; it is now unconditional and rides the glob.)
+        [[ "$(basename "$f")" == "gaming.pkgs" ]] && continue
         mapfile -t -O "${#repo_pkgs[@]}" repo_pkgs < <(read_pkg_file "$f")
         ok "list: $(basename "$f")"
     done
 
-    local c
-    for c in hyprland mango; do
-        "want_$c" || continue
-        [[ -f "$PKG_DIR/$c.pkgs" ]] || continue
-        mapfile -t -O "${#repo_pkgs[@]}" repo_pkgs < <(read_pkg_file "$PKG_DIR/$c.pkgs")
-        ok "list: $c.pkgs (compositor)"
-    done
+    # Headers / NVIDIA modules for the kernels actually installed.
+    if (( ${#KERNEL_PKGS[@]} )); then
+        repo_pkgs+=("${KERNEL_PKGS[@]}")
+        ok "list: kernel-derived (${#KERNEL_PKGS[@]})"
+    fi
+
     if [[ -f "$PKG_DIR/class/$CLASS.aur" ]]; then
         mapfile -t aur_pkgs < <(read_pkg_file "$PKG_DIR/class/$CLASS.aur")
         (( ${#aur_pkgs[@]} )) && ok "list: class/$CLASS.aur (AUR)"
     fi
+
     if [[ "$GAMING" == "true" ]]; then
-        if [[ -f "$PKG_DIR/gaming.pkgs" ]]; then
-            mapfile -t -O "${#repo_pkgs[@]}" repo_pkgs < <(read_pkg_file "$PKG_DIR/gaming.pkgs")
-            ok "list: gaming.pkgs (gaming)"
-        fi
-        if [[ -f "$PKG_DIR/gaming.aur" ]]; then
-            mapfile -t -O "${#aur_pkgs[@]}" aur_pkgs < <(read_pkg_file "$PKG_DIR/gaming.aur")
-            (( ${#aur_pkgs[@]} )) && ok "list: gaming.aur (AUR)"
+        # cachyos-gaming-applications is in [cachyos] and NOWHERE else — not in
+        # Arch, not in the AUR. Without the repo there is nothing to fall back
+        # to, so skip the list and say what to install by hand instead of
+        # letting pacman fail on a package that cannot exist.
+        if [[ "$HAVE_CACHYOS_REPO" == true ]]; then
+            if [[ -f "$PKG_DIR/gaming.pkgs" ]]; then
+                mapfile -t -O "${#repo_pkgs[@]}" repo_pkgs < <(read_pkg_file "$PKG_DIR/gaming.pkgs")
+                ok "list: gaming.pkgs (gaming)"
+            fi
+            if [[ -f "$PKG_DIR/gaming.aur" ]]; then
+                mapfile -t -O "${#aur_pkgs[@]}" aur_pkgs < <(read_pkg_file "$PKG_DIR/gaming.aur")
+                (( ${#aur_pkgs[@]} )) && ok "list: gaming.aur (AUR)"
+            fi
+        else
+            warn "gaming enabled but no [cachyos] repo — skipping gaming.pkgs"
+            echo "      cachyos-gaming-applications exists only in [cachyos]."
+            echo "      Arch-native equivalent:"
+            echo "        sudo pacman -S steam lutris gamescope goverlay mangohud \\"
+            echo "                       lib32-mangohud wine winetricks vulkan-tools"
+            echo "        paru -S heroic-games-launcher protontricks umu-launcher"
         fi
     fi
-    mapfile -t repo_pkgs < <(printf '%s\n' "${repo_pkgs[@]}" | awk '!seen[$0]++')
 
-    install_repo_pkgs "${repo_pkgs[@]}"
+    # Drop anything no configured repo can resolve, so one unavailable package
+    # cannot fail the bulk transaction and drag the rest into the slow
+    # one-at-a-time retry path.
+    local -a resolvable=() unresolvable=()
+    local pkg
+    mapfile -t repo_pkgs < <(printf '%s\n' "${repo_pkgs[@]}" | awk 'NF && !seen[$0]++')
+    for pkg in "${repo_pkgs[@]}"; do
+        if in_repos "$pkg" || pacman -Sg "$pkg" &>/dev/null; then
+            resolvable+=("$pkg")
+        else
+            unresolvable+=("$pkg")
+        fi
+    done
+    if (( ${#unresolvable[@]} )); then
+        warn "${#unresolvable[@]} package(s) in no configured repo: ${unresolvable[*]}"
+        if [[ "$HAVE_CACHYOS_REPO" != true ]]; then
+            echo "      Trying the AUR for these instead."
+            aur_pkgs+=("${unresolvable[@]}")
+        else
+            FAILED_PKGS+=("${unresolvable[@]}")
+        fi
+    fi
+
+    install_repo_pkgs "${resolvable[@]}"
     install_aur_pkgs "${aur_pkgs[@]}"
+    # The bar shells out to paru even when nothing came from the AUR.
+    ensure_aur_helper || true
 }
 
 # --- services ---
@@ -508,8 +742,8 @@ warm_neovim_plugins() {
 # Uses xrdp's per-user hook: sesman.ini ships EnableUserWindowManager=true /
 # UserWindowManager=startwm.sh, so ~/startwm.sh is exec'd directly when present
 # — no /etc patching, and it takes precedence over the distro-sniffing
-# /etc/xrdp/startwm.sh. Strips Wayland/Hyprland env so XFCE/dbus start clean;
-# kills stale xfconfd left by a local Hyprland session sharing $HOME.
+# /etc/xrdp/startwm.sh. Strips Wayland/compositor env so XFCE/dbus start clean;
+# kills stale xfconfd left by a local mango session sharing $HOME.
 setup_rdp_session() {
     info "RDP session (xrdp → XFCE)..."
     if ! command -v startxfce4 &>/dev/null; then
@@ -532,8 +766,8 @@ setup_rdp_session() {
 $marker
 # Executed by xrdp-sesman on RDP login (sesman.ini: UserWindowManager).
 
-# Strip Wayland/Hyprland env leaked from local session profile.
-unset WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE HYPRLAND_CMD
+# Strip Wayland/compositor env leaked from the local session profile.
+unset WAYLAND_DISPLAY MANGO_INSTANCE_SIGNATURE
 export XDG_SESSION_TYPE=x11
 export XDG_CURRENT_DESKTOP=XFCE
 
@@ -548,38 +782,25 @@ EOF
    ℹ️  RDP notes:
       • Firewall: open 3389/tcp if one is active.
       • Windows: mstsc → <host>:3389 → Linux creds → session type "Xorg".
-      • Log out of local Hyprland before RDP-ing as the same user (or use a
+      • Log out of the local mango session before RDP-ing as the same user (or use a
         dedicated user) — shared $HOME means xfconfd/Thunar conflicts.
 EOF
 }
 
-# --- Hyprland plugins (interactive; needs hyprland installed) ---
-setup_hyprland_plugins() {
-    local -a plugins=(https://github.com/Duckonaut/split-monitor-workspaces)
-    # NEVER run hyprpm as root — it writes /var/cache/hyprpm/$USER and elevates
-    # internally for header installs; running as root breaks later user calls.
-    [[ $EUID -eq 0 ]] && { warn "refusing to run hyprpm as root"; return 1; }
-    info "Hyprland plugins..."
-    hyprpm update || { warn "hyprpm update failed"; return 1; }
-    local url name
-    for url in "${plugins[@]}"; do
-        name=$(basename "$url" .git)
-        hyprpm add "$url"     || { warn "add $name failed"; continue; }
-        hyprpm enable "$name" || { warn "enable $name failed"; continue; }
-    done
-    hyprpm reload 2>/dev/null || true
-    ok "plugins done"
-}
-
 # --- main ---
 
-echo "🚀 CachyOS → Wayland desktop bootstrap"
+echo "🚀 Arch/CachyOS → mango Wayland desktop bootstrap"
 [[ -d "$PKG_DIR" ]] || { echo "❌ $PKG_DIR not found"; exit 1; }
+command -v pacman &>/dev/null || { echo "❌ pacman not found — this is Arch-family only"; exit 1; }
 sudo -v || { echo "❌ sudo required"; exit 1; }
 
 ensure_class
-resolve_compositor
+detect_distro
 resolve_gaming
+# Repos before the upgrade: adding [cachyos] and [multilib] both resync the db,
+# and packages from them must be visible to the single install transaction.
+ensure_cachyos_repo || true
+[[ "$GAMING" == "true" || "$CLASS" != "work" ]] && ensure_multilib || true
 
 if [[ "${BOOTSTRAP_SKIP_UPGRADE:-}" == "1" ]]; then
     info "Syncing package databases (upgrade skipped)..."
@@ -589,6 +810,7 @@ else
     sudo pacman -Syu --noconfirm
 fi
 
+resolve_kernel_packages
 install_packages
 setup_services
 setup_syncthing_vault
@@ -599,15 +821,8 @@ install_claude_code_cli
 warm_neovim_plugins
 [[ "$CLASS" == "work" ]] && setup_rdp_session
 
-# split-monitor-workspaces is a Hyprland-only need — mango's tags are already
-# per-monitor, so skip the whole prompt when Hyprland isn't part of this machine.
-if want_hyprland && [[ -t 0 ]] && command -v hyprpm &>/dev/null; then
-    read -rp "Build Hyprland plugins now? (y/N): " choice
-    [[ "${choice,,}" == y* ]] && setup_hyprland_plugins || echo "⏭️  Skipped (re-run bootstrap or 'hyprpm update' later)"
-fi
-
 echo
-echo "✨ Bootstrap complete (class: $CLASS, compositor: $COMPOSITOR)"
+echo "✨ Bootstrap complete (class: $CLASS, distro: $DISTRO)"
 if (( ${#FAILED_PKGS[@]} )); then
     echo "⚠️  ${#FAILED_PKGS[@]} package(s) failed:"
     printf '   ✗ %s\n' "${FAILED_PKGS[@]}"
@@ -629,21 +844,9 @@ if [[ "$GAMING" == "true" ]]; then
     echo "       gamemoderun mangohud %command%           # perf + FPS/temp HUD"
     echo "       gamescope -f --hdr-enabled -- %command%  # HDR / scaling"
     echo "   • MangoHud overlay toggles in-game with Right Shift + F12."
-    if want_hyprland; then
-        echo "   • Hyprland HDR: add 'bitdepth,10, cm,hdr' to the panel's line in"
-        echo "     hypr/monitors.conf (see ~/.config/hypr/gaming.conf)."
-    fi
-    if want_mango; then
-        echo "   • mango HDR needs the wl-only build (AUR: mangowm-wlonly-git) —"
-        echo "     scenefx has no vulkan renderer. See ~/.config/mango/gaming.conf."
-        echo "   • mango has no equivalent to Hyprland's xwayland force_zero_scaling,"
-        echo "     so run XWayland games on a fractionally-scaled output under"
-        echo "     native-res gamescope to keep them sharp."
-    fi
+    echo "   • mango HDR needs the wl-only build (AUR: mangowm-wlonly-git) —"
+    echo "     scenefx has no vulkan renderer. See ~/.config/mango/gaming.conf."
+    echo "   • mango has no xwayland force_zero_scaling, so run XWayland games on"
+    echo "     a fractionally-scaled output under native-res gamescope to stay sharp."
 fi
-case "$COMPOSITOR" in
-    both)     sessions="Hyprland or Mango" ;;
-    hyprland) sessions="Hyprland" ;;
-    mango)    sessions="Mango" ;;
-esac
-echo "➡️  Next: reboot → SDDM → $sessions. Then: sudo tailscale up (if new machine)."
+echo "➡️  Next: reboot → SDDM → Mango. Then: sudo tailscale up (if new machine)."

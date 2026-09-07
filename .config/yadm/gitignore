@@ -110,6 +110,11 @@ log_iotc.txt
 .config/autostart/
 .pki/
 
+# yadm's own per-machine state: local.class / local.gaming pick the package
+# lists and config alternates for THIS box, so tracking it would force every
+# clone onto one machine's identity. yadm writes it on `yadm config local.*`.
+.config/yadm/config
+
 # Local secrets / state
 .zshrc.local
 .docker/
@@ -156,7 +161,6 @@ log_iotc.txt
 .config/Zeal/
 .config/user-dirs.locale
 .config/mozilla/
-::q
 
 # Old/local-only files
 .config/kitty/kitty.conf.bak

@@ -104,7 +104,13 @@ esac
 # nvm, from the Arch package rather than the upstream installer, so the init
 # script lives under /usr/share instead of ~/.nvm. Defines the `nvm` function
 # and puts the active node on PATH; without it `nvm` is simply not a command.
-source /usr/share/nvm/init-nvm.sh
+#
+# Guarded: .zshrc is sourced by every interactive shell, including on a machine
+# that hasn't been bootstrapped yet. An unguarded source of a missing file makes
+# zsh print a "no such file or directory" error on EVERY prompt, which is what a
+# fresh install looks like before packages/dev.pkgs lands the nvm package.
+# Without nvm the system node from /usr/bin still works; only `nvm` is missing.
+[[ -r /usr/share/nvm/init-nvm.sh ]] && source /usr/share/nvm/init-nvm.sh
 
 # Machine-local overrides / secrets (untracked; see gitignore "Local secrets").
 # Last, so a box can override anything set above it.

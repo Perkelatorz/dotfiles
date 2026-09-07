@@ -1,17 +1,19 @@
-# mango (MangoWC) specific packages. Selected via:
-#   yadm config local.compositor hyprland|mango|both   (default: both)
+# mango (MangoWC) — the compositor. This is the only compositor in the setup;
+# Hyprland was retired (see git log "Retire Hyprland; mango is the only
+# compositor"), so there is no compositor selection any more and this list is
+# always installed.
 #
-# The shared desktop stack this builds on (sddm, audio, quickshell, fonts,
-# hypridle/hyprlock, ...) lives in wayland.pkgs and is always installed.
-#
-# mango needs no plugin equivalent to split-monitor-workspaces: its tags are
-# per-monitor natively. Note the tag count (9) is compiled in via
-# src/config/preset.h, so it is not configurable — the bar filters the strip
-# down to 5 instead (see quickshell/Workspaces.qml, visibleTagCount).
+# mango's tag count (9) is compiled in via src/config/preset.h, so it is not
+# configurable — the bar filters the strip down to 5 instead
+# (quickshell/WorkspacePill.qml, visibleTagCount).
 
-# --- Compositor (cachyos repo; ships /usr/bin/mango, mmsg, and the session
-#     desktop file). The AUR also has mangowm-wlonly-git, which swaps scenefx
-#     for the vulkan renderer and is the only build with working HDR. ---
+# --- Compositor ---
+# NOT in the official Arch repos. Sources, in order of preference:
+#   [cachyos] repo  — binary, works on CachyOS and on plain Arch once the repo
+#                     is added (bootstrap offers this; see README.md).
+#   AUR: mangowm    — same package, built locally.
+# The AUR also has mangowm-wlonly-git, which swaps scenefx for the vulkan
+# renderer and is the only build with working HDR.
 mangowm
 
 # --- Portal (screenshare/screenshot) ---

@@ -1,5 +1,7 @@
 #!/bin/bash
 # Shortcut cheat sheet. Reads mango's binds.conf and renders it through rofi.
+# (Was hyprkeys.sh; renamed when Hyprland was retired — the parser below still
+#  understands both formats because binds.conf kept the Hyprland-ish syntax.)
 #
 # Hyprland format:  bind = MOD, KEY, action, args   # trailing description
 #                   sections marked  # --- Name ---

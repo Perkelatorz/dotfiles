@@ -1,25 +1,31 @@
 # Shared Wayland desktop stack — everything between "TTY" and "usable session"
-# that is NOT tied to one compositor. Both the Hyprland and mango sessions build
-# on this; compositor-specific bits live in hyprland.pkgs / mango.pkgs.
+# that is NOT the compositor itself. mango-specific bits live in mango.pkgs.
+#
+# Everything here is in the official Arch repos, so this list installs unchanged
+# on plain Arch and on CachyOS. Only mango.pkgs and the gaming/class lists reach
+# for packages outside Arch (see README.md, "Portability").
 
 # --- Login (bootstrap enables sddm.service; takes effect on reboot) ---
 sddm
 
 # --- Session helpers (compositor-agnostic despite the hypr* names) ---
-# hypridle drives ext-idle-notify-v1 and hyprlock uses ext-session-lock-v1, both
-# generic wlroots protocols — mango implements them too. mango runs hypridle
-# with its own timer file (mango/idle.conf) because the default one shells out
-# to hyprctl. hyprlock (not swaylock): hypr/programs.conf $lock and
-# mango/idle.conf both call it.
+# hypridle drives ext-idle-notify-v1, a generic wlroots protocol mango
+# implements too. mango runs it with its own timer file (mango/idle.conf)
+# because the default one shells out to hyprctl.
+#
+# There is deliberately NO lock package. The shell locks itself:
+# quickshell/LockScreen.qml drives ext-session-lock-v1 via WlSessionLock and
+# authenticates through PamContext against /etc/pam.d/login. Both callers
+# (mango/idle.conf and the bar's power menu) run `qs ipc call lock lock`, so
+# hyprlock/swaylock are not installed and have no config to drift.
 hypridle
-hyprlock
 hyprpicker
 hyprpolkitagent
 
-# --- Portals (file pickers; the screencast backend is per-compositor) ---
+# --- Portals (file pickers; the screencast backend is in mango.pkgs) ---
 xdg-desktop-portal-gtk
 
-# --- Audio (no-DE install ships no audio stack) ---
+# --- Audio (a no-desktop install ships no audio stack) ---
 pipewire
 pipewire-alsa
 pipewire-pulse
@@ -51,15 +57,31 @@ brightnessctl
 jq
 python
 
-# --- Bar / shell / notifications ---
+# --- Bar / shell ---
+# No notification daemon: quickshell owns org.freedesktop.Notifications itself
+# (quickshell/NotificationService.qml wraps Quickshell.Services.Notifications).
+# swaync used to be here and is now a conflict — two daemons race for the bus
+# name and whichever loses silently shows nothing.
 quickshell
 qt6-wayland
 qt6ct
 qt5ct
 kvantum
-swaync
 wdisplays
-nwg-displays          # GUI display layout editor; writes hypr monitors.conf (wdisplays is live-only, can't save). Hyprland-oriented, but harmless to have under mango — mango/monitors.conf is hand-maintained from it.
+nwg-displays          # GUI display layout editor (wdisplays is live-only, can't save). Hyprland-oriented, but it writes a plain monitor list that mango/monitors.conf is hand-maintained from.
+
+# --- Runtime deps of the quickshell bar ---
+# Each backs a specific widget; without it the widget renders empty rather than
+# failing loudly, so they are declared here instead of being left to chance.
+# upower                 UPower service -> BatteryContent (charge, rate, health)
+# lm_sensors             `sensors -j`   -> SystemContent temperature readout
+# network-manager-applet `nm-connection-editor` -> NetworkContent's editor button
+# cups / cups-filters    `lpstat`       -> SystemContent printer + job count
+upower
+lm_sensors
+network-manager-applet
+cups
+cups-filters
 
 # --- Theming (matugen pipeline + GTK/icons) ---
 matugen
@@ -69,7 +91,7 @@ imagemagick
 papirus-icon-theme
 adw-gtk-theme
 
-# --- Fonts (a no-DE install has NO fonts; noto covers UI + emoji fallback) ---
+# --- Fonts (a no-desktop install has NO fonts; noto covers UI + emoji fallback) ---
 noto-fonts
 noto-fonts-emoji
 ttf-jetbrains-mono-nerd

@@ -8,6 +8,10 @@ tree-sitter-cli
 npm
 go
 rust
+# nvm: .config/zsh/.zshrc sources /usr/share/nvm/init-nvm.sh to get the `nvm`
+# function. The source is guarded, so a missing nvm degrades quietly to the
+# system node -- but then `nvm` is not a command, which is not the intent.
+nvm
 
 # --- CLI tools (ripgrep/fd: Telescope; unzip: Mason extraction) ---
 ripgrep
