@@ -605,15 +605,22 @@ setup_services() {
     fi
 
     # gamemode and ananicy-cpp both rewrite process niceness and conflict; the
-    # CachyOS gaming guide says to pick one. ananicy-cpp is a dependency of
-    # cachyos-settings so it cannot be removed, only stopped. We only warn --
-    # silently disabling a service the distro enabled is not bootstrap's call.
-    if [[ "$GAMING" == "true" ]] \
-        && pacman -Qq gamemode &>/dev/null \
-        && systemctl is-active ananicy-cpp &>/dev/null; then
-        warn "ananicy-cpp is active alongside gamemode — they fight over niceness"
-        echo "      The CachyOS gaming guide recommends one or the other:"
-        echo "        sudo systemctl disable --now ananicy-cpp"
+    # CachyOS gaming guide says to pick one. This setup picks gamemode -- it is
+    # what applies the 7950X3D V-Cache core pinning in ~/.config/gamemode.ini,
+    # which ananicy-cpp cannot do.
+    #
+    # ananicy-cpp is a dependency of cachyos-settings, so it is disabled rather
+    # than removed. Gated on gaming being enabled: on a non-gaming machine
+    # ananicy's system-wide tuning is the better default and is left alone.
+    if [[ "$GAMING" == "true" ]] && pacman -Qq gamemode &>/dev/null; then
+        if systemctl is-enabled ananicy-cpp &>/dev/null || systemctl is-active ananicy-cpp &>/dev/null; then
+            info "Disabling ananicy-cpp (conflicts with gamemode over niceness)..."
+            sudo systemctl disable --now ananicy-cpp &>/dev/null \
+                && ok "ananicy-cpp disabled (still installed; cachyos-settings needs it)" \
+                || warn "could not disable ananicy-cpp"
+        else
+            ok "ananicy-cpp already disabled"
+        fi
     fi
     # sddm: enable only — starting it now would tear down this TTY mid-bootstrap.
     enable_system_service sddm
@@ -877,6 +884,24 @@ setup_git_identities() {
     done
 }
 
+# Seed the generated palette. Colors.qml is a matugen output and Colors.qml.tmpl
+# a per-machine copy of one of the tracked variants, so neither is tracked --
+# but shell.qml imports Colors as a qmldir singleton and will not start without
+# it. Seed both from the committed defaults; select-wallpaper.sh replaces them
+# for real the first time a wallpaper is picked.
+setup_quickshell_palette() {
+    local qs="$HOME/.config/quickshell"
+    [[ -d "$qs" ]] || return 0
+    if [[ ! -f "$qs/Colors.qml.tmpl" && -f "$qs/Colors.qml.tmpl.rainbow" ]]; then
+        cp "$qs/Colors.qml.tmpl.rainbow" "$qs/Colors.qml.tmpl"
+        ok "seeded Colors.qml.tmpl (rainbow)"
+    fi
+    if [[ ! -f "$qs/Colors.qml" && -f "$qs/Colors.qml.default" ]]; then
+        cp "$qs/Colors.qml.default" "$qs/Colors.qml"
+        ok "seeded Colors.qml — run select-wallpaper.sh (SUPER+W) to theme for real"
+    fi
+}
+
 setup_matugen_themes() {
     [[ -d "$MATUGEN_THEMES_DIR/.git" ]] && return
     if [[ -d "$MATUGEN_THEMES_DIR" ]]; then
@@ -992,6 +1017,7 @@ setup_syncthing_vault
 setup_default_shell_zsh
 setup_neovim_secrets
 setup_git_identities
+setup_quickshell_palette
 setup_matugen_themes
 install_claude_code_cli
 warm_neovim_plugins

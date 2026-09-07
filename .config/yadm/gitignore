@@ -183,6 +183,16 @@ log_iotc.txt
 .config/quickshell/bar-widgets.json
 .config/quickshell/weather-location.txt
 
+# Generated palette. Colors.qml.tmpl is a COPY of one of the tracked
+# Colors.qml.tmpl.{material,poppy,rainbow} variants, chosen per machine by
+# select-wallpaper.sh; Colors.qml is matugen's output from it, keyed to that
+# machine's wallpaper. Both are derived and machine-specific — tracking them
+# left every box that picked a different style permanently dirty and made
+# `yadm pull` require a stash. Colors.qml.default is the tracked fallback
+# bootstrap seeds from.
+.config/quickshell/Colors.qml
+.config/quickshell/Colors.qml.tmpl
+
 # pavucontrol remembers its window geometry here — per-machine runtime state,
 # not a preference worth syncing.
 .config/pavucontrol.ini
