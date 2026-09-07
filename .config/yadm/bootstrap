@@ -576,6 +576,25 @@ setup_services() {
     enable_system_service NetworkManager --now
     enable_system_service bluetooth --now
     enable_system_service tailscaled --now
+    # power-profiles-daemon: laptops want profile switching, and CachyOS's
+    # `game-performance` wrapper drives it over D-Bus to flip to `performance`
+    # for the life of a game. It was found running-but-not-enabled on the
+    # desktop, which works until the first reboot.
+    if pacman -Qq power-profiles-daemon &>/dev/null; then
+        enable_system_service power-profiles-daemon --now
+    fi
+
+    # gamemode and ananicy-cpp both rewrite process niceness and conflict; the
+    # CachyOS gaming guide says to pick one. ananicy-cpp is a dependency of
+    # cachyos-settings so it cannot be removed, only stopped. We only warn --
+    # silently disabling a service the distro enabled is not bootstrap's call.
+    if [[ "$GAMING" == "true" ]] \
+        && pacman -Qq gamemode &>/dev/null \
+        && systemctl is-active ananicy-cpp &>/dev/null; then
+        warn "ananicy-cpp is active alongside gamemode — they fight over niceness"
+        echo "      The CachyOS gaming guide recommends one or the other:"
+        echo "        sudo systemctl disable --now ananicy-cpp"
+    fi
     # sddm: enable only — starting it now would tear down this TTY mid-bootstrap.
     enable_system_service sddm
 

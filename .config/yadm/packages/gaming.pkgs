@@ -25,8 +25,23 @@ cachyos-gaming-applications
 
 # --- Feral GameMode (the meta deliberately omits it; some titles still ask for
 #     it, and `gamemoderun %command%` is a handy per-game perf toggle) ---
+#
+# NOTE: the CachyOS guide warns against running gamemode and ananicy-cpp at the
+# same time — both rewrite process niceness and fight each other. ananicy-cpp is
+# a dependency of cachyos-settings so it cannot simply be removed; stop the
+# service instead:  sudo systemctl disable --now ananicy-cpp
 gamemode
 lib32-gamemode
+
+# --- game-performance's backend ---
+# CachyOS ships a `game-performance` wrapper (from cachyos-settings) that flips
+# the power profile to `performance` for the life of the game. It drives
+# power-profiles-daemon over D-Bus, so without this package the wrapper the
+# guide tells you to put in every launch option silently does nothing.
+#
+# Also declared in class/laptop.pkgs, which wants profile switching whether or
+# not that machine games. Duplicate entries across lists are deduped at install.
+power-profiles-daemon
 
 # HDR: gamescope (pulled above) is the HDR path — run a title with
 #   gamescope -f --hdr-enabled -- %command%
