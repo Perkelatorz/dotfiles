@@ -53,6 +53,20 @@ ShellRoot {
         id: colors
     }
 
+    // One lock for the session: WlSessionLock puts a surface on every screen
+    // itself, so this lives outside the per-screen Variants.
+    LockScreen {
+        id: lockScreen
+        colors: shellRoot.shellColors
+    }
+
+    // `qs ipc call lock lock` — what hypridle and the power menu both call.
+    IpcHandler {
+        target: "lock"
+        function lock(): void { lockScreen.locked = true }
+        function isLocked(): bool { return lockScreen.locked }
+    }
+
     Variants {
         model: Quickshell.screens
 
@@ -85,7 +99,6 @@ ShellRoot {
             property bool calendarVisible: false
             property bool nowPlayingPopupVisible: false
             property bool quickSettingsMenuVisible: false
-            property string quickSettingsSubView: "main"
             property bool toolsMenuVisible: false
             property int toolsMenuMarginRight: 0
             property bool weatherForecastVisible: false
@@ -97,6 +110,10 @@ ShellRoot {
             property int systemPanelMarginRight: 0
             property bool batteryPanelVisible: false
             property int batteryPanelMarginRight: 0
+            property bool networkPanelVisible: false
+            property int networkPanelMarginRight: 0
+            property bool notifCenterVisible: false
+            property int notifCenterMarginRight: 0
             property int performancePanelMarginRight: 0
             property bool tailscalePanelVisible: false
             property int tailscalePanelMarginRight: 0
@@ -111,6 +128,8 @@ ShellRoot {
                 volumePanelVisible = false
                 systemPanelVisible = false
                 batteryPanelVisible = false
+                networkPanelVisible = false
+                notifCenterVisible = false
                 tailscalePanelVisible = false
             }
             property int calendarMarginLeft: 0
@@ -133,6 +152,7 @@ ShellRoot {
             property bool ipAddressWidgetVisible: false
             property bool clockWidgetVisible: true
             property bool systemClusterVisible: true
+            property bool networkClusterVisible: true
             property bool weatherWidgetVisible: false
             property bool updatesWidgetVisible: true
             property bool netSpeedWidgetVisible: false
@@ -308,7 +328,7 @@ ShellRoot {
                 // Padding from the screen edge to the first/last widget.
                 readonly property int contentInset: geo === "edge" ? 12 : 4
                 readonly property int groundRadius: geo === "edge" ? 0
-                    : geo === "capsule" ? 14 : 19
+                    : geo === "capsule" ? 12 : 14
 
                 implicitHeight: barTopGap + barThickness + barBottomGap
                 // Reserve the full height explicitly rather than leaving it to
@@ -334,11 +354,14 @@ ShellRoot {
                     anchors.leftMargin: bar.barSideInset
                     anchors.rightMargin: bar.barSideInset
                     radius: bar.groundRadius
-                    // Wallpaper-derived near-black, held just off opaque so the
-                    // background still reads through it.
-                    color: Qt.rgba(shellRoot.shellColors.background.r,
-                                   shellRoot.shellColors.background.g,
-                                   shellRoot.shellColors.background.b, 0.93)
+                    // Wallpaper-derived near-black with a 5% accent tint mixed
+                    // in (Material 3 surface tint), held just off opaque so the
+                    // background still reads through.
+                    color: Qt.rgba(
+                        shellRoot.shellColors.background.r + (shellRoot.shellColors.primary.r - shellRoot.shellColors.background.r) * 0.05,
+                        shellRoot.shellColors.background.g + (shellRoot.shellColors.primary.g - shellRoot.shellColors.background.g) * 0.05,
+                        shellRoot.shellColors.background.b + (shellRoot.shellColors.primary.b - shellRoot.shellColors.background.b) * 0.05,
+                        0.93)
                     border.width: bar.geo === "edge" ? 0 : 1
                     border.color: Qt.rgba(shellRoot.shellColors.textMain.r,
                                           shellRoot.shellColors.textMain.g,
@@ -680,6 +703,22 @@ ShellRoot {
                                     visible: screenDelegate.ipAddressWidgetVisible
                                 }
 
+                                NetworkClusterWidget {
+                                    id: networkCluster
+                                    colors: shellRoot.shellColors
+                                    visible: screenDelegate.networkClusterVisible
+                                    Layout.alignment: Qt.AlignVCenter
+                                    onPanelToggleRequested: function() {
+                                        var wasOpen = screenDelegate.networkPanelVisible
+                                        screenDelegate.closeAllPanels()
+                                        screenDelegate.networkPanelVisible = !wasOpen
+                                        if (screenDelegate.networkPanelVisible) {
+                                            var pt = networkCluster.mapToItem(root, 0, 0)
+                                            screenDelegate.networkPanelMarginRight = Math.max(0,
+                                                Math.floor(bar.width - pt.x - networkCluster.width / 2 - 170))
+                                        }
+                                    }
+                                }
                                 SystemClusterWidget {
                                     id: systemCluster
                                     colors: shellRoot.shellColors
@@ -752,20 +791,29 @@ ShellRoot {
 
                                 BarSeparator { colors: shellRoot.shellColors }
                                 NotificationWidget {
+                                    id: notifWidget
                                     colors: shellRoot.shellColors
                                     Layout.alignment: Qt.AlignVCenter
                                     visible: screenDelegate.notificationsWidgetVisible
+                                                                    onCenterToggleRequested: function() {
+                                        var wasOpen = screenDelegate.notifCenterVisible
+                                        screenDelegate.closeAllPanels()
+                                        screenDelegate.notifCenterVisible = !wasOpen
+                                        if (screenDelegate.notifCenterVisible) {
+                                            var pt = notifWidget.mapToItem(root, 0, 0)
+                                            screenDelegate.notifCenterMarginRight = Math.max(0,
+                                                Math.floor(bar.width - pt.x - notifWidget.width / 2 - 190))
+                                        }
+                                    }
                                 }
 
-                                QuickSettingsWidget {
+                                PowerWidget {
                                     colors: shellRoot.shellColors
                                     Layout.alignment: Qt.AlignVCenter
                                     onMenuToggleRequested: {
                                         var wasOpen = screenDelegate.quickSettingsMenuVisible
                                         screenDelegate.closeAllPanels()
                                         screenDelegate.quickSettingsMenuVisible = !wasOpen
-                                        if (screenDelegate.quickSettingsMenuVisible)
-                                            screenDelegate.quickSettingsSubView = "main"
                                     }
                                 }
                             }
@@ -775,157 +823,25 @@ ShellRoot {
             }
 
             PopupPanel {
-                id: quickSettingsPanel
+                id: powerPanel
                 screen: screenDelegate.modelData
                 visible: screenDelegate.quickSettingsMenuVisible && bar.panelsVisible
                 colors: shellRoot.shellColors
-                layershellNamespace: "quickshell-quick-settings"
+                layershellNamespace: "quickshell-power"
                 barHeight: bar.implicitHeight
-                containerWidth: 440
-                containerHeight: screenDelegate.quickSettingsSubView === "settings"
-                    ? Math.min(qsSettingsContent.implicitHeight + 60, 500)
-                    : screenDelegate.quickSettingsSubView === "power"
-                        ? Math.min(qsPowerContent.implicitHeight + 60, 400)
-                    : (screenDelegate.quickSettingsSubView === "wifi" || screenDelegate.quickSettingsSubView === "bluetooth")
-                        ? 460
-                    : Math.min(qsContent.implicitHeight + 40, 700)
+                containerX: powerPanel.width - 200 - 8
+                containerWidth: 200
+                containerHeight: powerContentItem.implicitHeight + 16
                 onCloseRequested: screenDelegate.closeAllPanels()
 
-                Column {
-                    anchors.fill: parent
-                    spacing: 0
-                    Row {
-                        visible: screenDelegate.quickSettingsSubView !== "main"
-                        width: parent.width - 40
-                        height: 40
-                        leftPadding: 12
-                        rightPadding: 12
-                        spacing: 8
-                        MouseArea {
-                            id: backButtonMa
-                            width: 32
-                            height: 32
-                            anchors.verticalCenter: parent.verticalCenter
-                            hoverEnabled: true
-                            onClicked: screenDelegate.quickSettingsSubView = "main"
-                            Rectangle {
-                                anchors.fill: parent
-                                radius: 6
-                                color: backButtonMa.containsMouse ? shellRoot.shellColors.surfaceBright : "transparent"
-                            }
-                            Text {
-                                anchors.centerIn: parent
-                                text: "\uF060"
-                                color: shellRoot.shellColors.textMain
-                                font.pixelSize: 14
-                                font.family: shellRoot.shellColors.widgetIconFont
-                            }
-                        }
-                        Item { width: 1; height: 1 }
-                        Text {
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: screenDelegate.quickSettingsSubView === "power" ? "Power"
-                                : screenDelegate.quickSettingsSubView === "wifi" ? "Wi-Fi"
-                                : screenDelegate.quickSettingsSubView === "bluetooth" ? "Bluetooth"
-                                : "Widgets & settings"
-                            color: shellRoot.shellColors.primary
-                            font.pixelSize: 14
-                            font.bold: true
-                        }
-                    }
-                    Rectangle {
-                        visible: screenDelegate.quickSettingsSubView !== "main"
-                        width: parent.width - 40
-                        height: 1
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        color: shellRoot.shellColors.borderSubtle
-                    }
-                    Item {
-                        width: parent.width - 40
-                        height: parent.height - (screenDelegate.quickSettingsSubView !== "main" ? 41 : 0)
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        clip: true
-                        Flickable {
-                            id: qsFlick
-                            visible: screenDelegate.quickSettingsSubView === "main"
-                            anchors.fill: parent
-                            anchors.margins: 20
-                            contentWidth: width
-                            contentHeight: qsContent.implicitHeight
-                            flickableDirection: Flickable.VerticalFlick
-                            boundsBehavior: Flickable.StopAtBounds
-                            QuickSettingsContent {
-                                id: qsContent
-                                width: parent.width
-                                colors: shellRoot.shellColors
-                                compositorName: shellRoot.compositorName
-                                screenIndex: bar.screenIndex
-                                onClose: function() { screenDelegate.quickSettingsMenuVisible = false }
-                                onOpenPowerRequested: screenDelegate.quickSettingsSubView = "power"
-                                onOpenSettingsRequested: screenDelegate.quickSettingsSubView = "settings"
-                                onOpenWifiRequested: screenDelegate.quickSettingsSubView = "wifi"
-                                onOpenBluetoothRequested: screenDelegate.quickSettingsSubView = "bluetooth"
-                            }
-                        }
-                        MouseArea {
-                            anchors.fill: parent
-                            anchors.margins: 20
-                            visible: screenDelegate.quickSettingsSubView === "main"
-                            acceptedButtons: Qt.MiddleButton
-                            onWheel: function(wheel) {
-                                var step = (wheel.angleDelta.y / 120) * 80
-                                qsFlick.contentY = Math.max(0, Math.min(qsFlick.contentY - step, Math.max(0, qsFlick.contentHeight - qsFlick.height)))
-                            }
-                        }
-                        Item {
-                            visible: screenDelegate.quickSettingsSubView === "power"
-                            anchors.fill: parent
-                            PowerMenuContent {
-                                id: qsPowerContent
-                                anchors.centerIn: parent
-                                width: Math.min(180, parent.width - 24)
-                                colors: shellRoot.shellColors
-                                compositorName: shellRoot.compositorName
-                                onClose: function() {
-                                    screenDelegate.quickSettingsMenuVisible = false
-                                }
-                            }
-                        }
-                        Item {
-                            visible: screenDelegate.quickSettingsSubView === "settings"
-                            anchors.fill: parent
-                            SettingsMenuContent {
-                                id: qsSettingsContent
-                                anchors.fill: parent
-                                anchors.margins: 8
-                                colors: shellRoot.shellColors
-                                settingsState: screenDelegate
-                                onClose: function() {
-                                    screenDelegate.quickSettingsSubView = "main"
-                                }
-                            }
-                        }
-                        Item {
-                            visible: screenDelegate.quickSettingsSubView === "wifi"
-                            anchors.fill: parent
-                            WifiContent {
-                                anchors.fill: parent
-                                anchors.margins: 8
-                                colors: shellRoot.shellColors
-                                panelOpen: screenDelegate.quickSettingsSubView === "wifi" && screenDelegate.quickSettingsMenuVisible
-                            }
-                        }
-                        Item {
-                            visible: screenDelegate.quickSettingsSubView === "bluetooth"
-                            anchors.fill: parent
-                            BluetoothContent {
-                                anchors.fill: parent
-                                anchors.margins: 8
-                                colors: shellRoot.shellColors
-                                panelOpen: screenDelegate.quickSettingsSubView === "bluetooth" && screenDelegate.quickSettingsMenuVisible
-                            }
-                        }
-                    }
+                PowerMenuContent {
+                    id: powerContentItem
+                    x: 8
+                    y: 8
+                    width: 184
+                    colors: shellRoot.shellColors
+                    compositorName: bar.compositorName
+                    onClose: function() { screenDelegate.quickSettingsMenuVisible = false }
                 }
             }
 
@@ -967,6 +883,52 @@ ShellRoot {
                     colors: shellRoot.shellColors
                     panelOpen: batteryPanel.visible
                     onClose: function() { screenDelegate.batteryPanelVisible = false }
+                }
+            }
+
+            NotificationToasts {
+                screen: screenDelegate.modelData
+                colors: shellRoot.shellColors
+                barHeight: bar.implicitHeight
+            }
+
+            PopupPanel {
+                id: notifCenterPanel
+                screen: screenDelegate.modelData
+                visible: screenDelegate.notifCenterVisible && bar.panelsVisible
+                colors: shellRoot.shellColors
+                layershellNamespace: "quickshell-notification-center"
+                barHeight: bar.implicitHeight
+                containerX: notifCenterPanel.width - 380 - screenDelegate.notifCenterMarginRight
+                containerWidth: 380
+                containerHeight: notifCenterItem.implicitHeight
+                onCloseRequested: screenDelegate.closeAllPanels()
+
+                NotificationCenter {
+                    id: notifCenterItem
+                    colors: shellRoot.shellColors
+                    panelOpen: notifCenterPanel.visible
+                    onClose: function() { screenDelegate.notifCenterVisible = false }
+                }
+            }
+
+            PopupPanel {
+                id: networkPanel
+                screen: screenDelegate.modelData
+                visible: screenDelegate.networkPanelVisible && bar.panelsVisible
+                colors: shellRoot.shellColors
+                layershellNamespace: "quickshell-network"
+                barHeight: bar.implicitHeight
+                containerX: networkPanel.width - 340 - screenDelegate.networkPanelMarginRight
+                containerWidth: 340
+                containerHeight: networkContentItem.implicitHeight
+                onCloseRequested: screenDelegate.closeAllPanels()
+
+                NetworkContent {
+                    id: networkContentItem
+                    colors: shellRoot.shellColors
+                    panelOpen: networkPanel.visible
+                    onClose: function() { screenDelegate.networkPanelVisible = false }
                 }
             }
 

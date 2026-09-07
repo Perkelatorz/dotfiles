@@ -8,12 +8,9 @@ import "."
 // dim ink and the eye has nothing to sort through.
 //
 // Colour is reserved for meaning. `active: true` is the only thing that spends
-// it, and BarStyle.style picks how:
-//   flat      — accent ink on a faint accent wash
-//   underline — accent ink over an accent rule
-//   filled    — accent container behind accent-on-container ink
-// Widgets set activeColor/activeTextColor to override the accent (a muted mic
-// passes `urgent`), so an urgent state still outranks an ordinary active one.
+// it: accent ink on a faint accent wash. Widgets set activeColor to override the
+// accent (a muted mic passes `urgent`), so an urgent state still outranks an
+// ordinary active one.
 Item {
     id: pill
     required property var colors
@@ -48,9 +45,7 @@ Item {
     // derived, so it stays a family rather than a scatter.
     property int pillIndex: -1
 
-    // ===== STYLE-DERIVED VISUALS =====
-    readonly property string _style: BarStyle.style
-
+    // ===== VISUALS =====
     // The hue an active pill spends. activeColor is the widget's override.
     readonly property color _accent: active ? activeColor : _iconAccent
 
@@ -70,9 +65,7 @@ Item {
 
     readonly property color _fill: {
         if (active)
-            return _style === "filled"    ? activeColor
-                 : _style === "underline" ? "transparent"
-                 : Qt.rgba(_accent.r, _accent.g, _accent.b, 0.14)   // flat
+            return Qt.rgba(_accent.r, _accent.g, _accent.b, 0.14)
         if (ma.containsMouse && interactive)
             return Qt.rgba(colors.textMain.r, colors.textMain.g, colors.textMain.b, 0.13)
         return "transparent"
@@ -82,13 +75,13 @@ Item {
     // Label: neutral ink. The value is what you read, so it wants contrast,
     // not hue — and a coloured icon beside it already carries the identity.
     readonly property color fg: active
-        ? (_style === "filled" ? activeTextColor : _accent)
+        ? _accent
         : (ma.containsMouse && interactive ? colors.textMain : colors.textDim)
 
     // Icon: always its accent, not only when active. This is the colour in the
     // bar. Hover lifts it toward white so the widget still answers the pointer.
     readonly property color iconFg: active
-        ? (_style === "filled" ? activeTextColor : _accent)
+        ? _accent
         : (ma.containsMouse && interactive
             ? Qt.lighter(_iconAccent, 1.35)
             : _iconAccent)
@@ -111,20 +104,6 @@ Item {
         scale: ma.pressed && pill.interactive ? 0.96 : 1.0
         Behavior on color { ColorAnimation { duration: 110 } }
         Behavior on scale { NumberAnimation { duration: 80; easing.type: Easing.OutCubic } }
-
-        // Accent underline — underline style only.
-        Rectangle {
-            visible: pill._style === "underline" && (pill.active || (ma.containsMouse && pill.interactive))
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.bottom: parent.bottom
-            anchors.leftMargin: 4
-            anchors.rightMargin: 4
-            height: ma.containsMouse && pill.interactive ? 3 : 2
-            radius: 1
-            color: pill._accent
-            Behavior on height { NumberAnimation { duration: 100 } }
-        }
 
         MouseArea {
             id: ma

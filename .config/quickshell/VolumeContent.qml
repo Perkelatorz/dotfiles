@@ -168,10 +168,7 @@ Column {
         width: audio.width - 24
         height: 28
         radius: 7
-        color: devMa.containsMouse
-            ? Qt.rgba(audio.colors.textMain.r, audio.colors.textMain.g,
-                      audio.colors.textMain.b, 0.07)
-            : "transparent"
+        color: devMa.containsMouse ? audio.colors.surfaceBright : "transparent"
 
         Rectangle {
             id: marker

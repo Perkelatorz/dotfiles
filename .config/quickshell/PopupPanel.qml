@@ -27,6 +27,19 @@ PanelWindow {
     signal closeRequested()
     signal opened()
 
+    // Material 3 surface tint. A raised surface is not a lighter grey — it is
+    // the ground with a percentage of the accent mixed in, which is why M3
+    // surfaces read as tinted rather than neutral. This is the single biggest
+    // visual difference between this shell and the Material rices it is
+    // modelled on; everything else was already close.
+    function tint(base, accent, amount) {
+        return Qt.rgba(base.r + (accent.r - base.r) * amount,
+                       base.g + (accent.g - base.g) * amount,
+                       base.b + (accent.b - base.b) * amount,
+                       1.0)
+    }
+    readonly property color surfaceTinted: tint(colors.background, colors.primary, 0.07)
+
     color: "transparent"
     exclusiveZone: -1
     anchors { top: true; bottom: true; left: true; right: true }
@@ -72,10 +85,10 @@ PanelWindow {
 
         Rectangle {
             anchors.fill: parent
-            anchors.leftMargin: 2
-            anchors.topMargin: 4
+            anchors.leftMargin: 3
+            anchors.topMargin: 6
             z: -1
-            radius: 20
+            radius: 18
             color: root.colors.panelShadow
             // No floating shadow behind transparent-content popups.
             visible: root.showBackground
@@ -88,15 +101,28 @@ PanelWindow {
         Rectangle {
             visible: root.showBackground
             anchors.fill: parent
-            // 20, not 12. The rounder, softer shape is most of what separates
-            // the reference rices from "clean but plain"; caelestia's default is
-            // 25, which is too much at this panel size.
-            radius: 20
-            color: Qt.rgba(root.colors.background.r, root.colors.background.g,
-                           root.colors.background.b, 0.93)
+            // 16 — M3's "large" step. 24 (extra-large) read as too bubbly at
+            // this panel size; 12 was the flat value this started from.
+            radius: 16
+            color: Qt.rgba(root.surfaceTinted.r, root.surfaceTinted.g,
+                           root.surfaceTinted.b, 0.94)
             border.width: 1
             border.color: Qt.rgba(root.colors.textMain.r, root.colors.textMain.g,
                                   root.colors.textMain.b, 0.10)
+
+            // Lit from above: a one-pixel highlight along the top edge. Cheap,
+            // and it is what stops a flat fill from reading as a sticker.
+            Rectangle {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.topMargin: 1
+                anchors.leftMargin: 16
+                anchors.rightMargin: 16
+                height: 1
+                color: Qt.rgba(root.colors.textMain.r, root.colors.textMain.g,
+                               root.colors.textMain.b, 0.10)
+            }
         }
 
         Item {

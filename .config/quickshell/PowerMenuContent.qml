@@ -9,7 +9,10 @@ Column {
     required property var onClose
 
     property string compositorName: "mango"
-    property string lockCommand: "hyprlock"
+    // The shell locks itself now. hyprlock is still installed but has no
+    // config — its directory went with Hyprland — so this pointed at a binary
+    // that silently did nothing.
+    property string lockCommand: "qs ipc call lock lock"
     property string suspendCommand: "systemctl suspend"
     property string hibernateCommand: "systemctl hibernate"
     property string logoutCommand: "loginctl terminate-user $(id -un)"

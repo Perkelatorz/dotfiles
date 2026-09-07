@@ -22,6 +22,16 @@ Column {
     // Under 20% and not on the charger is the only state here worth alarm.
     readonly property bool low: pct <= 20 && !charging
 
+    // Same elevation ladder as the other panels: surfaceContainer for a card
+    // on the panel ground, surfaceBright for it under the pointer.
+    component Card: Rectangle {
+        color: pwr.colors.surfaceContainer
+        radius: 12
+        border.width: 1
+        border.color: Qt.rgba(pwr.colors.textMain.r, pwr.colors.textMain.g,
+                              pwr.colors.textMain.b, 0.07)
+    }
+
     component Heading: Text {
         color: pwr.colors.textDim
         font.pixelSize: 11
@@ -35,7 +45,6 @@ Column {
     component Row_: Item {
         required property string k
         required property string v
-        width: pwr.width - 24
         height: 18
         Text {
             anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter
@@ -83,17 +92,28 @@ Column {
         }
     }
 
-    Row_ {
-        k: pwr.charging ? "Charging at" : "Drawing"
-        v: SystemServices.batteryRateW > 0
-            ? SystemServices.batteryRateW.toFixed(1) + " W" : "—"
+    Card {
+        width: pwr.width - 24
+        height: statCol.implicitHeight + 20
+        Column {
+            id: statCol
+            x: 12; y: 10
+            width: parent.width - 24
+            spacing: 6
+            Row_ {
+                width: parent.width
+                k: pwr.charging ? "Charging at" : "Drawing"
+                v: SystemServices.batteryRateW > 0
+                    ? SystemServices.batteryRateW.toFixed(1) + " W" : "—"
+            }
+            Row_ {
+                width: parent.width
+                k: "Health"
+                v: SystemServices.batteryHealthKnown
+                    ? SystemServices.batteryHealth + "%" : "not reported"
+            }
+        }
     }
-    Row_ {
-        k: "Health"
-        v: SystemServices.batteryHealthKnown ? SystemServices.batteryHealth + "%" : "not reported"
-    }
-
-    Rule {}
 
     // ===== PROFILE =====
     Heading { text: "POWER PROFILE" }
@@ -114,9 +134,7 @@ Column {
                 radius: 8
                 color: selected
                     ? Qt.rgba(pwr.colors.primary.r, pwr.colors.primary.g, pwr.colors.primary.b, 0.18)
-                    : (ma.containsMouse
-                        ? Qt.rgba(pwr.colors.textMain.r, pwr.colors.textMain.g, pwr.colors.textMain.b, 0.07)
-                        : "transparent")
+                    : (ma.containsMouse ? pwr.colors.surfaceBright : pwr.colors.surfaceContainer)
                 border.width: 1
                 border.color: selected
                     ? Qt.rgba(pwr.colors.primary.r, pwr.colors.primary.g, pwr.colors.primary.b, 0.45)

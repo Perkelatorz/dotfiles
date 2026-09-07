@@ -13,7 +13,12 @@ Rectangle {
 
     visible: enabled
     radius: groundRadius
-    color: Qt.rgba(colors.background.r, colors.background.g, colors.background.b, 0.93)
+    // Matches the bar's own ground: M3 surface tint at 5%.
+    color: Qt.rgba(
+        colors.background.r + (colors.primary.r - colors.background.r) * 0.05,
+        colors.background.g + (colors.primary.g - colors.background.g) * 0.05,
+        colors.background.b + (colors.primary.b - colors.background.b) * 0.05,
+        0.93)
     // borderSubtle (#52434a) reads as a lit mauve outline at 1px on this
     // ground. The plate should be defined by its fill, not by a rule around it.
     border.width: 1

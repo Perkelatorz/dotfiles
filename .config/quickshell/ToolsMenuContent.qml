@@ -10,8 +10,8 @@ Column {
     property string compositorName: "mango"
 
     spacing: 0
-    width: 180
-    padding: 4
+    width: 210
+    padding: 6
 
     SessionRunner {
         id: sessionRunner
@@ -50,7 +50,10 @@ Column {
                 { label: "Screenshot screen", icon: "\uF108", action: "shot-full" },
                 { label: "Same as last", icon: "\uF01E", action: "shot-last" },
                 { label: "Quick Notes", icon: "\uF249", action: "notes" },
-                { label: "Color Picker", icon: "\uF1FB", action: "colorpicker" }
+                { label: "Color Picker", icon: "\uF1FB", action: "colorpicker" },
+                // Rehomed from the QuickSettings Theme card, which was one of
+                // nine tiles in a panel that also held audio and radios.
+                { label: "Wallpaper & theme", icon: "\uF185", action: "theme" }
             ]
             if (toolsMenu.gsrAvailable) {
                 m.push({ label: "Save replay clip", icon: "\uF0C7", action: "replay-save" })
@@ -85,6 +88,9 @@ Column {
                 } else if (act === "notes") {
                     toolsMenu.onClose()
                     sessionRunner.run("kitty --class quick-notes -e nvim ~/notes.md")
+                } else if (act === "theme") {
+                    toolsMenu.onClose()
+                    sessionRunner.run("sh -c '\"$HOME/.config/scripts/select-wallpaper.sh\" --material'")
                 } else if (act === "colorpicker") {
                     toolsMenu.onClose()
                     if (!pickerProc.running) pickerProc.running = true
@@ -93,7 +99,9 @@ Column {
             Rectangle {
                 anchors.fill: parent
                 radius: 6
-                color: toolMa.containsMouse ? colors.surfaceBright : "transparent"
+                color: toolMa.containsMouse
+                    ? Qt.rgba(colors.textMain.r, colors.textMain.g, colors.textMain.b, 0.08)
+                    : "transparent"
             }
             Row {
                 anchors.verticalCenter: parent.verticalCenter
@@ -115,4 +123,87 @@ Column {
             }
         }
     }
+
+    // ===== APPEARANCE =====
+    // The bar shape/style pickers, rehomed from SettingsMenuContent. That page
+    // also carried sixteen widget-visibility toggles, which went away with it:
+    // widgets now hide themselves through `present` when they have nothing to
+    // report, so toggling them by hand was managing a decision already made.
+    Item { width: 1; height: 8 }
+    Rectangle {
+        width: toolsMenu.width - 12
+        height: 1
+        color: Qt.rgba(toolsMenu.colors.textMain.r, toolsMenu.colors.textMain.g,
+                       toolsMenu.colors.textMain.b, 0.09)
+    }
+    Item { width: 1; height: 8 }
+
+    component Chips: Column {
+        id: chipGroup
+        required property string heading
+        required property var options
+        required property string current
+        required property var apply
+        spacing: 5
+        Text {
+            text: chipGroup.heading
+            color: toolsMenu.colors.textDim
+            font.pixelSize: 11
+            font.bold: true
+            leftPadding: 4
+        }
+        Flow {
+            width: toolsMenu.width - 12
+            spacing: 5
+            Repeater {
+                model: chipGroup.options
+                delegate: Rectangle {
+                    required property var modelData
+                    readonly property bool sel: chipGroup.current === modelData.id
+                    width: chipText.implicitWidth + 20
+                    height: 26
+                    // Stadium, per Material 3: a selectable chip is a full pill,
+                    // not a rounded rectangle.
+                    radius: height / 2
+                    color: sel
+                        ? Qt.rgba(toolsMenu.colors.primary.r, toolsMenu.colors.primary.g,
+                                  toolsMenu.colors.primary.b, 0.18)
+                        : (chipMa.containsMouse
+                            ? Qt.rgba(toolsMenu.colors.textMain.r, toolsMenu.colors.textMain.g,
+                                      toolsMenu.colors.textMain.b, 0.08)
+                            : "transparent")
+                    border.width: 1
+                    border.color: sel
+                        ? Qt.rgba(toolsMenu.colors.primary.r, toolsMenu.colors.primary.g,
+                                  toolsMenu.colors.primary.b, 0.45)
+                        : Qt.rgba(toolsMenu.colors.textMain.r, toolsMenu.colors.textMain.g,
+                                  toolsMenu.colors.textMain.b, 0.10)
+                    Behavior on color { ColorAnimation { duration: 110 } }
+                    Text {
+                        id: chipText
+                        anchors.centerIn: parent
+                        text: modelData.label
+                        color: parent.sel ? toolsMenu.colors.primary : toolsMenu.colors.textDim
+                        font.pixelSize: 11
+                        font.bold: parent.sel
+                    }
+                    MouseArea {
+                        id: chipMa
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: chipGroup.apply(modelData.id)
+                    }
+                }
+            }
+        }
+    }
+
+    Chips {
+        heading: "BAR SHAPE"
+        options: BarStyle.geometries
+        current: BarStyle.geometry
+        apply: function(id) { BarStyle.setGeometry(id) }
+    }
+    Item { width: 1; height: 4 }
 }
