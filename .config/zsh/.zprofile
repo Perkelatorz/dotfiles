@@ -34,7 +34,25 @@ mkdir -p "${GNUPGHOME}" "${PASSWORD_STORE_DIR}" "$(dirname "$LESSHISTFILE")"
 # [ -z "$SSH_AUTH_SOCK" ] && eval "$(ssh-agent -s)"
 # [ -z "$GPG_AGENT_INFO" ] && gpg-agent --daemon > /dev/null 2>&1
 
-export PATH="$PATH:${HOME}/.local/bin"
+# Append to PATH only if not already on it. .zprofile runs for every login
+# shell, and a login shell inside a login shell (su -l, a nested `zsh -l`, a
+# terminal set to run a login shell) re-runs the whole file -- so a bare
+# `PATH="$PATH:dir"` stacks another copy each time. .zshrc already guards its
+# opencode entry this way; these had been stacking silently.
+path_append() {
+    case ":$PATH:" in
+        *":$1:"*) ;;
+        *) export PATH="$PATH:$1" ;;
+    esac
+}
+
+path_append "${HOME}/.local/bin"
+
+# ~/.config/scripts holds the helpers the compositor binds to keys (screenshots,
+# wallpaper, clipboard) plus `pkgs`, which is meant to be run by hand too.
+# Keybinds call these by absolute path, so nothing revealed that they were never
+# reachable by name until `pkgs` was typed at a prompt.
+path_append "${HOME}/.config/scripts"
 
 
 # Partial Supported Apps and common tools
@@ -78,7 +96,7 @@ export XSERVERRC="$XDG_CONFIG_HOME"/X11/xserverrc
 
 # Tool bin dirs — go binaries land in $GOPATH/bin (set above); pnpm's bin has
 # its shims and globally-installed tools (tsc, tsserver).
-export PATH="$PATH:$GOPATH/bin"
+path_append "$GOPATH/bin"
 export PNPM_HOME="$XDG_DATA_HOME/pnpm"
-export PATH="$PATH:$PNPM_HOME/bin"
+path_append "$PNPM_HOME/bin"
 
