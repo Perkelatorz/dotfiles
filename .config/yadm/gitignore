@@ -26,6 +26,11 @@
 .bash_logout
 
 # Toolchains / SDKs / package caches
+# nvm drops its runtime here (nvm.sh, nvm-exec) once the package is installed;
+# .zshrc sources the copy under /usr/share, not this one.
+.config/nvm/
+# Generated terminfo — kitty compiles its entry per machine.
+.terminfo/
 .arduino15/
 .cargo/
 .rustup/
@@ -89,6 +94,10 @@ log_iotc.txt
 .config/BraveSoftware/
 .config/vesktop/
 .config/discord/
+# Beeper: 25 MB of Cookies, account.db, index.db, Local/Session Storage and
+# contact avatars. Same class as vesktop/discord above and missed only because
+# it was installed later — which is the whole risk, since this repo is public.
+.config/BeeperTexts/
 .config/Bitwarden/
 .config/obsidian/
 .config/Logseq/
