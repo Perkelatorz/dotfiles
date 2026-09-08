@@ -9,10 +9,11 @@ Column {
     required property var onClose
 
     property string compositorName: "mango"
-    // The shell locks itself now. hyprlock is still installed but has no
-    // config — its directory went with Hyprland — so this pointed at a binary
-    // that silently did nothing.
-    property string lockCommand: "qs ipc call lock lock"
+    // swaylock, themed by matugen (~/.config/swaylock/config). Runs with
+    // inSession: true below, so the compositor owns it and restarting the bar
+    // cannot take the lock screen down with it. pidof guard: a second click
+    // would otherwise stack a second locker over the first.
+    property string lockCommand: "pidof -q swaylock || swaylock -f"
     property string suspendCommand: "systemctl suspend"
     property string hibernateCommand: "systemctl hibernate"
     property string logoutCommand: "loginctl terminate-user $(id -un)"

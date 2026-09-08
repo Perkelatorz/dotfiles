@@ -13,12 +13,12 @@ sddm
 # implements too. mango runs it with its own timer file (mango/idle.conf)
 # because the default one shells out to hyprctl.
 #
-# There is deliberately NO lock package. The shell locks itself:
-# quickshell/LockScreen.qml drives ext-session-lock-v1 via WlSessionLock and
-# authenticates through PamContext against /etc/pam.d/login. Both callers
-# (mango/idle.conf and the bar's power menu) run `qs ipc call lock lock`, so
-# hyprlock/swaylock are not installed and have no config to drift.
+# swaylock is the locker. It ships its own /etc/pam.d/swaylock, so authentication
+# does not go through the /etc/pam.d/login stack (pam_faillock there wants to
+# write root-owned /run/faillock, which an unprivileged locker cannot do), and
+# matugen already renders ~/.config/swaylock/config from the wallpaper palette.
 hypridle
+swaylock
 hyprpicker
 hyprpolkitagent
 

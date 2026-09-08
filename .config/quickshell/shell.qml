@@ -53,19 +53,11 @@ ShellRoot {
         id: colors
     }
 
-    // One lock for the session: WlSessionLock puts a surface on every screen
-    // itself, so this lives outside the per-screen Variants.
-    LockScreen {
-        id: lockScreen
-        colors: shellRoot.shellColors
-    }
-
-    // `qs ipc call lock lock` — what hypridle and the power menu both call.
-    IpcHandler {
-        target: "lock"
-        function lock(): void { lockScreen.locked = true }
-        function isLocked(): bool { return lockScreen.locked }
-    }
+    // No locker here. The shell used to be one (LockScreen.qml, WlSessionLock
+    // + PamContext), which meant owning a PAM conversation and an
+    // ext-session-lock client — a lot of surface for a screen whose failure
+    // mode is "cannot get back into the session". swaylock does it instead;
+    // mango/idle.conf and PowerMenuContent.qml both spawn it directly.
 
     Variants {
         model: Quickshell.screens
