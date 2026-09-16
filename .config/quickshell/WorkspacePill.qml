@@ -32,6 +32,9 @@ Item {
     property int slotPadding: 8
 
     signal activated()
+    // Right-click on one of the app icons: the window it stands for, plus the
+    // icon itself so the caller can hang a menu off the right place.
+    signal clientMenuRequested(var client, var anchorItem)
 
     readonly property int displayCount: Math.min(wsClients ? wsClients.length : 0, maxAppIndicators)
     readonly property bool expanded: displayCount > 0
@@ -79,6 +82,7 @@ Item {
             Repeater {
                 model: pill.displayCount
                 delegate: Item {
+                    id: iconSlot
                     width: pill.appIconSize
                     height: pill.appIconSize
                     anchors.verticalCenter: parent ? parent.verticalCenter : undefined
@@ -100,6 +104,16 @@ Item {
                         font.pixelSize: Math.max(9, pill.appIconSize - 6)
                         font.bold: true
                     }
+                    // Right-click only. wsMouse sits above this and takes
+                    // every left click for the workspace switch; declaring the
+                    // other button here lets the press fall through to it.
+                    MouseArea {
+                        anchors.fill: parent
+                        anchors.margins: -2
+                        acceptedButtons: Qt.RightButton
+                        onClicked: pill.clientMenuRequested(iconSlot.client, iconSlot)
+                    }
+
                     Image {
                         anchors.centerIn: parent
                         width: pill.appIconSize
@@ -133,6 +147,7 @@ Item {
         anchors.margins: -4          // a 6px dot is not a hit target
         hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
+        acceptedButtons: Qt.LeftButton
         onClicked: pill.activated()
     }
 }

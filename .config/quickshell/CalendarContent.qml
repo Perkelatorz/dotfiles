@@ -3,91 +3,137 @@ import QtQuick
 import "."
 
 /**
- * Calendar UI content (grid + nav). Use inside the bar or any container.
+ * Calendar UI content (nav header + month grid). Use inside the bar or any
+ * container.
+ *
+ * Draws no surface of its own: PopupPanel already puts the calendar on the
+ * tinted M3 ground every other menu uses, and the bordered box this used to
+ * paint inside it made the panel read as two stacked cards. Nav moved above the
+ * grid for the same reason it sits there in every calendar — you look at the
+ * month name first.
  */
 Column {
     id: content
+
     required property var colors
     required property var calendarState
 
-    spacing: 0
+    spacing: 6
 
-    Rectangle {
-        width: content.width
-        height: Math.max(0, content.height - 28)
-        color: colors.background
-        border.width: 1
-        border.color: colors.border
-        StyledCalendarGrid {
+    // --- building blocks --------------------------------------------------
+    component NavButton: MouseArea {
+        id: navBtn
+        required property string glyph
+        signal triggered()
+
+        width: 26
+        height: 26
+        hoverEnabled: true
+        cursorShape: Qt.PointingHandCursor
+        onClicked: navBtn.triggered()
+
+        Rectangle {
             anchors.fill: parent
-            colors: content.colors
-            calendarDays: content.calendarState.calendarDays
-            calendarTodayDay: content.calendarState.calendarTodayDay
-            calendarIsCurrentMonth: content.calendarState.calendarIsCurrentMonth
-        }
-    }
-    Row {
-        width: content.width
-        height: 28
-        spacing: 4
-        layoutDirection: Qt.LeftToRight
-        Item {
-            width: 24
-            height: parent.height
-            MouseArea {
-                anchors.fill: parent
-                onClicked: content.calendarState.calendarPreviousMonth()
-                Text {
-                    anchors.centerIn: parent
-                    text: "◀"
-                    color: colors.textMain
-                    font.pixelSize: colors.clockFontSize
-                }
-            }
+            radius: width / 2
+            color: navBtn.containsMouse
+                ? Qt.rgba(content.colors.textMain.r, content.colors.textMain.g,
+                          content.colors.textMain.b, 0.10)
+                : "transparent"
+            Behavior on color { ColorAnimation { duration: 100 } }
         }
         Text {
-            width: parent.width - 24 - 24 - 24 - 44
-            height: parent.height
+            anchors.centerIn: parent
+            text: navBtn.glyph
+            color: navBtn.containsMouse ? content.colors.primary : content.colors.textDim
+            font.pixelSize: content.colors.fontLg
+        }
+    }
+
+    component TodayButton: MouseArea {
+        id: todayMa
+        signal triggered()
+
+        width: 46
+        height: 24
+        hoverEnabled: true
+        cursorShape: Qt.PointingHandCursor
+        onClicked: todayMa.triggered()
+
+        // Lit only while the view has wandered off the current month: when
+        // "Today" would do nothing, it shouldn't look like a button.
+        readonly property bool armed: !content.calendarState.calendarIsCurrentMonth
+
+        Rectangle {
+            anchors.fill: parent
+            radius: 12
+            color: {
+                var a = content.colors.primary
+                if (todayMa.containsMouse && todayMa.armed) return Qt.rgba(a.r, a.g, a.b, 0.22)
+                if (todayMa.armed) return Qt.rgba(a.r, a.g, a.b, 0.12)
+                return Qt.rgba(content.colors.textMain.r, content.colors.textMain.g,
+                               content.colors.textMain.b, 0.05)
+            }
+            Behavior on color { ColorAnimation { duration: 100 } }
+        }
+        Text {
+            anchors.centerIn: parent
+            text: "Today"
+            color: todayMa.armed ? content.colors.primary : content.colors.textMuted
+            font.pixelSize: content.colors.fontXs
+        }
+    }
+
+    // ===== NAV =====
+    Item {
+        id: nav
+        width: grid.implicitWidth
+        height: 30
+
+        NavButton {
+            id: prevBtn
+            glyph: "‹"
+            anchors.left: parent.left
+            anchors.verticalCenter: parent.verticalCenter
+            onTriggered: content.calendarState.calendarPreviousMonth()
+        }
+
+        TodayButton {
+            id: todayBtn
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            onTriggered: content.calendarState.calendarGoToToday()
+        }
+
+        NavButton {
+            id: nextBtn
+            glyph: "›"
+            anchors.right: todayBtn.left
+            anchors.rightMargin: 2
+            anchors.verticalCenter: parent.verticalCenter
+            onTriggered: content.calendarState.calendarNextMonth()
+        }
+
+        Text {
+            anchors.left: prevBtn.right
+            anchors.right: nextBtn.left
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.leftMargin: 2
+            anchors.rightMargin: 2
             horizontalAlignment: Text.AlignHCenter
-            verticalAlignment: Text.AlignVCenter
+            elide: Text.ElideRight
             text: content.calendarState.calendarTitle
-            color: colors.primary
-            font.pixelSize: colors.clockFontSize
+            color: content.colors.textMain
+            font.pixelSize: content.colors.fontMd
             font.bold: true
         }
-        Item {
-            width: 24
-            height: parent.height
-            MouseArea {
-                anchors.fill: parent
-                onClicked: content.calendarState.calendarNextMonth()
-                Text {
-                    anchors.centerIn: parent
-                    text: "▶"
-                    color: colors.textMain
-                    font.pixelSize: colors.clockFontSize
-                }
-            }
-        }
-        Item {
-            width: 44
-            height: parent.height
-            MouseArea {
-                anchors.fill: parent
-                onClicked: content.calendarState.calendarGoToToday()
-                Rectangle {
-                    anchors.fill: parent
-                    anchors.margins: 2
-                    radius: 4
-                    color: colors.surfaceContainer
-                    Text {
-                        anchors.centerIn: parent
-                        text: "Today"
-                        color: colors.textMain
-                        font.pixelSize: colors.clockFontSize - 1
-                    }
-                }
-            }
-        }
+    }
+
+    // ===== GRID =====
+    StyledCalendarGrid {
+        id: grid
+        colors: content.colors
+        calendarDays: content.calendarState.calendarDays
+        calendarTodayDay: content.calendarState.calendarTodayDay
+        calendarIsCurrentMonth: content.calendarState.calendarIsCurrentMonth
     }
 }

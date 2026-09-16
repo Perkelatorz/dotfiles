@@ -52,3 +52,4 @@ WeatherWidget 1.0 WeatherWidget.qml
 WeatherForecastContent 1.0 WeatherForecastContent.qml
 ToolsMenuWidget 1.0 ToolsMenuWidget.qml
 ToolsMenuContent 1.0 ToolsMenuContent.qml
+ClientMenuContent 1.0 ClientMenuContent.qml

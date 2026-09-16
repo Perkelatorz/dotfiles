@@ -109,6 +109,13 @@ ShellRoot {
             property int performancePanelMarginRight: 0
             property bool tailscalePanelVisible: false
             property int tailscalePanelMarginRight: 0
+            // Right-click menu for one window in the workspace strip. Only the
+            // id is held: ClientMenuContent reads the window's live state off
+            // MangoIpc, so nothing here goes stale while the menu is open.
+            property bool clientMenuVisible: false
+            property string clientMenuClientId: ""
+            property int clientMenuTag: 0
+            property int clientMenuX: 0
 
             function closeAllPanels() {
                 calendarVisible = false
@@ -123,6 +130,7 @@ ShellRoot {
                 networkPanelVisible = false
                 notifCenterVisible = false
                 tailscalePanelVisible = false
+                clientMenuVisible = false
             }
             property int calendarMarginLeft: 0
             property int nowPlayingMarginLeft: 0
@@ -219,6 +227,9 @@ ShellRoot {
             }
             Component.onCompleted: loadBarWidgets()
 
+            // Grid is 7 cells of 30 with 2px gaps (222), plus 12px of panel
+            // padding either side. Shared with the clock's centring maths below.
+            readonly property int calendarPanelWidth: 246
             property string calendarTitle: ""
             property var calendarDays: []
             property int calendarTodayDay: 0
@@ -226,17 +237,22 @@ ShellRoot {
             property int displayedYear: 2000
             property bool calendarIsCurrentMonth: displayedMonth === new Date().getMonth() && displayedYear === new Date().getFullYear()
 
+            // 42 cells of { day, inMonth } — six rows, Monday first. The
+            // cells either side of the month carry the real neighbouring dates
+            // rather than blanks; StyledCalendarGrid dims them. Always six rows
+            // so the panel does not change height as you page months.
             function getCalendarDaysFor(month, year) {
-                var first = new Date(year, month, 1)
-                var last = new Date(year, month + 1, 0)
-                var firstDayMonday = (first.getDay() + 6) % 7
-                var lastDate = last.getDate()
+                var firstDayMonday = (new Date(year, month, 1).getDay() + 6) % 7
+                var lastDate = new Date(year, month + 1, 0).getDate()
+                var prevLastDate = new Date(year, month, 0).getDate()
                 var out = []
                 for (var i = 0; i < 42; i++) {
-                    if (i < firstDayMonday || i >= firstDayMonday + lastDate)
-                        out.push(0)
+                    if (i < firstDayMonday)
+                        out.push({ day: prevLastDate - firstDayMonday + 1 + i, inMonth: false })
+                    else if (i >= firstDayMonday + lastDate)
+                        out.push({ day: i - firstDayMonday - lastDate + 1, inMonth: false })
                     else
-                        out.push(i - firstDayMonday + 1)
+                        out.push({ day: i - firstDayMonday + 1, inMonth: true })
                 }
                 return out
             }
@@ -492,6 +508,18 @@ ShellRoot {
                                     occupiedWorkspaceIds: root.occupiedWorkspaceIds
                                     clientsByWorkspace: root.clientsByWorkspace
                                     Layout.leftMargin: 0
+                                    onClientMenuRequested: function(client, anchorItem, tagIndex) {
+                                        if (!client || !client.address) return
+                                        screenDelegate.closeAllPanels()
+                                        // Left edge of the icon, in bar-window
+                                        // coordinates — the popup window spans
+                                        // the same screen, so they line up.
+                                        var pt = anchorItem.mapToItem(root, 0, 0)
+                                        screenDelegate.clientMenuClientId = String(client.address)
+                                        screenDelegate.clientMenuTag = tagIndex
+                                        screenDelegate.clientMenuX = Math.floor(pt.x) - 10
+                                        screenDelegate.clientMenuVisible = true
+                                    }
                                 }
                                 LayoutWidget {
                                     colors: shellRoot.shellColors
@@ -757,7 +785,7 @@ ShellRoot {
                                         screenDelegate.calendarVisible = !wasOpen
                                         if (screenDelegate.calendarVisible) {
                                             var pt = clockWidget.mapToItem(root, 0, 0)
-                                            screenDelegate.calendarMarginLeft = Math.max(0, Math.floor(pt.x + (clockWidget.width - 200) / 2))
+                                            screenDelegate.calendarMarginLeft = Math.max(8, Math.floor(pt.x + (clockWidget.width - screenDelegate.calendarPanelWidth) / 2))
                                             var now = new Date()
                                             screenDelegate.displayedMonth = now.getMonth()
                                             screenDelegate.displayedYear = now.getFullYear()
@@ -811,6 +839,36 @@ ShellRoot {
                             }
                         }
                     }
+                }
+            }
+
+            PopupPanel {
+                id: clientMenuPanel
+                readonly property int menuWidth: 244
+                screen: screenDelegate.modelData
+                visible: screenDelegate.clientMenuVisible && bar.panelsVisible
+                colors: shellRoot.shellColors
+                layershellNamespace: "quickshell-client-menu"
+                barHeight: bar.implicitHeight
+                // Opens under the icon, clamped so a window on the last tag of
+                // a narrow screen doesn't hang off the right edge.
+                containerX: Math.max(8, Math.min(screenDelegate.clientMenuX,
+                                                 clientMenuPanel.width - clientMenuPanel.menuWidth - 8))
+                containerWidth: clientMenuPanel.menuWidth
+                containerHeight: clientMenuContent.implicitHeight + 16
+                onCloseRequested: screenDelegate.closeAllPanels()
+
+                ClientMenuContent {
+                    id: clientMenuContent
+                    x: 8
+                    y: 8
+                    width: clientMenuPanel.menuWidth - 16
+                    colors: shellRoot.shellColors
+                    clientId: screenDelegate.clientMenuClientId
+                    tagIndex: screenDelegate.clientMenuTag
+                    tagCount: workspaceRow.visibleTagCount
+                    multiMonitor: Quickshell.screens && Quickshell.screens.length > 1
+                    onClose: function() { screenDelegate.clientMenuVisible = false }
                 }
             }
 
@@ -1043,14 +1101,17 @@ ShellRoot {
                 colors: shellRoot.shellColors
                 layershellNamespace: "quickshell-calendar"
                 barHeight: bar.implicitHeight
-                containerX: screenDelegate.calendarMarginLeft
-                containerWidth: 200
-                containerHeight: 200
+                containerX: Math.min(screenDelegate.calendarMarginLeft,
+                                     calendarPanel.width - screenDelegate.calendarPanelWidth - 8)
+                containerWidth: screenDelegate.calendarPanelWidth
+                containerHeight: calendarContent.implicitHeight + 24
                 onCloseRequested: screenDelegate.closeAllPanels()
 
                 CalendarContent {
-                    anchors.fill: parent
-                    anchors.margins: 1
+                    id: calendarContent
+                    x: Math.round((parent.width - implicitWidth) / 2)
+                    y: 12
+                    width: implicitWidth
                     colors: shellRoot.shellColors
                     calendarState: screenDelegate
                 }

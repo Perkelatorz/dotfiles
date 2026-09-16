@@ -14,6 +14,10 @@ Row {
     required property var occupiedWorkspaceIds
     property var clientsByWorkspace: ({})
 
+    // Right-click on an app icon, forwarded up with the tag it was sitting on:
+    // the pill knows the window, only the strip knows which tag it drew it for.
+    signal clientMenuRequested(var client, var anchorItem, int tagIndex)
+
     spacing: 7
     leftPadding: 8
     rightPadding: 8
@@ -80,6 +84,9 @@ Row {
             maxAppIndicators: workspaceRow.maxAppIndicators
             appIconSize: workspaceRow.appIconSize
             slotPadding: workspaceRow.slotPadding
+            onClientMenuRequested: function(client, anchorItem) {
+                workspaceRow.clientMenuRequested(client, anchorItem, tagIndex)
+            }
             onActivated: {
                 if (!workspaceRow.mangoMonitor) return
                 // Focus the output first so the tag switch lands there. The

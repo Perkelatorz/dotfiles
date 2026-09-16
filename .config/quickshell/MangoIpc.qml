@@ -50,6 +50,19 @@ Singleton {
         return null
     }
 
+    // Live state for one client id. The bar's workspace model is deduped on
+    // class/address and carries no window flags, so anything that needs to know
+    // whether a window is floating, pinned or fullscreen (the right-click menu)
+    // looks it up here instead of holding a snapshot.
+    function clientById(id) {
+        if (id === undefined || id === null || id === "") return null
+        for (var i = 0; i < root.clients.length; i++) {
+            if (String(root.clients[i].id) === String(id))
+                return root.clients[i]
+        }
+        return null
+    }
+
     // Windows worth showing in the bar for one output: skip minimized and
     // scratchpad clients.
     function clientsOn(monitorName) {
