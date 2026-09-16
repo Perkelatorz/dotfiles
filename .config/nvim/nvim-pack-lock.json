@@ -151,7 +151,7 @@
       "src": "https://github.com/folke/trouble.nvim"
     },
     "tsk.nvim": {
-      "rev": "364f16987398fb1397395e759f5d6eeee42d8424",
+      "rev": "29d187f8f6d064f0ff884ca18a613221f9aa9931",
       "src": "https://github.com/Perkelatorz/tsk.nvim"
     },
     "vim-table-mode": {
