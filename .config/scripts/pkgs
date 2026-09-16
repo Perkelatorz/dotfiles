@@ -351,7 +351,10 @@ cmd_add() {
     local -a want=()
     while (( $# )); do
         case "$1" in
-            -l|--list) list="$2"; shift 2 ;;
+            # Guarded: under `set -u` a bare trailing `-l` made "$2" an
+            # unbound-variable crash, which is what tab-completing the flag and
+            # then thinking better of it looks like.
+            -l|--list) [[ $# -ge 2 ]] || die "$1 needs a list name"; list="$2"; shift 2 ;;
             -*) die "unknown flag: $1" ;;
             *) want+=("$1"); shift ;;
         esac
