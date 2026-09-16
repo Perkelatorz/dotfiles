@@ -1,3 +1,16 @@
-# default — installed on every machine.
+# default.aur — AUR packages installed on EVERY machine, whatever its class.
+#
+# The AUR counterpart to the top-level *.pkgs lists. Layering is identical:
+#
+#   default.aur        every machine          (this file)
+#   class/<role>.aur   the ROLE    — desktop | laptop | work
+#   host/<name>.aur    the MACHINE — keyed on the short hostname
+#
+# gaming.aur sits outside that stack: it is gated on the gaming opt-in, not on
+# class, so bootstrap skips it in the glob and adds it only when gaming is on.
+#
+# Everything here goes through paru, which BUILDS from source. Prefer a repo
+# package in a *.pkgs list whenever one exists; a package belongs here only if
+# the AUR is the only place it lives.
 
 stably-orca-bin

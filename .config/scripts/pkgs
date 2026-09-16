@@ -19,6 +19,10 @@
 #     class/<role>.pkgs   the ROLE   — desktop | laptop | work  (yadm config local.class)
 #     host/<name>.pkgs    the MACHINE — keyed on the short hostname
 #
+#   .aur lists layer identically (default.aur / class/<role>.aur / host/<name>.aur)
+#   and go through paru instead of pacman. gaming.pkgs and gaming.aur sit outside
+#   the stack: bootstrap gates them on the gaming opt-in, not on class.
+#
 #   Two laptops with different GPUs share class/laptop.pkgs and diverge in
 #   host/<name>.pkgs, rather than forking the class and duplicating the rest.
 #   The picker marks which lists apply here, so it is obvious whether you are
