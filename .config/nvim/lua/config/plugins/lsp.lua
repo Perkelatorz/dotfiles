@@ -102,6 +102,25 @@ function M.setup()
 		vim.lsp.enable("nil_ls")
 	end
 
+	-- clangd (C) as the **system** binary from the Arch `clang` package, so it always matches
+	-- the installed clang-format/libc headers; not from Mason. Compile flags and clang-tidy
+	-- checks for files with no compile_commands.json: ~/.config/clangd/config.yaml.
+	if vim.fn.executable("clangd") == 1 then
+		vim.lsp.config("clangd", {
+			cmd = {
+				"clangd",
+				"--background-index",
+				"--clang-tidy",
+				-- Show each overload/parameter list in the menu, not one collapsed entry.
+				"--completion-style=detailed",
+				-- Never add #include lines behind your back: knowing which header declares
+				-- what (stdio.h for printf, stdlib.h for malloc) is part of learning C.
+				"--header-insertion=never",
+			},
+		})
+		vim.lsp.enable("clangd")
+	end
+
 	-- Servers that must not serve the notes vault, and why.
 	--
 	--   marksman    Duplicates obsidian.nvim's in-process LSP (definition, references,

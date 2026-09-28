@@ -32,6 +32,8 @@ local parsers = {
 	"sql",
 	"csv",
 	"tsv",
+	"c",
+	"make",
 }
 
 local highlight_fts = {
@@ -67,6 +69,7 @@ local highlight_fts = {
 	"sh",
 	"csv",
 	"tsv",
+	"make",
 }
 
 function M.setup()

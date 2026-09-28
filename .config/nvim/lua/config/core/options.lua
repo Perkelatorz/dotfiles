@@ -91,3 +91,7 @@ vim.diagnostic.config({
 	float = { border = "rounded" },
 	severity_sort = true,
 })
+
+-- `.h` files are C, not C++ (Nvim's default is `cpp`). Must be set before filetype
+-- detection runs on the first header, which is why it lives here and not in ftplugin.
+vim.g.c_syntax_for_h = true

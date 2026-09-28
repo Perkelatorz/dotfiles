@@ -34,6 +34,8 @@ To wipe only Neovim *data* (plugins under `~/.local/share/nvim/site`, Mason, cac
 | **A web browser** | **live-preview.nvim** opens the rendered page in it (`firefox` is in `apps.pkgs`). No NodeJS/Python runtime needed — the server is pure Lua. |
 | **`syncthing`** (optional) | Replicates the `$NOTES` vault between machines over the tailnet. In `base.pkgs`; `bootstrap` enables the user unit, turns on lingering, configures the folder (ID **`notes`**, send-receive, 10 versions kept), and confines the daemon to the Tailscale address (discovery/relays/UPnP off). Pairing a second machine is manual: it needs that machine's device ID **and an explicit `tcp://100.x.x.x:22000` address**, since discovery is disabled. |
 | **`bat`** | Preview pane for the `notes` shell function's pickers (`base.pkgs`; falls back to `cat`). |
+| **`clang`** (clangd, clang-format), **`gdb`**, **`man-pages`** | C: LSP, format, `<leader>ld` debugger, `<leader>lm` libc man pages. System packages, not Mason. |
+| **`valgrind`**, **`bear`** (optional) | C: `<leader>lv` memory checking; `bear -- make` writes `compile_commands.json` for clangd. |
 | **Zeal** (optional) | Offline docs (`docs.lua`). |
 | **Spell** | Neovim may download `spelllang` dictionaries once (`:help spell`). |
 
@@ -99,11 +101,11 @@ prettier, ruff, stylua, shfmt, shellcheck, hadolint, ansible-lint, goimports, go
 
 Parsers are installed under `$XDG_DATA_HOME/nvim/site/parser/` (and queries alongside under `site/`). List in config:
 
-lua, vim, vimdoc, bash, javascript, typescript, tsx, svelte, html, css, scss, json, yaml, toml, dockerfile, markdown, markdown_inline, python, vue, rust, go, regex, nix, graphql, sql, csv, tsv
+lua, vim, vimdoc, bash, javascript, typescript, tsx, svelte, html, css, scss, json, yaml, toml, dockerfile, markdown, markdown_inline, python, vue, rust, go, regex, nix, graphql, sql, csv, tsv, c, make
 
 ## Conform formatters (see `format.lua`)
 
-Prettier (web, JSON, markdown, etc.), **yamlfmt** (plain + Docker Compose YAML), Ruff (Python), goimports + gofmt (Go), Stylua (Lua), shfmt (shell), Taplo (TOML). Ansible YAML skips Prettier (|ansiblels| + |ansible_lint|); **yamlls** validates schemas with formatting delegated to **yamlfmt** where configured.
+Prettier (web, JSON, markdown, etc.), **yamlfmt** (plain + Docker Compose YAML), Ruff (Python), goimports + gofmt (Go), Stylua (Lua), shfmt (shell), Taplo (TOML), clang-format (C, system binary). Ansible YAML skips Prettier (|ansiblels| + |ansible_lint|); **yamlls** validates schemas with formatting delegated to **yamlfmt** where configured.
 
 ## Reset and redeploy
 

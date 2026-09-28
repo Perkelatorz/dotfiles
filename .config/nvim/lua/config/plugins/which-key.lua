@@ -16,6 +16,8 @@ function M.setup()
 		{ "<leader>c", group = "LSP · Claude · theme" },
 		{ "<leader>m", group = "markdown · preview" },
 		{ "<leader>k", group = "keys (cheatsheet)" },
+		-- Buffer-local, C buffers only: see after/ftplugin/c.lua.
+		{ "<leader>l", group = "C: build · run · debug" },
 		{ "<leader>;", group = "arrow: project bookmarks" },
 		{ "<leader>'", group = "arrow: buffer bookmarks" },
 		{ "<leader>o", group = "obsidian (notes)" },

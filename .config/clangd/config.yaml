@@ -1,0 +1,34 @@
+# clangd user config (Nvim C setup: ~/.config/nvim/lua/config/plugins/lsp.lua).
+# Docs: https://clangd.llvm.org/config
+#
+# A project with compile_commands.json (generate one with `bear -- make`) supplies its own
+# flags; these are *added* on top. Without one — single-file exercises — clangd would
+# otherwise check your code with no warnings enabled at all, and the editor would stay
+# quiet about mistakes gcc prints on build.
+
+If:
+  PathMatch: [.*\.c, .*\.h]
+CompileFlags:
+  # -xc: parse headers as C (clangd guesses C++ for a lone .h).
+  # Same warnings as the <leader>lb build (after/ftplugin/c.lua), so editor and compiler agree.
+  Add: [-xc, -std=c23, -Wall, -Wextra, -Wpedantic, -Wconversion, -Wshadow]
+---
+Diagnostics:
+  ClangTidy:
+    # bugprone: real mistakes (e.g. sizeof(ptr) where sizeof(*ptr) was meant).
+    # cert: the SEI CERT C Coding Standard — Seacord, Effective C's author, leads it, and
+    # the book cites its rules (e.g. INT30-C) throughout; the diagnostic names the rule.
+    # clang-analyzer-* (leaks, null derefs) is not listed: clangd refuses to run the
+    # static analyzer in the editor. The sanitizer build catches those at runtime instead.
+    Add: [bugprone-*, cert-*]
+    # Flags nearly every function with two int params; noise, not a bug.
+    # cert-err33-c: demands every printf/puts return value be checked. Right for
+    # production code, but it buries every exercise in warnings.
+    Remove: [bugprone-easily-swappable-parameters, cert-err33-c]
+  # Grey out #includes you no longer use, and flag names used without their header.
+  UnusedIncludes: Strict
+  MissingIncludes: Strict
+InlayHints:
+  # Parameter names at call sites: memcpy(/*dest*/ a, /*src*/ b, /*n*/ 4).
+  ParameterNames: true
+  DeducedTypes: true

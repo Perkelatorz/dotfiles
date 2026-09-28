@@ -187,6 +187,42 @@ GitHub/Obsidian Markdown rather than the plugin's default reStructuredText borde
 > sources it, so its `g:table_mode_*` options are set in `table_mode.prelude()`, called
 > from **`init.lua`** *before* `config.pack`. Setting them in `setup()` silently no-ops.
 
+## C
+
+Learning setup, following *Effective C* (2nd ed., Seacord; C23). Everything underneath is stock Vim (`:make`, quickfix, `:Termdebug`,
+`:Man`), so the habits transfer.
+
+- **LSP:** system **`clangd`** (Arch `clang`, not Mason) with clang-tidy, set up in
+  `lsp.lua`. Flags and checks for single files with no `compile_commands.json` are in
+  **`~/.config/clangd/config.yaml`** (`-std=c23 -Wall -Wextra -Wpedantic -Wconversion -Wshadow`; clang-tidy `bugprone-*` and
+  `cert-*` (SEI CERT C, which the book cites), minus the noisy `cert-err33-c`),
+  so the editor warns about the same things the build does. It never inserts `#include`s
+  for you. Generate a `compile_commands.json` for a Makefile project with **`bear -- make`**.
+- **Format:** **clang-format** on save. A project's `.clang-format` wins; without one it
+  uses LLVM style with a 4-space indent.
+- **`.h` is C** (`g:c_syntax_for_h`, in `options.lua`), not C++.
+- **Codeium is off in C buffers** (ghost text and the `[AI]` cmp source), because you learn
+  by writing the code yourself. To turn it back on, remove `c = false` in `codeium.lua` and
+  the `cmp.setup.filetype("c", …)` block in `cmp.lua`.
+
+**`after/ftplugin/c.lua`**, buffer-local under **`<leader>l`**:
+
+| Key | Action |
+|---|---|
+| `<leader>lb` | build → quickfix (`]q` / `[q`) |
+| `<leader>lr` / `<leader>lR` | build + run in a terminal split (stdin works) / with arguments |
+| `<leader>ld` | build + debug in gdb (`:Termdebug`) |
+| `<leader>lv` | build + run under valgrind |
+| `<leader>lm` | `man 3` page for the word under the cursor |
+| `<leader>lh` | switch `foo.c` ↔ `foo.h` |
+| `gf` | on `#include <stdio.h>`, open the header |
+
+With no Makefile next to the file, it compiles that one file into `./<name>` with
+`-std=c23`, full warnings including `-Wconversion`, `-g3 -O0` and **AddressSanitizer + UBSan**. Out-of-bounds
+access, use-after-free, leaks and signed overflow are then reported when the program runs,
+with the line number. The gdb and valgrind builds leave the sanitizers out. With a Makefile,
+it runs `make -C <dir>` and the flags are yours.
+
 ## Language smoke tests
 
 Open files under **`lang-samples/`** (see **`lang-samples/README.md`**) to verify LSP, Tree-sitter, and format-on-save without a full app repo.

@@ -32,6 +32,25 @@ function M.setup()
 			bash = { "shfmt" },
 			sh = { "shfmt" },
 			toml = { "taplo" },
+			-- System clang-format (Arch `clang`), same version as clangd.
+			c = { "clang_format" },
+		},
+		formatters = {
+			clang_format = {
+				-- A project's own .clang-format always wins. With none (exercises, scratch
+				-- files) clang-format would fall back to LLVM's 2-space indent; use 4, which
+				-- is what K&R, Modern C and most C books print.
+				prepend_args = function(_, ctx)
+					local found = vim.fs.find(
+						{ ".clang-format", "_clang-format" },
+						{ upward = true, path = ctx.dirname }
+					)
+					if #found > 0 then
+						return {}
+					end
+					return { "--style={BasedOnStyle: LLVM, IndentWidth: 4}" }
+				end,
+			},
 		},
 		format_after_save = {
 			lsp_format = "fallback",

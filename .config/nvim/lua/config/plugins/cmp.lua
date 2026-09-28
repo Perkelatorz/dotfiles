@@ -36,6 +36,23 @@ function M.setup()
 		Codeium = "󰘦",
 	}
 
+	local sources = {
+		{ name = "codeium", priority = 1, max_item_count = 3 },
+		{ name = "nvim_lsp", priority = 2 },
+		{ name = "path" },
+		{
+			name = "spell",
+			option = {
+				keep_all_entries = true,
+				enable_in_context = function()
+					return vim.wo.spell
+				end,
+				preselect_correct_word = true,
+			},
+		},
+		{ name = "buffer" },
+	}
+
 	cmp.setup({
 		snippet = {
 			expand = function(args)
@@ -65,22 +82,14 @@ function M.setup()
 		mapping = cmp.mapping.preset.insert({
 			["<CR>"] = cmp.mapping.confirm({ select = true }),
 		}),
-		sources = cmp.config.sources({
-			{ name = "codeium", priority = 1, max_item_count = 3 },
-			{ name = "nvim_lsp", priority = 2 },
-			{ name = "path" },
-			{
-				name = "spell",
-				option = {
-					keep_all_entries = true,
-					enable_in_context = function()
-						return vim.wo.spell
-					end,
-					preselect_correct_word = true,
-				},
-			},
-			{ name = "buffer" },
-		}),
+		sources = cmp.config.sources(sources),
+	})
+
+	-- C: same list minus Codeium (see |config.plugins.codeium| for why).
+	cmp.setup.filetype("c", {
+		sources = cmp.config.sources(vim.tbl_filter(function(src)
+			return src.name ~= "codeium"
+		end, sources)),
 	})
 end
 

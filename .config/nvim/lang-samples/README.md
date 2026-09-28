@@ -22,6 +22,7 @@ Small files under **`~/.config/nvim/lang-samples/`** so you can verify **Tree-si
 | `playbook.yml` | modeline → `yaml.ansible` + `ansiblels` |
 | `sample.csv` | **csvview** tabular view + Tree-sitter `csv` |
 | `sample.yaml` | plain YAML → **`yamlls`**, **`yamlfmt`** on save, **`yamllint`** after write |
+| `sample.c` | `clangd` (system, + clang-tidy), clang-format; `<leader>lr` builds and runs it (expect an ASan leak report) |
 | `sample.sh` | `bashls`, shfmt |
 | `sample.toml` | `taplo` |
 | `sample.js` | `eslint`, Prettier (plain JS) |

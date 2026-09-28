@@ -24,7 +24,10 @@ function M.setup()
 			enabled = true,
 			manual = false,
 			idle_delay = 75,
-			filetypes = {},
+			-- Off while learning C: ghost text writing the loop for you skips the part you
+			-- are here to practise. Delete this line to have it back. The cmp source is
+			-- dropped for C separately, in |config.plugins.cmp|.
+			filetypes = { c = false },
 			default_filetype_enabled = true,
 			map_keys = true,
 			key_bindings = {

@@ -13,6 +13,13 @@ rust
 # system node -- but then `nvm` is not a command, which is not the intent.
 nvm
 
+# --- C (learning): clang = clangd + clang-format; gcc/make come from base-devel ---
+clang
+gdb
+valgrind
+bear
+man-pages
+
 # --- CLI tools (ripgrep/fd: Telescope; unzip: Mason extraction) ---
 ripgrep
 fd
