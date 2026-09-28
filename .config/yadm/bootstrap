@@ -142,7 +142,7 @@ ensure_class() {
                      # case-insensitive, and ignoring a trailing -linux
                      lb=$(tr '[:upper:]' '[:lower:]' <<<"$b"); lb="${lb%-linux}"
                      lh=$(tr '[:upper:]' '[:lower:]' <<<"$HOST"); lh="${lh%-linux}"
-                     [[ "$lb" == "$lh" ]] && echo "$f"
+                     [[ "$lb" == "$lh" ]] && echo "$f" || true  # non-match must not trip pipefail
                  done | paste -sd, -)
         if [[ -n "$near" ]]; then
             warn "host list '$near' looks meant for this machine but will NEVER match"
