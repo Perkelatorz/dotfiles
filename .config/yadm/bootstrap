@@ -451,6 +451,13 @@ install_packages() {
     done
 
     # Headers / NVIDIA modules for the kernels actually installed.
+    # Pascal and older cannot run the open module, and the class list then names
+    # a legacy driver (nvidia-580xx-dkms). Both provide NVIDIA-MODULE and
+    # conflict, so the list wins: drop the derived nvidia-open entries.
+    if printf '%s\n' "${repo_pkgs[@]}" | grep -qE '^nvidia(-[0-9]+xx)?-dkms$'; then
+        mapfile -t KERNEL_PKGS < <(printf '%s\n' "${KERNEL_PKGS[@]}" | grep -v -- '-nvidia-open' || true)
+        ok "legacy NVIDIA driver in lists; skipping derived nvidia-open modules"
+    fi
     if (( ${#KERNEL_PKGS[@]} )); then
         repo_pkgs+=("${KERNEL_PKGS[@]}")
         ok "list: kernel-derived (${#KERNEL_PKGS[@]})"
