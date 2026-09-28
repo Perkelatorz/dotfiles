@@ -12,6 +12,7 @@ All user scripts live here. Referenced by Hyprland (autostart, keybinds) and Qui
 - `keybind-cheatsheet.sh` – show keybinds in rofi (Super+/)
 - `clipboard-rofi.sh` – cliphist+rofi clipboard manager (text/images/all)
 - `screenshot-*.sh` – fullscreen, region, last region (Quickshell screenshot widget)
+- `screenshot-gif.sh` – region GIF, press to start / press again to stop (Super+Ctrl+I)
 - `_wayland-env.sh` – sourced helper; recovers WAYLAND_DISPLAY when exec'd without env
 
 The executable bit is tracked by git (mode 100755), so a fresh clone gets it

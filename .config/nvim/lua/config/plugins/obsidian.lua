@@ -20,6 +20,14 @@ local M = {}
 local vault = vim.fn.expand((vim.env.NOTES or "") ~= "" and vim.env.NOTES or "~/notes")
 
 function M.setup()
+	-- No vault on this machine (fresh install, Syncthing not caught up): stay silent,
+	-- same as |config.plugins.notes_git|. obsidian.nvim raises "At least one workspace
+	-- is required" on a missing path, and that error aborts config.plugins.setup()
+	-- partway down the list -- LSP, cmp and neo-tree never load.
+	if vim.fn.isdirectory(vault) == 0 then
+		return
+	end
+
 	require("obsidian").setup({
 		workspaces = {
 			{ name = "notes", path = vault },

@@ -115,6 +115,7 @@ log_iotc.txt
 .config/opencode/*
 !.config/opencode/opencode.json
 !.config/opencode/skills
+!.config/opencode/AGENTS.md
 .config/go/
 .config/systemd/
 # xfconf dumps per-machine state here (window geometry, mounted shares, panel
@@ -190,6 +191,7 @@ log_iotc.txt
 
 # Quickshell runtime state (written by settings toggles / weather widget)
 .config/quickshell/bar-widgets.json
+.config/quickshell/bar-style.txt
 .config/quickshell/weather-location.txt
 
 # Generated palette. Colors.qml.tmpl is a COPY of one of the tracked

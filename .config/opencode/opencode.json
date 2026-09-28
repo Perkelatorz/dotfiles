@@ -6,16 +6,17 @@
       "npm": "@ai-sdk/openai-compatible",
       "name": "Spark GX10",
       "options": {
-        "baseURL": "{env:SPARK_BASE_URL}"
+        "baseURL": "{env:SPARK_BASE_URL}",
+        "apiKey": "{env:SPARK_API_KEY}"
       },
       "models": {
-        "Intel/Qwen3-Coder-Next-int4-AutoRound": {
-          "name": "Qwen3 Coder Next (GX10)"
+        "qwen3.8-27b": {
+          "name": "Qwen3.8 27B NVFP4 (GX10)"
         }
       }
     }
   },
-  "model": "spark/Intel/Qwen3-Coder-Next-int4-AutoRound",
+  "model": "spark/qwen3.8-27b",
   "mcp": {
     "websearch": {
       "type": "local",

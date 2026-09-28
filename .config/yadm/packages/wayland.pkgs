@@ -48,6 +48,10 @@ cliphist
 grim
 slurp
 brightnessctl
+# wf-recorder: wlr-screencopy screen capture for screenshot-gif.sh; ffmpeg
+# does the GIF encode but cannot grab a Wayland surface on its own.
+wf-recorder
+ffmpeg
 
 # --- Runtime deps of ~/.config/scripts/* ---
 # jq: _compositor.sh, screen-off.sh, screenshot-fullscreen.sh parse compositor
