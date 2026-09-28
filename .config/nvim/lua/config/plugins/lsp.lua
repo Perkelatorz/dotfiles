@@ -1,11 +1,62 @@
---- nvim-lspconfig: default cmd/filetypes/root_dir per server (so you rarely type them by hand).
---- mason-lspconfig: maps server names to Mason packages and runs your |lspconfig| setup handler.
+--- nvim-lspconfig: default cmd/filetypes/root_dir per server, as `lsp/<name>.lua` files that
+--- |vim.lsp.config()| merges with (so you rarely type them by hand).
+--- mason-lspconfig (v2): installs `ensure_installed` and calls |vim.lsp.enable()| for every
+--- Mason-installed server. It has **no** `handlers` any more — a v1-style `handlers = {…}`
+--- table is silently ignored, so per-server settings go through |vim.lsp.config()| below.
 --- Neovim core: |vim.lsp.buf| commands, LspAttach, clients — no extra "LSP engine" plugin.
 
 local M = {}
 
 function M.setup()
-	local caps = require("cmp_nvim_lsp").default_capabilities()
+	-- Every server: nvim-cmp's completion capabilities.
+	vim.lsp.config("*", {
+		capabilities = require("cmp_nvim_lsp").default_capabilities(),
+	})
+
+	-- Per-server overrides, merged over nvim-lspconfig's defaults. Declared before
+	-- mason-lspconfig enables anything; config is resolved when a client starts anyway.
+	vim.lsp.config("lua_ls", {
+		settings = {
+			Lua = {
+				runtime = { version = "LuaJIT" },
+				diagnostics = { globals = { "vim" } },
+				workspace = { checkThirdParty = false },
+			},
+		},
+	})
+
+	vim.lsp.config("rust_analyzer", {
+		settings = {
+			["rust-analyzer"] = {
+				checkOnSave = true,
+			},
+		},
+	})
+
+	vim.lsp.config("pyright", {
+		settings = {
+			python = {
+				analysis = {
+					typeCheckingMode = "basic",
+					diagnosticMode = "workspace",
+				},
+			},
+		},
+	})
+
+	vim.lsp.config("yamlls", {
+		-- Avoid stacking with |docker_compose_language_service| on Compose buffers.
+		filetypes = { "yaml" },
+		settings = {
+			redhat = { telemetry = { enabled = false } },
+			yaml = {
+				-- Conform uses |yamlfmt|; avoid two formatters fighting.
+				format = { enable = false },
+				validate = true,
+				schemaStore = { enable = true },
+			},
+		},
+	})
 
 	require("mason-lspconfig").setup({
 		-- lua_ls: Neovim Lua.
@@ -44,69 +95,11 @@ function M.setup()
 			"marksman",
 			"yamlls",
 		},
-		handlers = {
-			function(server_name)
-				require("lspconfig")[server_name].setup({
-					capabilities = caps,
-				})
-			end,
-			["lua_ls"] = function()
-				require("lspconfig").lua_ls.setup({
-					capabilities = caps,
-					settings = {
-						Lua = {
-							runtime = { version = "LuaJIT" },
-							diagnostics = { globals = { "vim" } },
-							workspace = { checkThirdParty = false },
-						},
-					},
-				})
-			end,
-			["rust_analyzer"] = function()
-				require("lspconfig").rust_analyzer.setup({
-					capabilities = caps,
-					settings = {
-						["rust-analyzer"] = {
-							checkOnSave = true,
-						},
-					},
-				})
-			end,
-			["pyright"] = function()
-				require("lspconfig").pyright.setup({
-					capabilities = caps,
-					settings = {
-						python = {
-							analysis = {
-								typeCheckingMode = "basic",
-								diagnosticMode = "workspace",
-							},
-						},
-					},
-				})
-			end,
-			["yamlls"] = function()
-				require("lspconfig").yamlls.setup({
-					capabilities = caps,
-					-- Avoid stacking with |docker_compose_language_service| on Compose buffers.
-					filetypes = { "yaml" },
-					settings = {
-						redhat = { telemetry = { enabled = false } },
-						yaml = {
-							-- Conform uses |yamlfmt|; avoid two formatters fighting.
-							format = { enable = false },
-							validate = true,
-							schemaStore = { enable = true },
-						},
-					},
-				})
-			end,
-		},
 	})
 
 	-- oxalica/nil as **system** `nil` (e.g. AUR `nil-git`). Mason’s `nil` package is not used (it requires the Nix PM to compile).
 	if vim.fn.executable("nil") == 1 then
-		require("lspconfig").nil_ls.setup({ capabilities = caps })
+		vim.lsp.enable("nil_ls")
 	end
 
 	-- Servers that must not serve the notes vault, and why.
