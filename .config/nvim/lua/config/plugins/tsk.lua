@@ -94,9 +94,11 @@ function M.setup()
 	-- before the fix is actually in the editor -- which is how a month-boundary
 	-- bug in the date picker stayed live locally after it was already fixed.
 	--
-	-- Deferred off the startup path because vim.pack.update reaches the network,
-	-- and that must never sit between :e and the first keystroke. `force` skips
-	-- the confirmation buffer; reviewing a diff of my own commits is theatre.
+	-- vim.pack.update waits on its git calls, so it freezes the editor for as long
+	-- as the network takes (about ten seconds here) even when deferred. The remote
+	-- head is therefore checked first with an async ls-remote, and the update only
+	-- runs on the starts where it differs from the installed revision. `force`
+	-- skips the confirmation buffer; reviewing a diff of my own commits is theatre.
 	--
 	-- Skipped without a UI: headless runs are scripts and tests, and they should
 	-- neither reach the network nor rewrite the lockfile under a test. The check
@@ -115,7 +117,15 @@ function M.setup()
 				if #vim.api.nvim_list_uis() == 0 then
 					return
 				end
-				pcall(vim.pack.update, { "tsk.nvim" }, { force = true })
+				local plug = vim.pack.get({ "tsk.nvim" }, { info = false })[1]
+				vim.system({ "git", "ls-remote", plug.spec.src, "HEAD" }, { text = true, timeout = 30000 }, function(out)
+					local remote = out.code == 0 and out.stdout:match("^%x+")
+					if remote and remote ~= plug.rev then
+						vim.schedule(function()
+							pcall(vim.pack.update, { "tsk.nvim" }, { force = true })
+						end)
+					end
+				end)
 			end, 2000)
 		end,
 	})
