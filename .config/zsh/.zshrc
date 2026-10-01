@@ -82,7 +82,17 @@ else
     alias la='ls -A --color=auto'
 fi
 alias grep='grep --color=auto'
-alias ssh='kitten ssh'
+# kitten ssh only works with POSIX remote shells; Windows/PowerShell hosts
+# choke on its bootstrap. Route those to plain ssh, everything else to kitten.
+# The hosts are globs in ssh-plain-hosts, one per line. That file is untracked
+# on purpose: it names work machines and this repo is public.
+ssh() {
+  local pat f="$ZDOTDIR/ssh-plain-hosts"
+  [[ -r $f ]] && for pat in ${(f)"$(<$f)"}; do
+    [[ "$*" == ${~pat} ]] && { command ssh "$@"; return }
+  done
+  kitten ssh "$@"
+}
 alias rvim='edit-in-kitty'
 alias wget='wget --hsts-file="$XDG_CACHE_HOME/wget-hsts"'
 

@@ -5,7 +5,7 @@ image/jpeg=imv.desktop;kitty-icat.desktop;
 image/png=imv.desktop;kitty-icat.desktop;
 image/svg+xml=imv.desktop;kitty-icat.desktop;
 image/webp=imv.desktop;kitty-icat.desktop;
-text/plain=nvim-kitty.desktop;nvim-4.desktop;nvim-3.desktop;
+text/plain=vscodium-wayland.desktop;nvim-4.desktop;nvim-kitty.desktop;nvim-3.desktop;
 
 [Default Applications]
 application/gzip=xarchiver.desktop

@@ -10,5 +10,11 @@
 # failing to start a PAM conversation -- goes to a closed fd. A lock screen
 # that would not unlock overnight left no trace anywhere for exactly this
 # reason; the only record of the incident was `last reboot`.
+# Explicit sync off: on NVIDIA (580xx + egl-wayland 1.1.22) under mango every
+# transient surface (OSD, notification toast) leaks ~16 sync_file fds that are
+# never closed. At mango's 2048 soft limit the shell dies with "Too many open
+# files" after a few days. Ignored on non-NVIDIA machines. Drop this once
+# `ls -l /proc/$(pgrep -x quickshell)/fd | grep -c sync_file` stays flat without it.
+export __NV_DISABLE_EXPLICIT_SYNC=1
 exec systemd-cat -t quickshell --stderr-priority=warning \
     quickshell -p "${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/shell.qml"
