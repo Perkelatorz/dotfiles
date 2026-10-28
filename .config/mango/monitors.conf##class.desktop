@@ -35,12 +35,12 @@
 # mis-routes clicks on negative coordinates.
 
 # Portrait panel, left of the stack (1440x2560 once rotated) — AW2725DM
-monitorrule=name:^HDMI-A-2$,width:2560,height:1440,refresh:143.97,x:0,y:504,scale:1,rr:1,vrr:0,hdr:0
+monitor_rule=name:^HDMI-A-2$,width:2560,height:1440,refresh:143.97,x:0,y:504,scale:1,rr:1,vrr:0,hdr:0
 
 # Ultrawide (main) — AW3423DWF
 # 164.9Hz = 1019.28 MHz pixel clock. Fallback if the 4K cannot hold 240:
 #   refresh:99.98  (538.37 MHz)  or  refresh:59.97  (319.75 MHz)
-monitorrule=name:^DP-1$,width:3440,height:1440,refresh:164.9,x:1440,y:0,scale:1,rr:0,vrr:0,hdr:0
+monitor_rule=name:^DP-1$,width:3440,height:1440,refresh:164.9,x:1440,y:0,scale:1,rr:0,vrr:0,hdr:0
 
 # 4K240 below the ultrawide — the gaming panel. AW3225QF.
 #
@@ -62,7 +62,7 @@ monitorrule=name:^DP-1$,width:3440,height:1440,refresh:164.9,x:1440,y:0,scale:1,
 # QD-OLED caveat: brightness can shift within the VRR range on near-static
 # scenes. If that shows up, set this back to vrr:0 -- the game rule keeps
 # working, it just stops engaging.
-monitorrule=name:^DP-2$,width:3840,height:2160,refresh:239.99,x:1440,y:1440,scale:1.3333333,rr:0,vrr:1,hdr:0
+monitor_rule=name:^DP-2$,width:3840,height:2160,refresh:239.99,x:1440,y:1440,scale:1.3333333,rr:0,vrr:1,hdr:0
 
 # --- Notes on the two Hyprland params with no direct equivalent -------------
 # bitdepth,10 : mango exposes 10-bit only through the HDR path (hdr:1 on the
@@ -81,4 +81,4 @@ monitorrule=name:^DP-2$,width:3840,height:2160,refresh:239.99,x:1440,y:1440,scal
 # names are not — see the note there.
 #
 # Change DP-1 to another output (or comment out) to game elsewhere.
-windowrule=appid:^(steam_app_\d+|gamescope|.*\.exe)$,monitor:DP-1,isfullscreen:1,vrr_only_fullscreen:1
+window_rule=app_id:^(steam_app_\d+|gamescope|.*\.exe)$,monitor:DP-1,is_fullscreen:1,vrr_only_fullscreen:1

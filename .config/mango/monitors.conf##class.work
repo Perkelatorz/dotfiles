@@ -14,10 +14,10 @@
 # bitdepth,10 has no scenefx equivalent — see the desktop file's notes.
 
 # Portrait side panel, far left (1080x1920 once rotated, scaled 0.8)
-monitorrule=name:^DP-1$,width:1920,height:1080,refresh:60.0,x:0,y:0,scale:0.8,rr:1,vrr:0,hdr:0
+monitor_rule=name:^DP-1$,width:1920,height:1080,refresh:60.0,x:0,y:0,scale:0.8,rr:1,vrr:0,hdr:0
 
 # Center 4K
-monitorrule=name:^DP-4$,width:3840,height:2160,refresh:60.0,x:1350,y:310,scale:1.25,rr:0,vrr:0,hdr:0
+monitor_rule=name:^DP-4$,width:3840,height:2160,refresh:60.0,x:1350,y:310,scale:1.25,rr:0,vrr:0,hdr:0
 
 # Right 4K
-monitorrule=name:^DP-3$,width:3840,height:2160,refresh:60.0,x:4422,y:310,scale:1.25,rr:0,vrr:0,hdr:0
+monitor_rule=name:^DP-3$,width:3840,height:2160,refresh:60.0,x:4422,y:310,scale:1.25,rr:0,vrr:0,hdr:0
